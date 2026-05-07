@@ -80,32 +80,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         if (session?.user) {
           setUser(session.user);
-          // Only fetch if session exists
-          await fetchProfile(session.user.id, session.user);
+          // Start fetching profile but let the session be established
+          fetchProfile(session.user.id, session.user).finally(() => {
+            if (mounted) setLoading(false);
+          });
         } else {
           setUser(null);
           setProfile(null);
+          setLoading(false);
         }
       } catch (err) {
         console.error('Session handling error:', err);
-      } finally {
         if (mounted) setLoading(false);
       }
     }
 
     // Initialize auth
     const init = async () => {
-      // Safety timeout: 10 seconds to force loading false if init hangs
+      // Safety timeout: 6 seconds to force loading false if init hangs
       const timeout = setTimeout(() => {
         if (mounted && loading) {
           console.warn('Auth initialization timed out, forcing loading false');
           setLoading(false);
         }
-      }, 10000);
+      }, 6000);
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        await handleSession(session);
+        if (!session) {
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        } else {
+          await handleSession(session);
+        }
       } catch (err) {
         console.error('Init error:', err);
         if (mounted) setLoading(false);

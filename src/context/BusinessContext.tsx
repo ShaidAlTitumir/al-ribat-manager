@@ -54,8 +54,14 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   useEffect(() => {
-    refreshBusiness();
-  }, [profile?.business_id]);
+    if (profile?.business_id) {
+      fetchBusiness(profile.business_id);
+    } else if (profile === null) {
+      // Profile explicitly null (logged out)
+      setBusiness(null);
+      setLoading(false);
+    }
+  }, [profile?.business_id, profile === null]);
 
   const updateExchangeRate = async (rate: number) => {
     if (!business) return;

@@ -27,38 +27,20 @@ interface BusinessMetrics {
 export default function Dashboard() {
   const { business } = useBusiness();
   const navigate = useNavigate();
-  const [metrics, setMetrics] = useState<BusinessMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchMetrics() {
-      if (!business) {
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      try {
-        const { data, error } = await supabase.rpc('get_business_valuation', { p_business_id: business.id });
-        if (error) throw error;
-        setMetrics(data);
-      } catch (err) {
-        console.error('RPC Error, falling back to client-side calc:', err);
-        // Fallback calculation logic would go here
-        // For now, setting some dummy values to showing the UI
-        setMetrics({
-          cash_bdt: 0,
-          inventory_value: 0,
-          receivables: 0,
-          payables: 0,
-          total_assets: 0,
-          business_value: 0
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchMetrics();
-  }, [business?.id]);
+  const { data: metrics, isLoading: metricsLoading } = useQuery({
+    queryKey: ['businessMetrics', business?.id],
+    queryFn: async () => {
+      if (!business?.id) return null;
+      const { data, error } = await supabase.rpc('get_business_valuation', { p_business_id: business.id });
+      if (error) throw error;
+      return data as BusinessMetrics;
+    },
+    enabled: !!business?.id,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+
+  const isLoading = metricsLoading || !business;
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-BD', { style: 'currency', currency: 'BDT', maximumFractionDigits: 0 }).format(val / 100);
@@ -192,33 +174,17 @@ export default function Dashboard() {
     queryFn: async () => {
       if (!business?.id) return [];
       
-      // Fetch latest activities from multiple tables
+      // Fetch only essential recent activities for better performance
       const [
+        { data: activity_log },
         { data: sales },
         { data: expenses },
-        { data: contributions },
-        { data: ledger },
-        { data: purchases },
-        { data: exchanges },
-        { data: transfers },
-        { data: newCustomers },
-        { data: newPartners },
-        { data: newItems },
-        { data: approvedRequests },
-        { data: activity_log }
+        { data: ledger }
       ] = await Promise.all([
-        supabase.from('sales').select('*, inventory_items(name)').eq('business_id', business.id).order('created_at', { ascending: false }).limit(10),
-        supabase.from('expenses').select('*').eq('business_id', business.id).order('created_at', { ascending: false }).limit(10),
-        supabase.from('capital_contributions').select('*, partners(name)').eq('business_id', business.id).order('created_at', { ascending: false }).limit(10),
-        supabase.from('customer_ledger').select('*, customers(name)').eq('business_id', business.id).order('created_at', { ascending: false }).limit(15),
-        supabase.from('purchase_transactions').select('*, inventory_items(name)').eq('business_id', business.id).order('created_at', { ascending: false }).limit(10),
-        supabase.from('exchanges').select('*').eq('business_id', business.id).order('created_at', { ascending: false }).limit(10),
-        supabase.from('partner_transfers').select('*, from_partner:partners!from_partner_id(name), to_partner:partners!to_partner_id(name)').eq('business_id', business.id).order('created_at', { ascending: false }).limit(10),
-        supabase.from('customers').select('*').eq('business_id', business.id).order('created_at', { ascending: false }).limit(5),
-        supabase.from('partners').select('*').eq('business_id', business.id).order('created_at', { ascending: false }).limit(5),
-        supabase.from('inventory_items').select('*').eq('business_id', business.id).order('created_at', { ascending: false }).limit(10),
-        supabase.from('join_requests').select('*, profiles(full_name)').eq('business_id', business.id).eq('status', 'approved').order('created_at', { ascending: false }).limit(5),
-        supabase.from('activity_log').select('*').eq('business_id', business.id).order('created_at', { ascending: false }).limit(20)
+        supabase.from('activity_log').select('*').eq('business_id', business.id).order('created_at', { ascending: false }).limit(10),
+        supabase.from('sales').select('*, inventory_items(name)').eq('business_id', business.id).order('created_at', { ascending: false }).limit(5),
+        supabase.from('expenses').select('*').eq('business_id', business.id).order('created_at', { ascending: false }).limit(5),
+        supabase.from('customer_ledger').select('*, customers(name)').eq('business_id', business.id).order('created_at', { ascending: false }).limit(5)
       ]);
 
       const items = [
@@ -249,15 +215,6 @@ export default function Dashboard() {
           type: 'expense',
           raw_date: e.created_at
         })) || []),
-        ...(contributions?.map(c => ({
-          id: c.id,
-          title: `Capital: ${c.partners?.name || 'Partner'}`,
-          sub: `Contribution (${c.currency})`,
-          amount: `+${c.currency === 'RMB' ? '¥' : '৳'}${parseFloat(c.amount).toLocaleString()}`,
-          time: new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          type: 'capital',
-          raw_date: c.created_at
-        })) || []),
         ...(ledger?.filter(l => l.transaction_type !== 'sale').map(l => ({
           id: l.id,
           title: l.transaction_type === 'payment' ? `Payment: ${l.customers?.name}` : `Return: ${l.customers?.name}`,
@@ -266,69 +223,6 @@ export default function Dashboard() {
           time: new Date(l.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           type: l.transaction_type === 'payment' ? 'payment' : 'return',
           raw_date: l.created_at
-        })) || []),
-        ...(purchases?.map(p => ({
-          id: p.id,
-          title: `Purchase: ${p.inventory_items?.name || 'Item'}`,
-          sub: `Stock In (${p.quantity} units)`,
-          amount: `-৳${(p.total_landed_cost_bdt_cents / 100).toLocaleString()}`,
-          time: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          type: 'purchase',
-          raw_date: p.created_at
-        })) || []),
-        ...(exchanges?.map(ex => ({
-          id: ex.id,
-          title: `Exchange: ${ex.from_currency} → ${ex.to_currency}`,
-          sub: `Rate @ ${ex.rate}`,
-          amount: `${ex.to_currency === 'RMB' ? '¥' : '৳'}${(ex.amount_to_cents / 100).toLocaleString()}`,
-          time: new Date(ex.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          type: 'transfer',
-          raw_date: ex.created_at
-        })) || []),
-        ...(transfers?.map(t => ({
-          id: t.id,
-          title: `Transfer: ${t.from_partner?.name} → ${t.to_partner?.name}`,
-          sub: t.method || 'Partner Transfer',
-          amount: `${t.currency === 'RMB' ? '¥' : '৳'}${(t.amount_cents / 100).toLocaleString()}`,
-          time: new Date(t.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          type: 'transfer',
-          raw_date: t.created_at
-        })) || []),
-        ...(newCustomers?.map(c => ({
-          id: c.id,
-          title: `New Customer: ${c.name}`,
-          sub: 'Customer Registered',
-          amount: 'NEW',
-          time: new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          type: 'customer',
-          raw_date: c.created_at
-        })) || []),
-        ...(newPartners?.map(p => ({
-          id: p.id,
-          title: `New Partner: ${p.name}`,
-          sub: 'Partner Added',
-          amount: 'JOINED',
-          time: new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          type: 'partner',
-          raw_date: p.created_at
-        })) || []),
-        ...(newItems?.map(i => ({
-          id: i.id,
-          title: `New Item: ${i.name}`,
-          sub: 'Inventory Item Added',
-          amount: 'STOCK',
-          time: new Date(i.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          type: 'inventory',
-          raw_date: i.created_at
-        })) || []),
-        ...(approvedRequests?.map(r => ({
-          id: r.id,
-          title: `Member: ${r.profiles?.full_name}`,
-          sub: 'Access Approved',
-          amount: 'MEMBER',
-          time: new Date(r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          type: 'partner',
-          raw_date: r.updated_at || r.created_at
         })) || [])
       ].sort((a, b) => new Date(b.raw_date).getTime() - new Date(a.raw_date).getTime());
 
@@ -363,39 +257,45 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           <KpiCard 
             title="Business Value" 
-            value={metrics ? formatCurrency(metrics.business_value) : '...'} 
+            value={metrics ? formatCurrency(metrics.business_value) : null} 
             color="bg-blue-600 text-white" 
             subtext="Equity (Net)"
+            loading={isLoading}
             icon={<DollarSign className="w-3.5 h-3.5" />}
           />
           <KpiCard 
             title="BDT Balance" 
-            value={balances ? `৳${Math.round(balances.bdt).toLocaleString()}` : '...'} 
+            value={balances ? `৳${Math.round(balances.bdt).toLocaleString()}` : null} 
             subtext="Wallet (Cash)"
+            loading={isLoading}
             icon={<Wallet className="w-3.5 h-3.5 text-blue-500" />}
           />
           <KpiCard 
             title="RMB Balance" 
-            value={balances ? `¥${Math.round(balances.rmb).toLocaleString()}` : '...'} 
+            value={balances ? `¥${Math.round(balances.rmb).toLocaleString()}` : null} 
             subtext="Wallet (Cash)"
+            loading={isLoading}
             icon={<RefreshCw className="w-3.5 h-3.5 text-emerald-500" />}
           />
           <KpiCard 
             title="Inventory" 
-            value={metrics ? formatCurrency(metrics.inventory_value) : '...'} 
+            value={metrics ? formatCurrency(metrics.inventory_value) : null} 
             subtext="Current Stock"
+            loading={isLoading}
             icon={<Package className="w-3.5 h-3.5 text-orange-500" />}
           />
           <KpiCard 
             title="Total Assets" 
-            value={metrics ? formatCurrency(metrics.total_assets) : '...'} 
+            value={metrics ? formatCurrency(metrics.total_assets) : null} 
             subtext={metrics ? `Cash + Stock + Dues` : "Gross Value"}
+            loading={isLoading}
             icon={<ArrowUpRight className="w-3.5 h-3.5 text-indigo-500" />}
           />
           <KpiCard 
             title="Total Due" 
-            value={metrics ? formatCurrency(metrics.receivables) : '...'} 
+            value={metrics ? formatCurrency(metrics.receivables) : null} 
             subtext="Customer Dues"
+            loading={isLoading}
             icon={<Users className="w-3.5 h-3.5 text-red-500" />}
           />
         </div>
@@ -512,16 +412,20 @@ export default function Dashboard() {
   );
 }
 
-function KpiCard({ title, value, color, subtext, icon, isNegative }: any) {
+function KpiCard({ title, value, color, subtext, icon, loading }: any) {
   return (
-    <div className={`p-4 rounded-2xl border border-slate-100 shadow-sm ${color || 'bg-white'}`}>
+    <div className={`p-4 rounded-2xl border border-slate-100 shadow-sm ${color || 'bg-white'} transition-all`}>
       <div className="flex items-center justify-between mb-1.5">
         <span className={`text-[9px] font-black uppercase tracking-widest ${color ? 'text-white/60' : 'text-slate-400'}`}>{title}</span>
         <div className={`w-6 h-6 rounded flex items-center justify-center ${color ? 'bg-white/20' : 'bg-slate-50'}`}>
           {icon}
         </div>
       </div>
-      <p className="text-lg font-black tracking-tight">{value}</p>
+      {loading ? (
+        <div className={`h-6 w-24 rounded animate-pulse ${color ? 'bg-white/20' : 'bg-slate-100'}`} />
+      ) : (
+        <p className="text-lg font-black tracking-tight">{value || '0'}</p>
+      )}
       <p className={`text-[8px] mt-0.5 font-black ${color ? 'text-white/40' : 'text-slate-400'} uppercase tracking-tight truncate`}>{subtext}</p>
     </div>
   );
