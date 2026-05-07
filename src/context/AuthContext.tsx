@@ -82,8 +82,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           throw error;
         }
-        setUser(session?.user ?? null);
-        if (session?.user) fetchProfile(session.user.id);
+        
+        if (session?.user) {
+          setUser(session.user);
+          await fetchProfile(session.user.id);
+        } else {
+          setUser(null);
+          setProfile(null);
+        }
       } catch (err) {
         console.error('Auth initialization error:', err);
         setUser(null);
@@ -97,17 +103,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setLoading(true);
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
+        setLoading(false);
       } else if (session?.user) {
         setUser(session.user);
-        fetchProfile(session.user.id);
+        await fetchProfile(session.user.id);
+        setLoading(false);
       } else {
         setUser(null);
         setProfile(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();

@@ -1,5 +1,6 @@
 {
-  "name": "Remix: Al-Ribat Manager",
+  "name": "Published: Al-Ribat Manager",
   "description": "A complete import-export partnership ERP for managing inventory, sales, and partner equity with multi-currency support.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }
