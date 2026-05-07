@@ -19,7 +19,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, authUser?: User) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (!data) {
         // Fallback: If profile doesn't exist, it might be a race condition with the trigger
         // or the trigger failed. Let's try to create it here as a safety net.
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = authUser || (await supabase.auth.getUser()).data.user;
         if (user && user.id === userId) {
           const nameValue = user.user_metadata?.full_name || user.user_metadata?.name || '';
           const profileData: any = { 
@@ -68,58 +68,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshProfile = async () => {
-    if (user) await fetchProfile(user.id);
+    if (user) await fetchProfile(user.id, user);
   };
 
   useEffect(() => {
-    // Initial session check
-    const initAuth = async () => {
+    let mounted = true;
+
+    async function handleSession(session: any) {
+      if (!mounted) return;
+      
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          if (error.message.includes('Refresh Token Not Found') || error.message.includes('invalid_grant')) {
-            await supabase.auth.signOut();
-          }
-          throw error;
-        }
-        
         if (session?.user) {
           setUser(session.user);
-          await fetchProfile(session.user.id);
+          // Only fetch if session exists
+          await fetchProfile(session.user.id, session.user);
         } else {
           setUser(null);
           setProfile(null);
         }
       } catch (err) {
-        console.error('Auth initialization error:', err);
-        setUser(null);
-        setProfile(null);
+        console.error('Session handling error:', err);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
+      }
+    }
+
+    // Initialize auth
+    const init = async () => {
+      // Safety timeout: 10 seconds to force loading false if init hangs
+      const timeout = setTimeout(() => {
+        if (mounted && loading) {
+          console.warn('Auth initialization timed out, forcing loading false');
+          setLoading(false);
+        }
+      }, 10000);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        await handleSession(session);
+      } catch (err) {
+        console.error('Init error:', err);
+        if (mounted) setLoading(false);
+      } finally {
+        clearTimeout(timeout);
       }
     };
 
-    initAuth();
+    init();
 
-    // Listen for auth changes
+    // Listen for changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setLoading(true);
+      if (!mounted) return;
+      
       if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
         setLoading(false);
-      } else if (session?.user) {
-        setUser(session.user);
-        await fetchProfile(session.user.id);
-        setLoading(false);
-      } else {
-        setUser(null);
-        setProfile(null);
-        setLoading(false);
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        // Only set loading if we don't have a user yet or it's a sign in
+        if (!user || event === 'SIGNED_IN') {
+           setLoading(true);
+        }
+        await handleSession(session);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
