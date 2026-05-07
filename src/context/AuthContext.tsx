@@ -106,7 +106,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }, 6000);
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          // If the refresh token is missing or invalid, sign out to clear storage
+          if (
+            error.message.includes('Refresh Token Not Found') || 
+            error.message.includes('invalid_grant') ||
+            error.message.includes('session_not_found')
+          ) {
+            console.warn('Invalid auth session detected, clearing storage...');
+            await supabase.auth.signOut();
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+            return;
+          }
+          throw error;
+        }
+
         if (!session) {
           setUser(null);
           setProfile(null);

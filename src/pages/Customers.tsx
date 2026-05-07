@@ -546,6 +546,36 @@ function CustomerDetailDrawer({ customer, onClose, onEdit, onDelete }: { custome
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button 
+                              onClick={() => {
+                                if (business) {
+                                  import('../lib/pdfGenerator').then(module => {
+                                    module.generatePaymentReceipt(
+                                      {
+                                        name: business.name,
+                                        phone: business.phone,
+                                        address: business.address
+                                      },
+                                      {
+                                        name: customer.name,
+                                        shopName: customer.shop_name,
+                                        phone: customer.phone,
+                                        address: customer.address
+                                      },
+                                      {
+                                        date: entry.created_at,
+                                        amount: entry.amount_cents / 100,
+                                        method: 'Collected',
+                                        remainingDue: customer.total_due_cents / 100
+                                      }
+                                    );
+                                  });
+                                }
+                              }}
+                              className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-white rounded-xl transition-all"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+                            <button 
                               onClick={() => setLedgerEntryToDelete(entry)}
                               className="p-2 text-slate-400 hover:text-red-600 hover:bg-white rounded-xl transition-all"
                             >

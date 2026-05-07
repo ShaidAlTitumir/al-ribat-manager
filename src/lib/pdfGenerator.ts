@@ -359,8 +359,8 @@ export const generateCustomerStatement = (
     })),
     ...ledger.map(l => ({
       date: l.created_at,
-      ref: 'PAYMENT',
-      type: 'PAYMENT',
+      ref: 'Payment',
+      type: 'Due',
       billed: 0,
       paid: l.amount_cents / 100,
       due: 0,
@@ -422,5 +422,102 @@ export const generateCustomerStatement = (
   doc.text(`${business.name} | ${business.phone || ''} | Account Statement`, pageWidth / 2, pageHeight - 6, { align: 'center' });
 
   const fileName = `Statement_${customer.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`;
+  doc.save(fileName);
+};
+
+export const generatePaymentReceipt = (
+  business: BusinessInfo,
+  customer: CustomerInfo,
+  payment: {
+    date: string;
+    amount: number;
+    method: string;
+    remainingDue: number;
+  }
+) => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+
+  const primaryColor = [37, 99, 235];
+  const secondaryColor = [15, 23, 42];
+  const accentColor = [241, 245, 249];
+
+  // Header
+  doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+  doc.rect(0, 0, pageWidth, 45, 'F');
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.rect(0, 45, pageWidth, 2, 'F');
+
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text(business.name.toUpperCase(), 15, 25);
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(180, 180, 180);
+  doc.text(`${business.address || ''}  |  Tel: ${business.phone || ''}`, 15, 33);
+
+  doc.setFontSize(24);
+  doc.setTextColor(255, 255, 255);
+  doc.text('PAYMENT RECEIPT', pageWidth - 15, 28, { align: 'right' });
+
+  // Body
+  doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('RECEIVED FROM:', 15, 65);
+  doc.setFontSize(14);
+  doc.text(customer.name.toUpperCase(), 15, 73);
+  doc.setFontSize(10);
+  if (customer.shopName) doc.text(customer.shopName.toUpperCase(), 15, 79);
+
+  // Receipt Details Box
+  doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+  doc.roundedRect(15, 90, pageWidth - 30, 60, 2, 2, 'F');
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Payment Date:', 25, 105);
+  doc.setFont('helvetica', 'bold');
+  doc.text(format(new Date(payment.date), 'dd MMM yyyy, hh:mm a'), 70, 105);
+
+  doc.setFont('helvetica', 'normal');
+  doc.text('Payment Type:', 25, 115);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Due', 70, 115); // Explicitly "Due" as requested
+
+  doc.setFont('helvetica', 'normal');
+  doc.text('Payment Method:', 25, 125);
+  doc.setFont('helvetica', 'bold');
+  doc.text(payment.method.toUpperCase(), 70, 125);
+
+  doc.setFontSize(16);
+  doc.setTextColor(34, 197, 94); // emerald-600
+  doc.text('Amount Paid:', 25, 140);
+  doc.text(`Tk ${payment.amount.toLocaleString()}`, 70, 140);
+
+  // Remaining Balance
+  doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Remaining Due:', 15, 170);
+  doc.setFont('helvetica', 'bold');
+  if (payment.remainingDue > 0) {
+    doc.setTextColor(239, 68, 68);
+  } else {
+    doc.setTextColor(34, 197, 94);
+  }
+  doc.text(`Tk ${payment.remainingDue.toLocaleString()}`, 50, 170);
+
+  // Footer
+  doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+  doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
+  doc.setFontSize(8);
+  doc.setTextColor(148, 163, 184);
+  doc.text(`${business.name}  |  Official Payment Receipt`, pageWidth / 2, pageHeight - 6, { align: 'center' });
+
+  const fileName = `Receipt_${customer.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`;
   doc.save(fileName);
 };
