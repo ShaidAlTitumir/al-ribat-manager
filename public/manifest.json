@@ -1,0 +1,22 @@
+{
+  "short_name": "Al-Ribat",
+  "name": "Al-Ribat Manager",
+  "icons": [
+    {
+      "src": "logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#003366",
+  "background_color": "#ffffff"
+}

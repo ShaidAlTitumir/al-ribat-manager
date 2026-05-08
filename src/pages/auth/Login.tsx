@@ -162,10 +162,8 @@ export default function Login() {
         className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-100 p-8"
       >
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg shadow-blue-200">
-            <Briefcase className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Al-Ribat Manager</h1>
+          <img src="/logo.svg" className="w-16 h-16 rounded-2xl shadow-lg shadow-blue-100" alt="Logo" referrerPolicy="no-referrer" />
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight mt-4">Al-Ribat Manager</h1>
           <p className="text-slate-400 text-sm mt-1 uppercase tracking-widest font-semibold text-[10px]">Business & Partnership Hub</p>
         </div>
 
