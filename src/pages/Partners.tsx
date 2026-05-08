@@ -699,7 +699,7 @@ function PartnerModal({ partner, partners, onClose }: any) {
                              </div>
                              <div>
                                 <p className="text-[11px] font-bold text-slate-900">{res.full_name}</p>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase">@{res.username || 'user'}</p>
+                                <p className="text-[9px] font-bold text-slate-400 lowercase">@{res.username || 'user'}</p>
                              </div>
                           </div>
                           <Plus className="w-4 h-4 text-slate-300 group-hover:text-blue-600" />

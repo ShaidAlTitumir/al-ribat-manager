@@ -143,7 +143,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-sm text-slate-900 leading-tight">{profile?.full_name}</p>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-widest">@{profile?.username}</p>
+                    <p className="text-[10px] text-slate-400 lowercase tracking-widest">@{profile?.username}</p>
                   </div>
                 </div>
                 <button 

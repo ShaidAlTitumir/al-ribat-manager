@@ -29,6 +29,18 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS business_id UUID;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS full_name TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS username TEXT;
+
+-- Add unique constraint and lowercase check for username
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_username_key') THEN
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_username_key UNIQUE(username);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_username_check') THEN
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_username_check CHECK (username = lower(username));
+  END IF;
+END $$;
+
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
 
@@ -294,15 +306,17 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, email, phone)
+  INSERT INTO public.profiles (id, full_name, username, email, phone)
   VALUES (
     new.id, 
     COALESCE(new.raw_user_meta_data->>'full_name', COALESCE(new.raw_user_meta_data->>'name', '')), 
+    COALESCE(new.raw_user_meta_data->>'username', ''),
     new.email,
     new.phone
   )
   ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
+    username = EXCLUDED.username,
     email = EXCLUDED.email,
     phone = EXCLUDED.phone;
   RETURN new;
@@ -317,6 +331,7 @@ CREATE TRIGGER on_auth_user_created
 ALTER TABLE public.partners ADD COLUMN IF NOT EXISTS balance_cents BIGINT DEFAULT 0;
 
 -- Track specific distribution events for audit trail
+DROP TABLE IF EXISTS public.partner_profit_distributions CASCADE;
 CREATE TABLE IF NOT EXISTS public.partner_profit_distributions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
@@ -329,7 +344,7 @@ CREATE TABLE IF NOT EXISTS public.partner_profit_distributions (
 );
 
 ALTER TABLE public.partner_profit_distributions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY data_access_partner_profit_distributions ON public.partner_profit_distributions FOR ALL USING (public.user_can_access_business(business_id)) WITH CHECK (public.user_can_access_business(business_id));
+DROP POLICY IF EXISTS data_access_partner_profit_distributions ON public.partner_profit_distributions;
 
 -- Add tracking for already distributed profit on sales
 ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS distributed_profit_cents BIGINT DEFAULT 0;
@@ -385,7 +400,7 @@ CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE
 DO $$ 
 DECLARE 
   t text;
-  tables text[] := ARRAY['partners', 'capital_contributions', 'customers', 'inventory_items', 'purchase_transactions', 'sales', 'customer_ledger', 'expenses', 'business_members', 'join_requests', 'activity_log', 'exchanges', 'partner_transfers'];
+  tables text[] := ARRAY['partners', 'capital_contributions', 'customers', 'inventory_items', 'purchase_transactions', 'sales', 'customer_ledger', 'expenses', 'business_members', 'join_requests', 'activity_log', 'exchanges', 'partner_transfers', 'partner_profit_distributions'];
 BEGIN
   FOREACH t IN ARRAY tables LOOP
     EXECUTE 'DROP POLICY IF EXISTS data_access_' || t || ' ON public.' || t;

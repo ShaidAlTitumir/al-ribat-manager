@@ -317,7 +317,7 @@ export default function Businesses() {
             </p>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg w-fit">
               <Search className="w-3.5 h-3.5 text-blue-400" />
-              <span className="text-[9px] font-bold uppercase tracking-widest">Handle: @{profile?.username}</span>
+              <span className="text-[9px] font-bold lowercase tracking-widest">Handle: @{profile?.username}</span>
             </div>
           </div>
           <LayoutGrid className="absolute -right-6 md:-right-8 -bottom-6 md:-bottom-8 w-32 md:w-40 h-32 md:h-40 text-white/5 rotate-12" />

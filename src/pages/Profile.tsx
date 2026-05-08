@@ -12,6 +12,9 @@ export default function Profile() {
   const { business, refreshBusiness } = useBusiness();
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [username, setUsername] = useState(profile?.username || '');
+  const [isUsernameValid, setIsUsernameValid] = useState(true);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [phone, setPhone] = useState(profile?.phone || '');
   
   const [bizName, setBizName] = useState(business?.name || '');
@@ -31,6 +34,41 @@ export default function Profile() {
       setPhone(profile.phone || '');
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (!username || username === profile?.username) {
+      setIsUsernameValid(true);
+      setUsernameError(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsCheckingUsername(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', username.toLowerCase())
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data && data.id !== user?.id) {
+          setIsUsernameValid(false);
+          setUsernameError('This username is already taken');
+        } else {
+          setIsUsernameValid(true);
+          setUsernameError(null);
+        }
+      } catch (err) {
+        console.error('Error checking username:', err);
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [username, profile?.username, user?.id]);
 
   useEffect(() => {
     if (business) {
@@ -74,6 +112,7 @@ export default function Profile() {
   async function handleUpdateProfile(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+    if (!isUsernameValid) return;
     
     setSaving(true);
     setMessage(null);
@@ -84,7 +123,7 @@ export default function Profile() {
         .upsert({
           id: user.id,
           full_name: fullName,
-          username: username,
+          username: username.toLowerCase().trim(),
           phone: phone,
           updated_at: new Date().toISOString()
         });
@@ -148,6 +187,9 @@ export default function Profile() {
                 <h2 className="text-lg font-bold text-slate-900 tracking-tight uppercase leading-none">
                   {profile?.full_name || 'System User'}
                 </h2>
+                <p className="text-[11px] font-bold text-slate-400 lowercase tracking-widest mt-1.5 italic">
+                  @{profile?.username}
+                </p>
                 <div className="mt-2 inline-flex items-center px-2 py-0.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest">
                   <Shield className="w-2 h-2 mr-1.5" />
                   {profile?.role || 'User'}
@@ -208,12 +250,26 @@ export default function Profile() {
                     onChange={setFullName} 
                     placeholder="e.g. Abdullah S." 
                   />
-                  <FormInput 
-                    label="Handle" 
-                    value={username} 
-                    onChange={setUsername} 
-                    placeholder="e.g. abdullah_admin" 
-                  />
+                  <div className="space-y-1">
+                    <FormInput 
+                      label="Handle" 
+                      value={username} 
+                      onChange={(val: string) => setUsername(val.toLowerCase().replace(/[^a-z0-9_]/g, ''))} 
+                      placeholder="e.g. abdullah_admin" 
+                      error={usernameError}
+                      loading={isCheckingUsername}
+                    />
+                    {usernameError && (
+                      <p className="text-[9px] font-bold text-red-500 uppercase tracking-widest ml-1 animate-pulse">
+                        {usernameError}
+                      </p>
+                    )}
+                    {!usernameError && username && username !== profile?.username && !isCheckingUsername && (
+                      <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest ml-1">
+                        Username is available
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -310,21 +366,30 @@ export default function Profile() {
   );
 }
 
-function FormInput({ label, value, onChange, type = "text", placeholder, disabled }: any) {
+function FormInput({ label, value, onChange, type = "text", placeholder, disabled, error, loading }: any) {
   return (
     <div className="space-y-1 flex-1 text-left">
       <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 ml-1">{label}</label>
-      <input 
-        type={type}
-        disabled={disabled}
-        className={cn(
-          "w-full bg-slate-50 border border-slate-100 h-9 px-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium",
-          disabled && "bg-slate-100 text-slate-400 cursor-not-allowed border-transparent"
+      <div className="relative">
+        <input 
+          type={type}
+          disabled={disabled}
+          className={cn(
+            "w-full bg-slate-50 border border-slate-100 h-9 px-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium",
+            disabled && "bg-slate-100 text-slate-400 cursor-not-allowed border-transparent",
+            error && "border-red-300 focus:ring-red-500",
+            loading && "pr-8"
+          )}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+        />
+        {loading && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
+          </div>
         )}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
+      </div>
     </div>
   );
 }

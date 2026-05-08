@@ -10,7 +10,11 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('');
+  const [isUsernameValid, setIsUsernameValid] = useState(true);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [resending, setResending] = useState(false);
@@ -28,6 +32,41 @@ export default function Login() {
       setShowConfirmation(true);
     }
   }, [isUnverified, unverifiedEmail]);
+
+  useEffect(() => {
+    if (isLogin || !username) {
+      setIsUsernameValid(true);
+      setUsernameError(null);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setIsCheckingUsername(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', username.toLowerCase())
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setIsUsernameValid(false);
+          setUsernameError('This username is already taken');
+        } else {
+          setIsUsernameValid(true);
+          setUsernameError(null);
+        }
+      } catch (err) {
+        console.error('Error checking username:', err);
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [username, isLogin]);
 
   const handleResendVerification = async () => {
     if (!email) return;
@@ -68,6 +107,11 @@ export default function Login() {
       }
     } else {
       // Sign Up
+      if (!isUsernameValid) {
+        setError('Please choose a unique username');
+        setLoading(false);
+        return;
+      }
       if (!phone) {
         setError('Phone number is required');
         setLoading(false);
@@ -80,6 +124,7 @@ export default function Login() {
         options: {
           data: {
             full_name: fullName,
+            username: username.toLowerCase().trim(),
             phone: phone,
           }
         }
@@ -162,7 +207,16 @@ export default function Login() {
         className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-100 p-8"
       >
         <div className="flex flex-col items-center mb-8">
-          <img src="/logo.svg" className="w-16 h-16 rounded-2xl shadow-lg shadow-blue-100" alt="Logo" referrerPolicy="no-referrer" />
+          <img 
+            src="/logo.png" 
+            className="w-16 h-16 rounded-2xl shadow-lg shadow-blue-100 object-contain" 
+            alt="Logo" 
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = "/logo.svg";
+            }}
+          />
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight mt-4">Al-Ribat Manager</h1>
           <p className="text-slate-400 text-sm mt-1 uppercase tracking-widest font-semibold text-[10px]">Business & Partnership Hub</p>
         </div>
@@ -170,6 +224,36 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Username (Lowercase & Unique)</label>
+                <div className="relative">
+                  <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input 
+                    type="text"
+                    required
+                    className={`w-full bg-slate-50 border h-10 pl-11 pr-10 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-sm ${usernameError ? 'border-red-300' : 'border-slate-100'}`}
+                    placeholder="johndoe"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                  />
+                  {isCheckingUsername && (
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-500" />
+                    </div>
+                  )}
+                </div>
+                {usernameError && (
+                  <p className="text-[9px] font-bold text-red-500 uppercase tracking-widest ml-1 animate-pulse">
+                    {usernameError}
+                  </p>
+                )}
+                {!usernameError && username && !isCheckingUsername && (
+                  <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest ml-1">
+                    Username is available
+                  </p>
+                )}
+              </div>
+
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Full Name</label>
                 <div className="relative">
