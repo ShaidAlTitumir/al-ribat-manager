@@ -80,9 +80,16 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   className="flex items-center gap-3 cursor-pointer group"
                   onClick={() => { setIsDrawerOpen(false); navigate('/businesses'); }}
                 >
-                  <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xs uppercase group-hover:scale-110 transition-transform">
-                    {business?.name ? business.name.substring(0, 2) : profile?.full_name?.substring(0, 2) || '??'}
-                  </div>
+                  <img 
+                    src="/logo.png" 
+                    className="w-8 h-8 rounded-xl object-contain group-hover:scale-110 transition-transform" 
+                    alt="Logo" 
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = "/logo.svg";
+                    }}
+                  />
                   <div>
                     <h2 className="font-bold text-sm text-slate-900 truncate max-w-[140px] group-hover:text-blue-600 transition-colors">
                       {business?.name || 'Personal Account'}
