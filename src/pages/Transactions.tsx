@@ -12,7 +12,7 @@ import {
   ChevronDown, ArrowRight
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { formatBDT } from '../lib/utils';
+import { formatBDT, formatDate } from '../lib/utils';
 import { Partner } from '../types';
 
 export default function Transactions() {
@@ -114,7 +114,7 @@ export default function Transactions() {
                       </div>
                       <div>
                          <p className="text-sm lg:text-base font-semibold text-slate-900">{t.from_partner?.name} → {t.to_partner?.name}</p>
-                         <p className="text-xs lg:text-sm font-medium text-slate-400 uppercase tracking-widest mt-0.5">{t.method} • {new Date(t.created_at).toLocaleDateString()}</p>
+                         <p className="text-xs lg:text-sm font-medium text-slate-400 uppercase tracking-widest mt-0.5">{t.method} • {formatDate(t.created_at)}</p>
                       </div>
                    </div>
                     <div className="flex items-center gap-4">

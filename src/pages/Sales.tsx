@@ -1,5 +1,5 @@
 // src/pages/Sales.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
 import { useBusiness } from '../context/BusinessContext';
@@ -15,7 +15,7 @@ import {
   History as HistoryIcon
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { formatBDT } from '../lib/utils';
+import { formatBDT, formatDate } from '../lib/utils';
 import { InventoryItem, Customer } from '../types';
 import { useScrollLock } from '../hooks/useScrollLock';
 
@@ -80,6 +80,8 @@ export default function Sales() {
     enabled: !!business?.id,
   });
 
+  const [historySearchTerm, setHistorySearchTerm] = useState('');
+
   // Calculate Sale
   const selectedItem = items.find(i => i.id === selectedItemId);
   const qty = parseInt(quantity) || 0;
@@ -94,6 +96,22 @@ export default function Sales() {
   // Profit calculation
   const landedCost = selectedItem?.last_landed_cost_cents || 0;
   const estProfit = (Math.round(price * 100) - landedCost) * qty - Math.round(disc * 100);
+
+  const filteredSales = useMemo(() => {
+    if (!historySearchTerm.trim()) return sales;
+    const term = historySearchTerm.toLowerCase();
+    return sales.filter((sale: any) => {
+      const invNo = (sale.invoice_no || '').toLowerCase();
+      const custName = (sale.customers?.name || '').toLowerCase();
+      const custPhone = (sale.customers?.phone || '').toLowerCase();
+      const shopName = (sale.customers?.shop_name || '').toLowerCase();
+      
+      return invNo.includes(term) || 
+             custName.includes(term) || 
+             custPhone.includes(term) || 
+             shopName.includes(term);
+    });
+  }, [sales, historySearchTerm]);
 
   useEffect(() => {
     if (selectedItem) {
@@ -477,10 +495,25 @@ export default function Sales() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="space-y-3"
+              className="space-y-4"
             >
-              {sales.map((sale: any) => (
-                <div key={sale.id} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-blue-100 transition-all">
+              {/* History Search Bar */}
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                </div>
+                <input 
+                  type="text"
+                  value={historySearchTerm}
+                  onChange={(e) => setHistorySearchTerm(e.target.value)}
+                  placeholder="Search by invoice, name, phone or shop..."
+                  className="block w-full pl-11 pr-4 py-3.5 bg-white border border-slate-100 rounded-2xl text-sm font-semibold text-slate-900 focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500/20 outline-none transition-all shadow-sm placeholder:text-slate-400 placeholder:font-medium"
+                />
+              </div>
+
+              <div className="space-y-3">
+                {filteredSales.map((sale: any) => (
+                  <div key={sale.id} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-blue-100 transition-all">
                   <div className="flex items-center gap-3">
                      <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                        <Receipt className="w-4 h-4" />
@@ -488,7 +521,7 @@ export default function Sales() {
                      <div className="text-left">
                         <h4 className="text-sm lg:text-base font-semibold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{sale.invoice_no}</h4>
                         <p className="text-xs lg:text-sm font-medium text-slate-400 uppercase tracking-widest mt-0.5">
-                          {sale.customers?.name || 'Walk-in'} • {new Date(sale.created_at).toLocaleDateString()}
+                          {sale.customers?.name || 'Walk-in'} • {formatDate(sale.created_at)}
                         </p>
                      </div>
                   </div>
@@ -547,7 +580,10 @@ export default function Sales() {
                                    };
                                    
                                    import('../lib/pdfGenerator').then(module => {
-                                     module.generateSaleInvoice(businessInfo, customerInfo, saleData);
+                                     module.generateSaleInvoice(businessInfo, customerInfo, {
+                                       ...saleData,
+                                       date: formatDate(sale.created_at)
+                                     });
                                    });
                                  }
                                  setShowOptionsId(null);
@@ -574,10 +610,14 @@ export default function Sales() {
                   </div>
                 </div>
               ))}
-              {sales.length === 0 && !isLoadingSales && (
+              </div>
+
+              {filteredSales.length === 0 && !isLoadingSales && (
                 <div className="py-20 flex flex-col items-center justify-center text-slate-300">
                   <HistoryIcon className="w-16 h-16 mb-4 opacity-10" />
-                  <p className="text-xs font-bold uppercase tracking-widest">No sale history</p>
+                  <p className="text-xs font-bold uppercase tracking-widest">
+                    {historySearchTerm ? `No results for "${historySearchTerm}"` : 'No sale history'}
+                  </p>
                 </div>
               )}
             </motion.div>

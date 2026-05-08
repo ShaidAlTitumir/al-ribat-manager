@@ -4,7 +4,7 @@ import {
   RefreshCw, Trash2, Pencil, Info
 } from 'lucide-react';
 import { supabase } from '@/src/lib/supabase';
-import { formatBDT, formatCNY, cn } from '@/src/lib/utils';
+import { formatBDT, formatCNY, cn, formatDate } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Expenses() {
@@ -194,7 +194,7 @@ export default function Expenses() {
                     </div>
                     <div>
                       <p className="font-bold text-sm text-slate-900">{exp.title}</p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{exp.category} • {new Date(exp.created_at).toLocaleDateString()}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{exp.category} • {formatDate(exp.created_at)}</p>
                     </div>
                   </div>
                   <div className="text-right">

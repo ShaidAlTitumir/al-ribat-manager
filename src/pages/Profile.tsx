@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useBusiness } from '../context/BusinessContext';
 import { User, Mail, Shield, Save, Loader2, Camera, LogOut, Store } from 'lucide-react';
 import { motion } from 'motion/react';
-import { cn } from '../lib/utils';
+import { cn, formatDate } from '../lib/utils';
 import MainLayout from '../components/layout/MainLayout';
 
 export default function Profile() {
@@ -183,7 +183,7 @@ export default function Profile() {
                 <div className="mt-6 grid grid-cols-2 gap-4 border-t border-white/5 pt-3">
                   <div>
                     <span className="block text-[8px] text-white/30 uppercase tracking-widest font-bold mb-0.5">Created At</span>
-                    <span className="font-bold text-[10px]">{new Date(profile?.created_at || '').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                    <span className="font-bold text-[10px]">{formatDate(profile?.created_at || '')}</span>
                   </div>
                 </div>
               </div>

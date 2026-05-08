@@ -1,9 +1,25 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+import { format } from 'date-fns';
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export const formatDate = (date: Date | string | number) => {
+  if (!date) return '-';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '-';
+  return format(d, 'dd/MM/yyyy');
+};
+
+export const formatDateTime = (date: Date | string | number) => {
+  if (!date) return '-';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '-';
+  return format(d, 'dd/MM/yyyy, hh:mm a');
+};
 
 export const formatBDT = (amountInCents: number) => {
   return new Intl.NumberFormat('en-US', {

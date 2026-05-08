@@ -89,7 +89,7 @@ export const generateSaleInvoice = (
   doc.setFontSize(10);
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
   doc.text(`#${sale.invoiceNo}`, 25, 74);
-  doc.text(format(new Date(sale.date), 'dd MMM, yyyy'), 75, 74);
+  doc.text(format(new Date(sale.date), 'dd/MM/yyyy'), 75, 74);
   doc.text(customer.name.length > 25 ? customer.name.substring(0, 22) + '...' : customer.name, 125, 74);
 
   // 3. Billing Sections
@@ -239,7 +239,7 @@ export const generateSaleInvoice = (
   doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
   doc.setFontSize(8);
   doc.setTextColor(148, 163, 184);
-  doc.text(`${business.name}  |  Generated on ${format(new Date(), 'dd MMM yyyy, hh:mm a')}`, pageWidth / 2, pageHeight - 6, { align: 'center' });
+  doc.text(`${business.name}  |  Generated on ${format(new Date(), 'dd/MM/yyyy, hh:mm a')}`, pageWidth / 2, pageHeight - 6, { align: 'center' });
 
   const fileName = `Invoice_${sale.invoiceNo}_${customer.name.replace(/\s+/g, '_')}.pdf`;
   doc.save(fileName);
@@ -283,7 +283,7 @@ export const generateCustomerStatement = (
   doc.text(businessHeader.join('  |  '), 15, 33);
 
   doc.text('CUSTOMER ACCOUNT STATEMENT', pageWidth - 15, 25, { align: 'right' });
-  doc.text(`${format(dateRange.start, 'dd MMM yyyy')} - ${format(dateRange.end, 'dd MMM yyyy')}`, pageWidth - 15, 32, { align: 'right' });
+  doc.text(`${format(dateRange.start, 'dd/MM/yyyy')} - ${format(dateRange.end, 'dd/MM/yyyy')}`, pageWidth - 15, 32, { align: 'right' });
 
   // 2. Customer Profile Section
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
@@ -372,7 +372,7 @@ export const generateCustomerStatement = (
     startY: 140,
     head: [['Date', 'Description / Ref', 'Type', 'Billed', 'Paid', 'Invoice Balance']],
     body: activities.map(act => [
-      format(new Date(act.date), 'dd MMM yyyy'),
+      format(new Date(act.date), 'dd/MM/yyyy'),
       act.ref,
       act.type,
       act.billed > 0 ? `Tk ${act.billed.toLocaleString()}` : '-',
@@ -481,7 +481,7 @@ export const generatePaymentReceipt = (
   doc.setFont('helvetica', 'normal');
   doc.text('Payment Date:', 25, 105);
   doc.setFont('helvetica', 'bold');
-  doc.text(format(new Date(payment.date), 'dd MMM yyyy, hh:mm a'), 70, 105);
+  doc.text(format(new Date(payment.date), 'dd/MM/yyyy, hh:mm a'), 70, 105);
 
   doc.setFont('helvetica', 'normal');
   doc.text('Payment Type:', 25, 115);
@@ -533,13 +533,18 @@ export interface ReportData {
     salesCount: number;
     unitsSold: number;
     overdueCount: number;
+    totalPurchases?: number;
+    cashCollected?: number;
+    distributions?: number;
   };
   financials: {
     cashBalance: number;
     receivables: number;
     payables: number;
     inventoryValue: number;
+    rmbBalance?: number;
   };
+  expensesByCategory?: Array<{ category: string; amount: number }>;
   topProducts: Array<{
     name: string;
     quantity: number;
@@ -561,132 +566,103 @@ export const generateBusinessReport = (
   const successColor: [number, number, number] = [34, 197, 94];
   const dangerColor: [number, number, number] = [239, 68, 68];
 
-  // 1. Header
+  // 1. Creative Header
   doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-  doc.rect(0, 0, pageWidth, 50, 'F');
-  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.rect(0, 50, pageWidth, 2, 'F');
-
-  doc.setFontSize(24);
+  doc.rect(0, 0, pageWidth, 60, 'F');
+  
+  doc.setFontSize(26);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(255, 255, 255);
-  doc.text(business.name.toUpperCase(), 15, 28);
+  doc.text(business.name.toUpperCase(), 15, 30);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(180, 180, 180);
-  doc.text('EXECUTIVE BUSINESS PERFORMANCE REPORT', 15, 38);
+  doc.text('OPERATIONAL EXCELLENCE & ANALYTICS REPORT', 15, 42);
   
-  doc.setFontSize(14);
+  doc.setFontSize(12);
   doc.setTextColor(255, 255, 255);
-  doc.text(data.period.toUpperCase(), pageWidth - 15, 28, { align: 'right' });
-  doc.setFontSize(9);
-  doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy, hh:mm a')}`, pageWidth - 15, 38, { align: 'right' });
+  doc.text(data.period.toUpperCase(), pageWidth - 15, 30, { align: 'right' });
+  doc.setFontSize(8);
+  doc.text(`ISSUED: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, pageWidth - 15, 38, { align: 'right' });
 
-  // 2. Executive Summary (The Big Numbers)
+  // 2. Dashboard
+  let currentY = 75;
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('I. EXECUTIVE SUMMARY', 15, 65);
+  doc.text('I. KEY PERFORMANCE INDICATORS', 15, currentY);
 
-  const summaryY = 75;
-  const cardW = (pageWidth - 40) / 3;
-  const cardH = 35;
-
-  const drawMetricCard = (x: number, y: number, label: string, value: string, color: number[]) => {
-    doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-    doc.roundedRect(x, y, cardW, cardH, 3, 3, 'F');
+  const drawCard = (x: number, y: number, w: number, h: number, label: string, value: string, color: number[]) => {
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(x, y, w, h, 3, 3, 'F');
     doc.setFontSize(8);
     doc.setTextColor(100, 116, 139);
-    doc.setFont('helvetica', 'bold');
-    doc.text(label.toUpperCase(), x + 7, y + 10);
-    doc.setFontSize(14);
+    doc.text(label.toUpperCase(), x + 5, y + 10);
+    doc.setFontSize(12);
     doc.setTextColor(color[0], color[1], color[2]);
-    doc.text(value, x + 7, y + 25);
+    doc.text(value, x + 5, y + 22);
   };
 
-  drawMetricCard(15, summaryY, 'Total Revenue', `Tk ${data.metrics.totalRevenue.toLocaleString()}`, secondaryColor);
-  drawMetricCard(15 + cardW + 5, summaryY, 'Gross Profit', `Tk ${data.metrics.grossProfit.toLocaleString()}`, successColor);
-  drawMetricCard(15 + (cardW + 5) * 2, summaryY, 'Net Profit', `Tk ${data.metrics.netProfit.toLocaleString()}`, data.metrics.netProfit >= 0 ? successColor : dangerColor);
+  const cardW = (pageWidth - 40) / 3;
+  const cardH = 30;
+  
+  drawCard(15, currentY + 5, cardW, cardH, 'Revenue', `Tk ${data.metrics.totalRevenue.toLocaleString()}`, secondaryColor);
+  drawCard(15 + cardW + 5, currentY + 5, cardW, cardH, 'Gross Profit', `Tk ${data.metrics.grossProfit.toLocaleString()}`, successColor);
+  drawCard(15 + (cardW + 5) * 2, currentY + 5, cardW, cardH, 'Net Profit', `Tk ${data.metrics.netProfit.toLocaleString()}`, data.metrics.netProfit >= 0 ? successColor : dangerColor);
 
-  // 3. Profit & Loss Breakdown
+  currentY += 45;
+
+  // 3. P&L
+  autoTable(doc, {
+    startY: currentY,
+    head: [['Description', 'Amount (BDT)']],
+    body: [
+      ['Sales Revenue', `Tk ${data.metrics.totalRevenue.toLocaleString()}`],
+      ['Cost of Goods (COGS)', `- Tk ${data.metrics.totalCost.toLocaleString()}`],
+      ['Operating Expenses', `- Tk ${data.metrics.totalExpenses.toLocaleString()}`],
+      [{ content: 'NET PROFIT', styles: { fontStyle: 'bold' } }, { content: `Tk ${data.metrics.netProfit.toLocaleString()}`, styles: { fontStyle: 'bold', textColor: data.metrics.netProfit >= 0 ? successColor : dangerColor } }]
+    ],
+    theme: 'striped',
+    headStyles: { fillColor: secondaryColor },
+    styles: { fontSize: 9 },
+    columnStyles: { 1: { halign: 'right' } }
+  });
+
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+
+  // 4. Operational
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-  doc.text('II. PROFIT & LOSS DETAILS', 15, summaryY + cardH + 15);
+  doc.text('II. ASSETS & MARKET ACTIVITY', 15, currentY);
 
   autoTable(doc, {
-    startY: summaryY + cardH + 20,
-    head: [['Financial Description', 'Amount (BDT)']],
+    startY: currentY + 5,
+    head: [['Category', 'Value / Volume']],
     body: [
-      ['Total Sales (Revenue)', `Tk ${data.metrics.totalRevenue.toLocaleString()}`],
-      ['Cost of Goods Sold (COGS)', `- Tk ${data.metrics.totalCost.toLocaleString()}`],
-      ['Operational Expenses', `- Tk ${data.metrics.totalExpenses.toLocaleString()}`],
-      ['Total Profit', { content: `Tk ${data.metrics.netProfit.toLocaleString()}`, styles: { fontStyle: 'bold', textColor: data.metrics.netProfit >= 0 ? successColor : dangerColor } }]
-    ],
-    theme: 'striped',
-    headStyles: { fillColor: primaryColor, textColor: 255 },
-    styles: { fontSize: 10, cellPadding: 5 },
-    columnStyles: { 1: { halign: 'right' } },
-    margin: { left: 15, right: 15 }
-  });
-
-  // 4. Operational Metrics & Asset Status
-  const metricsY = (doc as any).lastAutoTable.finalY + 15;
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('III. OPERATIONAL & ASSET STATUS', 15, metricsY);
-
-  autoTable(doc, {
-    startY: metricsY + 5,
-    head: [['Asset/Liability Category', 'Value (BDT)', 'Operational Counter', 'Count']],
-    body: [
-      ['Cash Balance', `Tk ${data.financials.cashBalance.toLocaleString()}`, 'Total Sales Orders', data.metrics.salesCount.toString()],
-      ['Accounts Receivable', `Tk ${data.financials.receivables.toLocaleString()}`, 'Units Sold', data.metrics.unitsSold.toString()],
-      ['Accounts Payable', `Tk ${data.financials.payables.toLocaleString()}`, 'Overdue Customers', data.metrics.overdueCount.toString()],
-      ['Inventory Asset Value', `Tk ${data.financials.inventoryValue.toLocaleString()}`, 'Total Asset Portfolio', `Tk ${(data.financials.cashBalance + data.financials.receivables + data.financials.inventoryValue).toLocaleString()}`]
+      ['Cash Balance (BDT)', `Tk ${data.financials.cashBalance.toLocaleString()}`],
+      ['Receivables (Dues)', `Tk ${data.financials.receivables.toLocaleString()}`],
+      ['Inventory Value', `Tk ${data.financials.inventoryValue.toLocaleString()}`],
+      ['Total Purchases (Cycle)', `Tk ${(data.metrics.totalPurchases || 0).toLocaleString()}`],
+      ['Cash Collected', `Tk ${(data.metrics.cashCollected || 0).toLocaleString()}`],
+      ['Profit Distributions', `Tk ${(data.metrics.distributions || 0).toLocaleString()}`]
     ],
     theme: 'grid',
-    headStyles: { fillColor: [71, 85, 105], textColor: 255 },
-    styles: { fontSize: 9, cellPadding: 4 },
-    margin: { left: 15, right: 15 }
+    headStyles: { fillColor: [71, 85, 105] },
+    styles: { fontSize: 9 },
+    columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } }
   });
 
-  // 5. Top Performing Products
-  if (data.topProducts.length > 0) {
-    const topProdY = (doc as any).lastAutoTable.finalY + 15;
-    if (topProdY > 230) doc.addPage();
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-    doc.text('IV. TOP PERFORMING PRODUCTS', 15, topProdY > 230 ? 25 : topProdY);
-
-    autoTable(doc, {
-      startY: topProdY > 230 ? 30 : topProdY + 5,
-      head: [['Product Name', 'Quantity Sold', 'Revenue Generated']],
-      body: data.topProducts.map(p => [p.name, p.quantity.toString(), `Tk ${p.revenue.toLocaleString()}`]),
-      theme: 'plain',
-      headStyles: { fillColor: [226, 232, 240], textColor: secondaryColor, fontStyle: 'bold' },
-      styles: { fontSize: 9, cellPadding: 4 },
-      columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' } },
-      margin: { left: 15, right: 15 }
-    });
+  // Footer
+  const pageCount = (doc as any).internal.getNumberOfPages();
+  for(let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`${business.name} | Excellence Report | Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
   }
 
-  // 6. Footer
-  const footerY = pageHeight - 20;
-  doc.setDrawColor(226, 232, 240);
-  doc.line(15, footerY, pageWidth - 15, footerY);
-  doc.setFontSize(8);
-  doc.setTextColor(148, 163, 184);
-  doc.text('CONFIDENTIAL: For Internal Business Management Purposes Only.', 15, footerY + 8);
-  
-  doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-  doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
-  doc.setFontSize(8);
-  doc.text(`${business.name}  |  Operational Excellence Report  |  ${data.period}`, pageWidth / 2, pageHeight - 6, { align: 'center' });
-
-  const fileName = `Business_Report_${data.period.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`;
+  const fileName = `Excellence_Report_${data.period.replace(/\s+/g, '_')}.pdf`;
   doc.save(fileName);
 };

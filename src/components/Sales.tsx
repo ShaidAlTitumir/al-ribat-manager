@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, ShoppingCart, User, AlertCircle, Receipt, Trash2, Package, History, Info, CreditCard, Banknote, Smartphone, Building2, Plus, ChevronDown, TrendingUp, ShoppingBag, ReceiptText, CheckCircle2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/src/lib/supabase';
-import { formatBDT, cn } from '@/src/lib/utils';
+import { formatBDT, cn, formatDate } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Sales() {
@@ -362,7 +362,7 @@ export default function Sales() {
               </div>
               <div className="text-right">
                 <p className="font-mono font-semibold text-xs text-slate-900">{formatBDT(sale.total_cents)}</p>
-                <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-tighter">{new Date(sale.created_at).toLocaleDateString()}</p>
+                <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-tighter">{formatDate(sale.created_at)}</p>
               </div>
             </div>
           ))}

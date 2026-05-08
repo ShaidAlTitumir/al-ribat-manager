@@ -13,7 +13,7 @@ import {
   Filter, X, AlertCircle, Download, Info, Pencil
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { formatBDT } from '../lib/utils';
+import { formatBDT, formatDate, formatDateTime } from '../lib/utils';
 import { Customer } from '../types';
 import { useScrollLock } from '../hooks/useScrollLock';
 
@@ -530,7 +530,7 @@ function CustomerDetailDrawer({ customer, onClose, onEdit, onDelete }: { custome
                           </div>
                           <div>
                              <p className="text-xs font-bold text-slate-900 uppercase">{entry.transaction_type}</p>
-                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{new Date(entry.created_at).toLocaleString()}</p>
+                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{formatDateTime(entry.created_at)}</p>
                           </div>
                        </div>
                        <div className="flex items-center gap-4">
@@ -604,7 +604,7 @@ function CustomerDetailDrawer({ customer, onClose, onEdit, onDelete }: { custome
                           </div>
                           <div>
                              <p className="text-xs font-black text-slate-900 uppercase">{sale.invoice_no}</p>
-                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{new Date(sale.created_at).toLocaleDateString()}</p>
+                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{formatDate(sale.created_at)}</p>
                           </div>
                        </div>
                        <div className="flex items-center gap-4">

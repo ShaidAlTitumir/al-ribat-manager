@@ -13,6 +13,8 @@ import {
   ShoppingCart,
   CreditCard
 } from 'lucide-react';
+import { formatDateTime } from '../lib/utils';
+import { format } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface BusinessMetrics {
@@ -72,7 +74,7 @@ export default function Dashboard() {
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
         days[dateStr] = { 
-          name: d.toLocaleDateString('en-US', { weekday: 'short' }), 
+          name: format(d, 'EEE'), 
           revenue: 0, 
           profit: 0,
           date: dateStr 
@@ -193,7 +195,7 @@ export default function Dashboard() {
           title: a.details?.title || a.action,
           sub: a.details?.sub || 'System Activity',
           amount: a.details?.amount || 'LOG',
-          time: new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          time: formatDateTime(a.created_at).split(', ')[1],
           type: a.details?.type || 'activity',
           raw_date: a.created_at
         })) || []),
@@ -202,7 +204,7 @@ export default function Dashboard() {
           title: `Sale: ${s.inventory_items?.name || 'Unknown Item'}`,
           sub: `Invoice #${s.invoice_no}`,
           amount: `+৳${(s.total_cents / 100).toLocaleString()}`,
-          time: new Date(s.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          time: formatDateTime(s.created_at).split(', ')[1],
           type: 'sale',
           raw_date: s.created_at
         })) || []),
@@ -211,7 +213,7 @@ export default function Dashboard() {
           title: e.title,
           sub: e.category || 'General Expense',
           amount: `-৳${(e.amount_cents / 100).toLocaleString()}`,
-          time: new Date(e.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          time: formatDateTime(e.created_at).split(', ')[1],
           type: 'expense',
           raw_date: e.created_at
         })) || []),
@@ -220,7 +222,7 @@ export default function Dashboard() {
           title: l.transaction_type === 'payment' ? `Payment: ${l.customers?.name}` : `Return: ${l.customers?.name}`,
           sub: l.transaction_type === 'payment' ? 'Customer Payment' : 'Sales Return',
           amount: l.transaction_type === 'payment' ? `+৳${(l.amount_cents / 100).toLocaleString()}` : `-৳${(l.amount_cents / 100).toLocaleString()}`,
-          time: new Date(l.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          time: formatDateTime(l.created_at).split(', ')[1],
           type: l.transaction_type === 'payment' ? 'payment' : 'return',
           raw_date: l.created_at
         })) || [])

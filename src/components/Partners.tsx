@@ -5,7 +5,7 @@ import {
   Circle, LogOut, RefreshCw, Pencil, Trash2, Building2
 } from 'lucide-react';
 import { supabase } from '@/src/lib/supabase';
-import { formatBDT, formatCNY, cn } from '@/src/lib/utils';
+import { formatBDT, formatCNY, cn, formatDate } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Partners() {
@@ -254,7 +254,7 @@ export default function Partners() {
                     </span>
                   </div>
                   <p className="text-[9px] text-slate-400 font-semibold uppercase tracking-tight">
-                    {c.partners?.name} • {new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {c.partners?.name} • {formatDate(c.created_at)}
                   </p>
                 </div>
               </div>

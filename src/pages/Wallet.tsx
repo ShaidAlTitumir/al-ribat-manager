@@ -11,6 +11,7 @@ import {
   Trash2, Pencil, X
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { formatDate } from '../lib/utils';
 
 export default function Wallet() {
   const { business } = useBusiness();
@@ -367,7 +368,7 @@ export default function Wallet() {
                                <p className="text-sm font-black text-slate-900">{ex.from_currency} to {ex.to_currency}</p>
                                <div className="flex items-center gap-3">
                                  <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5 tracking-tight flex items-center gap-1.5">
-                                   {new Date(ex.created_at).toLocaleDateString()} • Rate: {ex.rate}
+                                   {formatDate(ex.created_at)} • Rate: {ex.rate}
                                  </p>
                                 <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                    <button 

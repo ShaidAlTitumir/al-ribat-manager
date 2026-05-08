@@ -1,5 +1,5 @@
 // src/pages/Reports.tsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import MainLayout from '../components/layout/MainLayout';
 import { useBusiness } from '../context/BusinessContext';
 import { supabase } from '../lib/supabase';
@@ -8,47 +8,126 @@ import {
   FileText, Download, TrendingUp, Package, 
   Users, Calculator, Calendar, ChevronRight,
   TrendingDown, DollarSign, PieChart, ShieldCheck,
-  Loader2
+  Loader2,
+  ArrowUpRight,
+  ArrowDownRight
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { formatBDT } from '../lib/utils';
+import { formatBDT, formatDate } from '../lib/utils';
 import { generateBusinessReport } from '../lib/pdfGenerator';
+import { format, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 export default function Reports() {
   const { business } = useBusiness();
   const [dateRange, setDateRange] = useState('This Month');
+  const [customStart, setCustomStart] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
+  const [customEnd, setCustomEnd] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-  // Basic reporting data fetching
-  const { data: salesCount = 0 } = useQuery({
-    queryKey: ['sales-count', business?.id],
-    queryFn: async () => {
-       const { count } = await supabase.from('sales').select('*', { count: 'exact', head: true }).eq('business_id', business?.id);
-       return count || 0;
+  const rangeDates = useMemo(() => {
+    const now = new Date();
+    switch (dateRange) {
+      case 'Today':
+        return { start: startOfDay(now), end: endOfDay(now) };
+      case 'This Week':
+        return { start: startOfDay(subDays(now, 7)), end: endOfDay(now) };
+      case 'This Month':
+        return { start: startOfMonth(now), end: endOfDay(now) };
+      case 'Last Month':
+        const lastMonth = subMonths(now, 1);
+        return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
+      case 'Custom':
+        return { start: startOfDay(new Date(customStart)), end: endOfDay(new Date(customEnd)) };
+      default:
+        return { start: startOfMonth(now), end: endOfDay(now) };
     }
+  }, [dateRange, customStart, customEnd]);
+
+  const { start, end } = rangeDates;
+
+  // 1. Sales Metrics
+  const { data: salesData } = useQuery({
+    queryKey: ['sales-report', business?.id, start.toISOString(), end.toISOString()],
+    queryFn: async () => {
+       const query = supabase.from('sales').select('total_cents, cost_rate_cents, quantity, received_now_bdt_cents').eq('business_id', business?.id);
+       query.gte('created_at', start.toISOString());
+       query.lte('created_at', end.toISOString());
+       const { data } = await query;
+       
+       const count = data?.length || 0;
+       const revenue = data?.reduce((acc, curr) => acc + curr.total_cents, 0) || 0;
+       const cost = data?.reduce((acc, curr) => acc + (curr.cost_rate_cents * curr.quantity), 0) || 0;
+       const units = data?.reduce((acc, curr) => acc + curr.quantity, 0) || 0;
+       const collectedAtSale = data?.reduce((acc, curr) => acc + (curr.received_now_bdt_cents || 0), 0) || 0;
+       
+       return { count, revenue, cost, units, collectedAtSale };
+    },
+    enabled: !!business?.id
   });
 
-  const { data: totalRevenue = 0 } = useQuery({
-    queryKey: ['total-revenue', business?.id, dateRange],
+  // 2. Expenses Metrics
+  const { data: expensesData } = useQuery({
+    queryKey: ['expenses-report', business?.id, start.toISOString(), end.toISOString()],
     queryFn: async () => {
-       const { data } = await supabase.from('sales').select('total_cents').eq('business_id', business?.id);
-       return data?.reduce((acc, curr) => acc + curr.total_cents, 0) || 0;
-    }
+       const query = supabase.from('expenses').select('amount_cents, currency, category').eq('business_id', business?.id);
+       query.gte('created_at', start.toISOString());
+       query.lte('created_at', end.toISOString());
+       const { data } = await query;
+       
+       const total = data?.reduce((acc, curr) => {
+         const amount = curr.currency === 'BDT' ? curr.amount_cents : curr.amount_cents * (business?.exchange_rate || 18);
+         return acc + amount;
+       }, 0) || 0;
+
+       const byCategory = (data || []).reduce((acc: any, curr: any) => {
+          const cat = curr.category || 'General';
+          if (!acc[cat]) acc[cat] = 0;
+          const amt = curr.currency === 'BDT' ? curr.amount_cents : curr.amount_cents * (business?.exchange_rate || 18);
+          acc[cat] += amt / 100;
+          return acc;
+       }, {});
+
+       return { total, byCategory: Object.entries(byCategory).map(([category, amount]) => ({ category, amount: amount as number })) };
+    },
+    enabled: !!business?.id
   });
 
-  const { data: totalCost = 0 } = useQuery({
-    queryKey: ['total-cost', business?.id, dateRange],
+  // 3. Purchase Metrics
+  const { data: purchasesTotal = 0 } = useQuery({
+    queryKey: ['purchases-report', business?.id, start.toISOString(), end.toISOString()],
     queryFn: async () => {
-       const { data } = await supabase.from('sales').select('cost_rate_cents, quantity').eq('business_id', business?.id);
-       return data?.reduce((acc, curr) => acc + (curr.cost_rate_cents * curr.quantity), 0) || 0;
-    }
+       const query = supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents').eq('business_id', business?.id);
+       query.gte('created_at', start.toISOString());
+       query.lte('created_at', end.toISOString());
+       const { data } = await query;
+       return data?.reduce((acc, curr) => acc + curr.total_landed_cost_bdt_cents, 0) || 0;
+    },
+    enabled: !!business?.id
   });
 
-  const { data: totalExpenses = 0 } = useQuery({
-    queryKey: ['total-expenses', business?.id, dateRange],
+  // 4. Collections Metrics (Ledger payments)
+  const { data: ledgerCollections = 0 } = useQuery({
+    queryKey: ['ledger-collections', business?.id, start.toISOString(), end.toISOString()],
     queryFn: async () => {
-       const { data } = await supabase.from('expenses').select('amount_cents').eq('business_id', business?.id);
+       const query = supabase.from('customer_ledger').select('amount_cents').eq('business_id', business?.id).eq('transaction_type', 'payment');
+       query.gte('created_at', start.toISOString());
+       query.lte('created_at', end.toISOString());
+       const { data } = await query;
        return data?.reduce((acc, curr) => acc + curr.amount_cents, 0) || 0;
-    }
+    },
+    enabled: !!business?.id
+  });
+
+  // 5. Distributions
+  const { data: distributionsTotal = 0 } = useQuery({
+    queryKey: ['distributions-report', business?.id, start.toISOString(), end.toISOString()],
+    queryFn: async () => {
+       const query = supabase.from('partner_profit_distributions').select('amount_cents').eq('business_id', business?.id);
+       query.gte('created_at', start.toISOString());
+       query.lte('created_at', end.toISOString());
+       const { data } = await query;
+       return data?.reduce((acc, curr) => acc + curr.amount_cents, 0) || 0;
+    },
+    enabled: !!business?.id
   });
 
   const { data: valuation } = useQuery({
@@ -62,12 +141,15 @@ export default function Reports() {
   });
 
   const { data: topProducts = [] } = useQuery({
-    queryKey: ['top-products', business?.id],
+    queryKey: ['top-products', business?.id, start.toISOString(), end.toISOString()],
     queryFn: async () => {
-       const { data } = await supabase
+       const query = supabase
         .from('sales')
         .select('inventory_items(name), quantity, total_cents')
         .eq('business_id', business?.id);
+       query.gte('created_at', start.toISOString());
+       query.lte('created_at', end.toISOString());
+       const { data } = await query;
        
        const grouped = (data || []).reduce((acc: any, curr: any) => {
          const name = curr.inventory_items?.name || 'Unknown';
@@ -80,15 +162,8 @@ export default function Reports() {
        return Object.values(grouped)
         .sort((a: any, b: any) => b.revenue - a.revenue)
         .slice(0, 5);
-    }
-  });
-
-  const { data: unitsSold = 0 } = useQuery({
-    queryKey: ['units-sold', business?.id],
-    queryFn: async () => {
-       const { data } = await supabase.from('sales').select('quantity').eq('business_id', business?.id);
-       return data?.reduce((acc, curr) => acc + curr.quantity, 0) || 0;
-    }
+    },
+    enabled: !!business?.id
   });
 
   const { data: overdueCount = 0 } = useQuery({
@@ -96,17 +171,28 @@ export default function Reports() {
     queryFn: async () => {
        const { count } = await supabase.from('customers').select('*', { count: 'exact', head: true }).eq('business_id', business?.id).gt('total_due_cents', 0);
        return count || 0;
-    }
+    },
+    enabled: !!business?.id
   });
 
+  const totalRevenue = salesData?.revenue || 0;
+  const totalCost = salesData?.cost || 0;
+  const totalExpenses = expensesData?.total || 0;
   const grossProfit = totalRevenue - totalCost;
   const netProfit = grossProfit - totalExpenses;
+  const totalCollected = (salesData?.collectedAtSale || 0) + (ledgerCollections || 0);
 
   const [generating, setGenerating] = useState(false);
 
   const generatePDF = async () => {
     if (!business) return;
     setGenerating(true);
+    
+    let periodString = dateRange;
+    if (dateRange === 'Custom') {
+      periodString = `${format(new Date(customStart), 'dd/MM/yyyy')} - ${format(new Date(customEnd), 'dd/MM/yyyy')}`;
+    }
+
     try {
       generateBusinessReport(
         {
@@ -115,24 +201,29 @@ export default function Reports() {
           address: business.address
         },
         {
-          period: dateRange,
+          period: periodString,
           metrics: {
             totalRevenue: totalRevenue / 100,
             totalCost: totalCost / 100,
             grossProfit: grossProfit / 100,
             totalExpenses: totalExpenses / 100,
             netProfit: netProfit / 100,
-            salesCount: salesCount,
-            unitsSold: unitsSold,
-            overdueCount: overdueCount
+            salesCount: salesData?.count || 0,
+            unitsSold: salesData?.units || 0,
+            overdueCount: overdueCount,
+            totalPurchases: purchasesTotal / 100,
+            cashCollected: totalCollected / 100,
+            distributions: distributionsTotal / 100
           },
           financials: {
             cashBalance: (valuation?.cash_bdt || 0) / 100,
             receivables: (valuation?.receivables || 0) / 100,
             payables: (valuation?.payables || 0) / 100,
-            inventoryValue: (valuation?.inventory_value || 0) / 100
+            inventoryValue: (valuation?.inventory_value || 0) / 100,
+            rmbBalance: (valuation?.cash_rmb || 0) / 100
           },
-          topProducts: topProducts as any
+          topProducts: topProducts as any,
+          expensesByCategory: expensesData?.byCategory
         }
       );
     } finally {
@@ -165,16 +256,57 @@ export default function Reports() {
         </div>
 
         {/* Date Filters */}
-        <div className="flex items-center gap-1.5 md:gap-2 bg-white p-1.5 md:p-2 rounded-xl md:rounded-2xl border border-slate-100 shadow-sm w-fit max-w-full overflow-x-auto no-scrollbar">
-           {['Today', 'This Week', 'This Month', 'Last Month', 'Custom'].map(range => (
-             <button 
-              key={range}
-              onClick={() => setDateRange(range)}
-              className={`px-3 md:px-5 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[11px] font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${dateRange === range ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'text-slate-400 hover:bg-slate-50'}`}
-             >
-                {range}
-             </button>
-           ))}
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-1.5 md:gap-2 bg-white p-1.5 md:p-2 rounded-xl md:rounded-2xl border border-slate-100 shadow-sm w-fit max-w-full overflow-x-auto no-scrollbar">
+             {['Today', 'This Week', 'This Month', 'Last Month', 'Custom'].map(range => (
+               <button 
+                key={range}
+                onClick={() => setDateRange(range)}
+                className={`px-3 md:px-5 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[11px] font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${dateRange === range ? 'bg-blue-600 text-white shadow-md shadow-blue-100' : 'text-slate-400 hover:bg-slate-50'}`}
+               >
+                  {range}
+               </button>
+             ))}
+          </div>
+
+          {dateRange === 'Custom' && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm"
+            >
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Start Date</label>
+                <div className="relative group">
+                  <input 
+                    type="date"
+                    lang="en-GB"
+                    value={customStart}
+                    onChange={(e) => setCustomStart(e.target.value)}
+                    className="block w-full bg-slate-50 border-none rounded-xl text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500/20 px-3 py-2"
+                  />
+                </div>
+                <p className="text-[9px] font-bold text-blue-600/60 uppercase tracking-widest px-1">
+                  Selected: {format(new Date(customStart), 'dd/MM/yyyy')}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">End Date</label>
+                <div className="relative group">
+                  <input 
+                    type="date"
+                    lang="en-GB"
+                    value={customEnd}
+                    onChange={(e) => setCustomEnd(e.target.value)}
+                    className="block w-full bg-slate-50 border-none rounded-xl text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500/20 px-3 py-2"
+                  />
+                </div>
+                <p className="text-[9px] font-bold text-blue-600/60 uppercase tracking-widest px-1">
+                  Selected: {format(new Date(customEnd), 'dd/MM/yyyy')}
+                </p>
+              </div>
+            </motion.div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
@@ -184,7 +316,12 @@ export default function Reports() {
                  <h3 className="text-xs md:text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
                     <PieChart className="w-3.5 h-3.5 md:w-4 md:h-4 text-blue-600" /> Profit & Loss
                  </h3>
-                 <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{dateRange}</span>
+                 <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
+                   {dateRange === 'Custom' 
+                     ? `${format(start, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')}`
+                     : `${format(start, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')}`
+                   }
+                 </span>
               </div>
               
               <div className="space-y-4 md:space-y-6">
@@ -211,7 +348,7 @@ export default function Reports() {
                           key={p.name}
                           label={p.name}
                           value={formatBDT(p.revenue * 100)}
-                          percent={Math.min(100, (p.revenue * 100 / totalRevenue) * 100)}
+                          percent={Math.min(100, (p.revenue * 100 / (totalRevenue || 1)) * 100)}
                           color="bg-emerald-500"
                         />
                       ))}
@@ -226,6 +363,36 @@ export default function Reports() {
             </section>
         </div>
 
+        {/* Detailed Metrics Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+           <ReportMetricCard 
+              label="Inventory Procurement" 
+              value={formatBDT(purchasesTotal)} 
+              icon={Package} 
+              sub="Cycle Purchases"
+           />
+           <ReportMetricCard 
+              label="Cash Collections" 
+              value={formatBDT(totalCollected)} 
+              icon={DollarSign} 
+              sub="Receipts + Cash Sales"
+              color="text-emerald-600"
+           />
+           <ReportMetricCard 
+              label="Profit distributions" 
+              value={formatBDT(distributionsTotal)} 
+              icon={TrendingDown} 
+              sub="Partner Payouts"
+              color="text-red-500"
+           />
+           <ReportMetricCard 
+              label="Accounts Receivable" 
+              value={formatBDT(valuation?.receivables || 0)} 
+              icon={Users} 
+              sub={`${overdueCount} Overdue Orders`}
+           />
+        </div>
+
         {/* Detailed Sections */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
            <ReportLink title="Inventory Aging" count="0 Items" icon={Package} />
@@ -237,10 +404,25 @@ export default function Reports() {
   );
 }
 
+function ReportMetricCard({ label, value, sub, icon: Icon, color }: any) {
+  return (
+    <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4 text-left">
+       <div className="w-10 h-10 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400">
+          <Icon className="w-5 h-5" />
+       </div>
+       <div>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+          <p className={`text-lg font-black tracking-tight mt-0.5 ${color || 'text-slate-900'}`}>{value}</p>
+          <p className="text-[9px] font-medium text-slate-300 uppercase tracking-widest mt-1">{sub}</p>
+       </div>
+    </div>
+  );
+}
+
 function ReportMetric({ label, value, sub, color, large, isNegative }: any) {
   return (
     <div className="flex items-center justify-between">
-       <div>
+       <div className="text-left">
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{label}</p>
           <p className={`font-bold tracking-tighter mt-0.5 md:mt-1 ${large ? 'text-xl lg:text-3xl' : 'text-lg lg:text-2xl'} ${color}`}>
              {isNegative && '- '}{value}
@@ -257,7 +439,7 @@ function ReportMetric({ label, value, sub, color, large, isNegative }: any) {
 
 function ProgressMetric({ label, percent, value, color }: any) {
   return (
-    <div className="space-y-1.5 md:space-y-2">
+    <div className="space-y-1.5 md:space-y-2 text-left">
        <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-widest">
           <span className="text-slate-400">{label}</span>
           <span className="text-slate-900">{value}</span>
@@ -271,7 +453,7 @@ function ProgressMetric({ label, percent, value, color }: any) {
 
 function ReportLink({ title, count, icon: Icon, color }: any) {
   return (
-    <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between group cursor-pointer hover:border-blue-100 transition-all">
+    <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between group cursor-pointer hover:border-blue-100 transition-all text-left">
        <div className="flex items-center gap-3 md:gap-4">
           <div className="w-8 h-8 md:w-10 md:h-10 bg-slate-50 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
              <Icon className="w-4 h-4 md:w-5 md:h-5" />

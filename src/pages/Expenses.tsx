@@ -12,7 +12,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { formatBDT } from '../lib/utils';
+import { formatBDT, formatDate } from '../lib/utils';
 import { useScrollLock } from '../hooks/useScrollLock';
 
 export default function Expenses() {
@@ -153,7 +153,7 @@ export default function Expenses() {
                       </div>
                       <div>
                          <p className="text-sm lg:text-base font-semibold text-slate-900">{ex.title}</p>
-                         <p className="text-xs lg:text-sm font-medium text-slate-400 uppercase tracking-widest mt-px md:mt-0.5">{ex.category || 'General'} • {new Date(ex.created_at).toLocaleDateString()}</p>
+                         <p className="text-xs lg:text-sm font-medium text-slate-400 uppercase tracking-widest mt-px md:mt-0.5">{ex.category || 'General'} • {formatDate(ex.created_at)}</p>
                       </div>
                    </div>
                    <div className="flex items-center gap-3 md:gap-4 ml-2">

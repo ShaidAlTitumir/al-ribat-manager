@@ -5,7 +5,7 @@ import {
   Plus, Filter, X
 } from 'lucide-react';
 import { supabase } from '@/src/lib/supabase';
-import { formatBDT, formatCNY, cn } from '@/src/lib/utils';
+import { formatBDT, formatCNY, cn, formatDate } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function SendToPartners() {
@@ -135,7 +135,7 @@ export default function SendToPartners() {
                   </div>
                   <div>
                     <p className="font-bold text-sm text-slate-900">{t.partners?.name} → {t.to_partner?.name}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(t.created_at).toLocaleDateString()}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{formatDate(t.created_at)}</p>
                   </div>
                 </div>
                 <div className="text-right">
