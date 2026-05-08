@@ -521,3 +521,172 @@ export const generatePaymentReceipt = (
   const fileName = `Receipt_${customer.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`;
   doc.save(fileName);
 };
+
+export interface ReportData {
+  period: string;
+  metrics: {
+    totalRevenue: number;
+    totalCost: number;
+    grossProfit: number;
+    totalExpenses: number;
+    netProfit: number;
+    salesCount: number;
+    unitsSold: number;
+    overdueCount: number;
+  };
+  financials: {
+    cashBalance: number;
+    receivables: number;
+    payables: number;
+    inventoryValue: number;
+  };
+  topProducts: Array<{
+    name: string;
+    quantity: number;
+    revenue: number;
+  }>;
+}
+
+export const generateBusinessReport = (
+  business: BusinessInfo,
+  data: ReportData
+) => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+
+  const primaryColor: [number, number, number] = [37, 99, 235];
+  const secondaryColor: [number, number, number] = [15, 23, 42];
+  const accentColor: [number, number, number] = [248, 250, 252];
+  const successColor: [number, number, number] = [34, 197, 94];
+  const dangerColor: [number, number, number] = [239, 68, 68];
+
+  // 1. Header
+  doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+  doc.rect(0, 0, pageWidth, 50, 'F');
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.rect(0, 50, pageWidth, 2, 'F');
+
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text(business.name.toUpperCase(), 15, 28);
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(180, 180, 180);
+  doc.text('EXECUTIVE BUSINESS PERFORMANCE REPORT', 15, 38);
+  
+  doc.setFontSize(14);
+  doc.setTextColor(255, 255, 255);
+  doc.text(data.period.toUpperCase(), pageWidth - 15, 28, { align: 'right' });
+  doc.setFontSize(9);
+  doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy, hh:mm a')}`, pageWidth - 15, 38, { align: 'right' });
+
+  // 2. Executive Summary (The Big Numbers)
+  doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('I. EXECUTIVE SUMMARY', 15, 65);
+
+  const summaryY = 75;
+  const cardW = (pageWidth - 40) / 3;
+  const cardH = 35;
+
+  const drawMetricCard = (x: number, y: number, label: string, value: string, color: number[]) => {
+    doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+    doc.roundedRect(x, y, cardW, cardH, 3, 3, 'F');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.setFont('helvetica', 'bold');
+    doc.text(label.toUpperCase(), x + 7, y + 10);
+    doc.setFontSize(14);
+    doc.setTextColor(color[0], color[1], color[2]);
+    doc.text(value, x + 7, y + 25);
+  };
+
+  drawMetricCard(15, summaryY, 'Total Revenue', `Tk ${data.metrics.totalRevenue.toLocaleString()}`, secondaryColor);
+  drawMetricCard(15 + cardW + 5, summaryY, 'Gross Profit', `Tk ${data.metrics.grossProfit.toLocaleString()}`, successColor);
+  drawMetricCard(15 + (cardW + 5) * 2, summaryY, 'Net Profit', `Tk ${data.metrics.netProfit.toLocaleString()}`, data.metrics.netProfit >= 0 ? successColor : dangerColor);
+
+  // 3. Profit & Loss Breakdown
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+  doc.text('II. PROFIT & LOSS DETAILS', 15, summaryY + cardH + 15);
+
+  autoTable(doc, {
+    startY: summaryY + cardH + 20,
+    head: [['Financial Description', 'Amount (BDT)']],
+    body: [
+      ['Total Sales (Revenue)', `Tk ${data.metrics.totalRevenue.toLocaleString()}`],
+      ['Cost of Goods Sold (COGS)', `- Tk ${data.metrics.totalCost.toLocaleString()}`],
+      ['Operational Expenses', `- Tk ${data.metrics.totalExpenses.toLocaleString()}`],
+      ['Total Profit', { content: `Tk ${data.metrics.netProfit.toLocaleString()}`, styles: { fontStyle: 'bold', textColor: data.metrics.netProfit >= 0 ? successColor : dangerColor } }]
+    ],
+    theme: 'striped',
+    headStyles: { fillColor: primaryColor, textColor: 255 },
+    styles: { fontSize: 10, cellPadding: 5 },
+    columnStyles: { 1: { halign: 'right' } },
+    margin: { left: 15, right: 15 }
+  });
+
+  // 4. Operational Metrics & Asset Status
+  const metricsY = (doc as any).lastAutoTable.finalY + 15;
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('III. OPERATIONAL & ASSET STATUS', 15, metricsY);
+
+  autoTable(doc, {
+    startY: metricsY + 5,
+    head: [['Asset/Liability Category', 'Value (BDT)', 'Operational Counter', 'Count']],
+    body: [
+      ['Cash Balance', `Tk ${data.financials.cashBalance.toLocaleString()}`, 'Total Sales Orders', data.metrics.salesCount.toString()],
+      ['Accounts Receivable', `Tk ${data.financials.receivables.toLocaleString()}`, 'Units Sold', data.metrics.unitsSold.toString()],
+      ['Accounts Payable', `Tk ${data.financials.payables.toLocaleString()}`, 'Overdue Customers', data.metrics.overdueCount.toString()],
+      ['Inventory Asset Value', `Tk ${data.financials.inventoryValue.toLocaleString()}`, 'Total Asset Portfolio', `Tk ${(data.financials.cashBalance + data.financials.receivables + data.financials.inventoryValue).toLocaleString()}`]
+    ],
+    theme: 'grid',
+    headStyles: { fillColor: [71, 85, 105], textColor: 255 },
+    styles: { fontSize: 9, cellPadding: 4 },
+    margin: { left: 15, right: 15 }
+  });
+
+  // 5. Top Performing Products
+  if (data.topProducts.length > 0) {
+    const topProdY = (doc as any).lastAutoTable.finalY + 15;
+    if (topProdY > 230) doc.addPage();
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.text('IV. TOP PERFORMING PRODUCTS', 15, topProdY > 230 ? 25 : topProdY);
+
+    autoTable(doc, {
+      startY: topProdY > 230 ? 30 : topProdY + 5,
+      head: [['Product Name', 'Quantity Sold', 'Revenue Generated']],
+      body: data.topProducts.map(p => [p.name, p.quantity.toString(), `Tk ${p.revenue.toLocaleString()}`]),
+      theme: 'plain',
+      headStyles: { fillColor: [226, 232, 240], textColor: secondaryColor, fontStyle: 'bold' },
+      styles: { fontSize: 9, cellPadding: 4 },
+      columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' } },
+      margin: { left: 15, right: 15 }
+    });
+  }
+
+  // 6. Footer
+  const footerY = pageHeight - 20;
+  doc.setDrawColor(226, 232, 240);
+  doc.line(15, footerY, pageWidth - 15, footerY);
+  doc.setFontSize(8);
+  doc.setTextColor(148, 163, 184);
+  doc.text('CONFIDENTIAL: For Internal Business Management Purposes Only.', 15, footerY + 8);
+  
+  doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+  doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
+  doc.setFontSize(8);
+  doc.text(`${business.name}  |  Operational Excellence Report  |  ${data.period}`, pageWidth / 2, pageHeight - 6, { align: 'center' });
+
+  const fileName = `Business_Report_${data.period.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`;
+  doc.save(fileName);
+};

@@ -7,11 +7,12 @@ import { motion } from 'motion/react';
 import { 
   FileText, Download, TrendingUp, Package, 
   Users, Calculator, Calendar, ChevronRight,
-  TrendingDown, DollarSign, PieChart, ShieldCheck
+  TrendingDown, DollarSign, PieChart, ShieldCheck,
+  Loader2
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { formatBDT } from '../lib/utils';
-import { jsPDF } from 'jspdf';
+import { generateBusinessReport } from '../lib/pdfGenerator';
 
 export default function Reports() {
   const { business } = useBusiness();
@@ -27,10 +28,66 @@ export default function Reports() {
   });
 
   const { data: totalRevenue = 0 } = useQuery({
-    queryKey: ['total-revenue', business?.id],
+    queryKey: ['total-revenue', business?.id, dateRange],
     queryFn: async () => {
        const { data } = await supabase.from('sales').select('total_cents').eq('business_id', business?.id);
        return data?.reduce((acc, curr) => acc + curr.total_cents, 0) || 0;
+    }
+  });
+
+  const { data: totalCost = 0 } = useQuery({
+    queryKey: ['total-cost', business?.id, dateRange],
+    queryFn: async () => {
+       const { data } = await supabase.from('sales').select('cost_rate_cents, quantity').eq('business_id', business?.id);
+       return data?.reduce((acc, curr) => acc + (curr.cost_rate_cents * curr.quantity), 0) || 0;
+    }
+  });
+
+  const { data: totalExpenses = 0 } = useQuery({
+    queryKey: ['total-expenses', business?.id, dateRange],
+    queryFn: async () => {
+       const { data } = await supabase.from('expenses').select('amount_cents').eq('business_id', business?.id);
+       return data?.reduce((acc, curr) => acc + curr.amount_cents, 0) || 0;
+    }
+  });
+
+  const { data: valuation } = useQuery({
+    queryKey: ['business-valuation', business?.id],
+    queryFn: async () => {
+       const { data, error } = await supabase.rpc('get_business_valuation', { p_business_id: business?.id });
+       if (error) throw error;
+       return data;
+    },
+    enabled: !!business?.id
+  });
+
+  const { data: topProducts = [] } = useQuery({
+    queryKey: ['top-products', business?.id],
+    queryFn: async () => {
+       const { data } = await supabase
+        .from('sales')
+        .select('inventory_items(name), quantity, total_cents')
+        .eq('business_id', business?.id);
+       
+       const grouped = (data || []).reduce((acc: any, curr: any) => {
+         const name = curr.inventory_items?.name || 'Unknown';
+         if (!acc[name]) acc[name] = { name, quantity: 0, revenue: 0 };
+         acc[name].quantity += curr.quantity;
+         acc[name].revenue += curr.total_cents / 100;
+         return acc;
+       }, {});
+
+       return Object.values(grouped)
+        .sort((a: any, b: any) => b.revenue - a.revenue)
+        .slice(0, 5);
+    }
+  });
+
+  const { data: unitsSold = 0 } = useQuery({
+    queryKey: ['units-sold', business?.id],
+    queryFn: async () => {
+       const { data } = await supabase.from('sales').select('quantity').eq('business_id', business?.id);
+       return data?.reduce((acc, curr) => acc + curr.quantity, 0) || 0;
     }
   });
 
@@ -42,16 +99,45 @@ export default function Reports() {
     }
   });
 
-  const generatePDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(22);
-    doc.text('Business Performance Report', 20, 20);
-    doc.setFontSize(14);
-    doc.text(`Business: ${business?.name}`, 20, 35);
-    doc.text(`Date Range: ${dateRange}`, 20, 45);
-    doc.text(`Total Revenue: ${formatBDT(totalRevenue)}`, 20, 60);
-    doc.text(`Total Sales: ${salesCount}`, 20, 70);
-    doc.save('report.pdf');
+  const grossProfit = totalRevenue - totalCost;
+  const netProfit = grossProfit - totalExpenses;
+
+  const [generating, setGenerating] = useState(false);
+
+  const generatePDF = async () => {
+    if (!business) return;
+    setGenerating(true);
+    try {
+      generateBusinessReport(
+        {
+          name: business.name,
+          phone: business.phone,
+          address: business.address
+        },
+        {
+          period: dateRange,
+          metrics: {
+            totalRevenue: totalRevenue / 100,
+            totalCost: totalCost / 100,
+            grossProfit: grossProfit / 100,
+            totalExpenses: totalExpenses / 100,
+            netProfit: netProfit / 100,
+            salesCount: salesCount,
+            unitsSold: unitsSold,
+            overdueCount: overdueCount
+          },
+          financials: {
+            cashBalance: (valuation?.cash_bdt || 0) / 100,
+            receivables: (valuation?.receivables || 0) / 100,
+            payables: (valuation?.payables || 0) / 100,
+            inventoryValue: (valuation?.inventory_value || 0) / 100
+          },
+          topProducts: topProducts as any
+        }
+      );
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -62,14 +148,20 @@ export default function Reports() {
               <h1 className="text-xl lg:text-3xl font-bold text-slate-900 tracking-tight uppercase">Financial Reports</h1>
               <p className="text-slate-400 text-xs lg:text-sm font-medium uppercase tracking-[0.2em] mt-0.5 md:mt-1">Deep dive into your business analytics.</p>
            </div>
-           <div className="flex items-center gap-2">
-              <button 
-                onClick={generatePDF}
-                className="w-full md:w-auto px-5 md:px-6 py-2.5 md:py-3 bg-slate-900 text-white rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-100"
-              >
-                 <Download className="w-3.5 h-3.5 md:w-4 md:h-4" /> Export PDF
-              </button>
-           </div>
+            <div className="flex items-center gap-2">
+               <button 
+                 onClick={generatePDF}
+                 disabled={generating}
+                 className="w-full md:w-auto px-5 md:px-6 py-2.5 md:py-3 bg-slate-900 text-white rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-slate-100 disabled:opacity-50"
+               >
+                  {generating ? (
+                    <Loader2 className="w-3.5 h-3.5 md:w-4 md:h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                  )}
+                  {generating ? 'Generating...' : 'Export Excellence Report'}
+               </button>
+            </div>
         </div>
 
         {/* Date Filters */}
@@ -97,26 +189,41 @@ export default function Reports() {
               
               <div className="space-y-4 md:space-y-6">
                  <ReportMetric label="Total Revenue" value={formatBDT(totalRevenue)} color="text-slate-900" />
-                 <ReportMetric label="Cost of Goods (COGS)" value={formatBDT(0)} sub="Calculation in progress" color="text-red-500" isNegative />
+                 <ReportMetric label="Cost of Goods (COGS)" value={formatBDT(totalCost)} color="text-red-500" isNegative />
+                 <ReportMetric label="Operational Expenses" value={formatBDT(totalExpenses)} color="text-red-400" isNegative />
                  <div className="h-px bg-slate-50" />
-                 <ReportMetric label="Gross Profit" value={formatBDT(0)} color="text-emerald-600" large />
+                 <ReportMetric label="Net Profit" value={formatBDT(netProfit)} color={netProfit >= 0 ? "text-emerald-600" : "text-red-600"} large />
               </div>
            </section>
 
-           {/* Performance Distribution */}
-           <section className="bg-white p-5 md:p-8 rounded-[32px] md:rounded-[40px] border border-slate-100 shadow-sm space-y-6 md:space-y-8">
-              <div className="flex items-center justify-between">
-                 <h3 className="text-xs md:text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                    <TrendingUp className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-600" /> Distribution
-                 </h3>
-              </div>
-              <div className="space-y-4">
-                 <div className="text-center py-6 md:py-10 opacity-50">
-                   <PieChart className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-slate-200" />
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No distribution data available</p>
-                 </div>
-              </div>
-           </section>
+            {/* Performance Distribution */}
+            <section className="bg-white p-5 md:p-8 rounded-[32px] md:rounded-[40px] border border-slate-100 shadow-sm space-y-6 md:space-y-8">
+               <div className="flex items-center justify-between">
+                  <h3 className="text-xs md:text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                     <TrendingUp className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-600" /> Top Products
+                  </h3>
+               </div>
+               <div className="space-y-4">
+                  {topProducts.length > 0 ? (
+                    <div className="space-y-4">
+                      {topProducts.map((p: any) => (
+                        <ProgressMetric 
+                          key={p.name}
+                          label={p.name}
+                          value={formatBDT(p.revenue * 100)}
+                          percent={Math.min(100, (p.revenue * 100 / totalRevenue) * 100)}
+                          color="bg-emerald-500"
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 md:py-10 opacity-50">
+                      <PieChart className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-slate-200" />
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No sales data available</p>
+                    </div>
+                  )}
+               </div>
+            </section>
         </div>
 
         {/* Detailed Sections */}
