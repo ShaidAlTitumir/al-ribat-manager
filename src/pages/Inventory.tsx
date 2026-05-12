@@ -59,26 +59,26 @@ export default function Inventory() {
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
-              className="space-y-4"
+              className="space-y-3"
             >
               {/* Header Section */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div className="flex flex-col mb-3">
+                <div>
                   <h1 className="text-xl lg:text-3xl font-bold text-slate-900 tracking-tight uppercase">Inventory</h1>
-                  <p className="text-slate-400 text-xs lg:text-sm font-medium uppercase tracking-[0.2em] mt-1">Manage products and stock movements.</p>
+                  <p className="text-slate-500 text-[10px] lg:text-xs font-medium">Manage your products and stock movements.</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={() => business ? setView('add') : navigate('/onboarding')}
-                    className="flex-1 md:flex-none px-5 py-3 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-100"
+                    className="flex-1 md:flex-none px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-100"
                   >
-                    <Plus className="w-4 h-4" /> Add New Item
+                    <Plus className="w-3.5 h-3.5" /> Add Product
                   </button>
                 </div>
               </div>
 
               {/* Stats Row */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
                 <StatCard title="Total Skus" value={items.length} icon={Box} color="text-blue-600" />
                 <StatCard title="Total Stock" value={items.reduce((acc, i) => acc + i.current_stock, 0)} icon={Warehouse} color="text-emerald-600" />
                 <StatCard title="Asset (Cost)" value={formatBDT(items.reduce((acc, i) => acc + (i.current_stock * (i.last_landed_cost_cents || 0)), 0))} icon={Tag} color="text-orange-500" />
@@ -105,23 +105,23 @@ export default function Inventory() {
                   </div>
                 </div>
               )}
-              <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
+              <div className="flex items-center gap-3 bg-white p-2.5 rounded-2xl border border-slate-100 shadow-sm">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                   <input 
-                    className="w-full bg-slate-50 border border-slate-50 h-10 pl-10 pr-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
+                    className="w-full bg-slate-50 border border-slate-50 h-9 pl-9 pr-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs font-medium"
                     placeholder="Search by name or SKU..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <button className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:text-slate-600 transition-colors">
-                  <Filter className="w-5 h-5" />
+                <button className="p-2 bg-slate-50 text-slate-400 rounded-lg hover:text-slate-600 transition-colors">
+                  <Filter className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Items List */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {filteredItems.map(item => (
                   <ItemCard 
                     key={item.id} 
@@ -172,12 +172,14 @@ export default function Inventory() {
 
 function StatCard({ title, value, icon: Icon, color }: any) {
   return (
-    <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-      <div className="flex items-center gap-2 mb-1">
+    <div className="bg-white p-2.5 lg:p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-2 lg:gap-3">
+      <div className="w-7 h-7 lg:w-8 lg:h-8 bg-slate-50 rounded-lg flex items-center justify-center">
         <Icon className={`w-3.5 h-3.5 ${color}`} />
-        <span className="text-[10px] lg:text-xs font-semibold text-slate-400 uppercase tracking-widest">{title}</span>
       </div>
-      <p className="text-lg lg:text-2xl font-bold text-slate-900 tracking-tight truncate">{value}</p>
+      <div>
+        <span className="text-[7px] lg:text-[8px] font-black text-slate-400 uppercase tracking-widest block leading-tight">{title}</span>
+        <p className="text-xs lg:text-sm font-bold text-slate-900 tracking-tight leading-tight truncate">{value}</p>
+      </div>
     </div>
   );
 }
@@ -187,60 +189,65 @@ function ItemCard({ item, onAddStock, onEdit, onDelete }: { item: InventoryItem,
   return (
     <motion.div 
       layout
-      className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group"
+      className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col active:scale-95 cursor-pointer"
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-            <Package className="w-4 h-4" />
+          <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+            <Package className="w-3.5 h-3.5" />
           </div>
           <div>
-            <h3 className="text-base lg:text-lg font-semibold text-slate-900 leading-tight truncate max-w-[120px]">{item.name}</h3>
-            <p className="text-[10px] lg:text-xs font-normal text-slate-400 uppercase tracking-widest mt-0.5">{item.sku}</p>
+            <h3 className="text-xs lg:text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight truncate max-w-[120px]">{item.name}</h3>
+            <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{item.sku}</p>
           </div>
         </div>
         <div className="text-right">
-          <p className={`text-lg lg:text-2xl font-bold tracking-tighter ${isLow ? 'text-red-500' : 'text-slate-900'}`}>
-            {item.current_stock} <span className="text-[10px] text-slate-400 font-bold ml-0.5 uppercase">{item.unit}</span>
+          <p className={`text-sm lg:text-base font-bold tracking-tight ${isLow ? 'text-red-500' : 'text-slate-900'}`}>
+            {item.current_stock} <span className="text-[8px] text-slate-400 font-bold ml-0.5 uppercase">{item.unit}</span>
           </p>
           {isLow && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-50 text-red-500 rounded text-[7px] font-black uppercase tracking-widest mt-1">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-50 text-red-500 rounded text-[6px] font-black uppercase tracking-widest mt-0.5">
               Low
             </span>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 p-2 bg-slate-50 rounded-xl mb-3 border border-slate-100">
+      <div className="grid grid-cols-2 gap-2 p-2 bg-slate-50 rounded-xl mb-2 border border-slate-100">
         <div className="flex flex-col">
-          <span className="text-[10px] lg:text-xs font-medium text-slate-400 uppercase tracking-widest block mb-0.5">Buy Price</span>
-          <p className="text-sm lg:text-base font-bold text-slate-900">৳{((item.last_landed_cost_cents || 0) / 100).toLocaleString()}</p>
+          <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Buy Price</span>
+          <p className="text-xs font-bold text-slate-900">৳{((item.last_landed_cost_cents || 0) / 100).toLocaleString()}</p>
         </div>
-        <div className="flex flex-col border-l border-slate-200 pl-3">
-          <span className="text-[10px] lg:text-xs font-medium text-slate-400 uppercase tracking-widest block mb-0.5">Sell Price</span>
-          <p className="text-sm lg:text-base font-bold text-emerald-600">৳{((item.default_selling_price_cents || 0) / 100).toLocaleString()}</p>
+        <div className="flex flex-col border-l border-slate-200 pl-2">
+          <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Sell Price</span>
+          <p className="text-xs font-bold text-emerald-600">৳{((item.default_selling_price_cents || 0) / 100).toLocaleString()}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5">
-        <button 
-          onClick={onAddStock}
-          className="flex-1 bg-white border border-slate-100 hover:border-blue-200 text-blue-600 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 flex items-center justify-center gap-1.5"
-        >
-          <Truck className="w-3 h-3" /> Restock
-        </button>
-        <button 
-          onClick={onEdit}
-          className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:text-slate-700 transition-colors active:scale-95"
-        >
-          <Edit2 className="w-3.5 h-3.5" />
-        </button>
-        <button 
-          onClick={onDelete}
-          className="p-2 bg-red-50 text-red-400 rounded-lg hover:text-red-600 transition-colors active:scale-95"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+      <div className="mt-auto pt-2 border-t border-slate-50 flex items-center justify-between">
+        <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-widest">Active</span>
+        <div className="flex items-center gap-1.5">
+          <button 
+            onClick={(e) => { e.stopPropagation(); onAddStock(); }}
+            className="px-2 py-1 bg-blue-50 rounded text-[9px] font-bold text-blue-600 uppercase tracking-widest flex items-center gap-1 hover:bg-blue-100 transition-all"
+          >
+            <Truck className="w-3 h-3" /> Restock
+          </button>
+          <div className="flex gap-1">
+            <button 
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="p-1.5 bg-slate-50 text-slate-400 rounded-lg hover:text-blue-600 hover:bg-blue-50 transition-all"
+            >
+              <Edit2 className="w-3 h-3" />
+            </button>
+            <button 
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="p-1.5 bg-red-50 text-red-400 rounded-lg hover:text-red-600 hover:bg-red-100 transition-all"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
       </div>
     </motion.div>
   );

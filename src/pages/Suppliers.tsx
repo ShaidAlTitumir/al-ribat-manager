@@ -108,14 +108,23 @@ export default function Suppliers() {
         )}
 
         {/* Stats Strip */}
-        <div className="grid grid-cols-1 gap-2">
-           <div className="bg-white p-2.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-              <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-                 <Truck className="w-3.5 h-3.5" />
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 lg:gap-3">
+           <div className="bg-white p-3 lg:p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-2 lg:gap-3">
+              <div className="w-8 h-8 lg:w-9 lg:h-9 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                 <Truck className="w-4 h-4" />
               </div>
               <div>
-                 <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Total Suppliers</p>
-                 <p className="text-xs font-bold text-slate-900 tracking-tight leading-none">{suppliers.length}</p>
+                 <p className="text-[8px] lg:text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Suppliers</p>
+                 <p className="text-sm lg:text-base font-bold text-slate-900 tracking-tight">{suppliers.length}</p>
+              </div>
+           </div>
+           <div className="bg-white p-3 lg:p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-2 lg:gap-3">
+              <div className="w-8 h-8 lg:w-9 lg:h-9 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+                 <MessageCircle className="w-4 h-4" />
+              </div>
+              <div>
+                 <p className="text-[8px] lg:text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-tight">Active Network</p>
+                 <p className="text-sm lg:text-base font-bold text-emerald-600 tracking-tight leading-tight">{suppliers.filter(s => s.wechat || s.phone).length}</p>
               </div>
            </div>
         </div>
@@ -228,7 +237,7 @@ function SupplierCard({ supplier, onClick, onEdit, onDelete }: { supplier: Suppl
        </div>
 
        <div className="mt-auto pt-2 border-t border-slate-50 flex items-center justify-between">
-          <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest">Comm</span>
+          <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-widest">Connect</span>
           <div className="flex items-center gap-1.5">
             {supplier.wechat && (
               <div className="px-2 py-1 bg-emerald-50 rounded text-[9px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1">
