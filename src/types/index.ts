@@ -83,6 +83,20 @@ export interface Customer {
   created_at: string;
 }
 
+export interface Supplier {
+  id: string;
+  business_id: string;
+  name: string;
+  phone: string;
+  wechat: string;
+  location: string;
+  shop_name: string;
+  shop_link: string;
+  products_list: string;
+  notes: string;
+  created_at: string;
+}
+
 export interface Expense {
   id: string;
   business_id: string;

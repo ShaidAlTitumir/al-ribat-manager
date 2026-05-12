@@ -396,11 +396,28 @@ CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT
 DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
+-- 18. Suppliers Table
+CREATE TABLE IF NOT EXISTS public.suppliers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  business_id UUID REFERENCES public.businesses(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  phone TEXT,
+  wechat TEXT,
+  location TEXT,
+  shop_name TEXT,
+  shop_link TEXT,
+  products_list TEXT,
+  notes TEXT
+);
+
+ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
+
 -- MULTI-TENANT DATA ACCESS
 DO $$ 
 DECLARE 
   t text;
-  tables text[] := ARRAY['partners', 'capital_contributions', 'customers', 'inventory_items', 'purchase_transactions', 'sales', 'customer_ledger', 'expenses', 'business_members', 'join_requests', 'activity_log', 'exchanges', 'partner_transfers', 'partner_profit_distributions'];
+  tables text[] := ARRAY['partners', 'capital_contributions', 'customers', 'inventory_items', 'purchase_transactions', 'sales', 'customer_ledger', 'expenses', 'business_members', 'join_requests', 'activity_log', 'exchanges', 'partner_transfers', 'partner_profit_distributions', 'suppliers'];
 BEGIN
   FOREACH t IN ARRAY tables LOOP
     EXECUTE 'DROP POLICY IF EXISTS data_access_' || t || ' ON public.' || t;

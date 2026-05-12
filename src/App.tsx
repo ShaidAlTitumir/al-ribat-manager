@@ -10,6 +10,7 @@ import { ProtectedRoute, NoBusinessGuard } from './components/auth/Guards';
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Sales = React.lazy(() => import('./pages/Sales'));
 const Customers = React.lazy(() => import('./pages/Customers'));
+const Suppliers = React.lazy(() => import('./pages/Suppliers'));
 const Partners = React.lazy(() => import('./pages/Partners'));
 const Inventory = React.lazy(() => import('./pages/Inventory'));
 const Wallet = React.lazy(() => import('./pages/Wallet'));
@@ -51,6 +52,7 @@ export default function App() {
                   <Route element={<NoBusinessGuard />}>
                     <Route path="/sales" element={<Sales />} />
                     <Route path="/customers" element={<Customers />} />
+                    <Route path="/suppliers" element={<Suppliers />} />
                     <Route path="/partners" element={<Partners />} />
                     <Route path="/inventory" element={<Inventory />} />
                     <Route path="/wallet" element={<Wallet />} />

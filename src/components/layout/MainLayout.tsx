@@ -5,7 +5,7 @@ import {
   Home, Package, ShoppingCart, Users, RefreshCw, 
   Settings, LogOut, Bell, Menu, X, Receipt, 
   ArrowLeftRight, Wallet, FileText, ChevronRight,
-  LayoutGrid
+  LayoutGrid, Truck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useBusiness } from '../../context/BusinessContext';
@@ -31,6 +31,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     { path: '/', label: 'Home', icon: Home },
     { path: '/sales', label: 'Sales', icon: Receipt },
     { path: '/customers', label: 'Customers', icon: Users },
+    { path: '/suppliers', label: 'Suppliers', icon: Truck },
     { path: '/partners', label: 'Partners', icon: Users },
     { path: '/inventory', label: 'Inventory', icon: Package },
     { path: '/wallet', label: 'Money Exchange', icon: RefreshCw },
