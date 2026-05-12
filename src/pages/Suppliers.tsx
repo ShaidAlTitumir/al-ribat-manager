@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
 import { useBusiness } from '../context/BusinessContext';
+import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -69,84 +70,69 @@ export default function Suppliers() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl lg:text-3xl font-bold text-slate-900 tracking-tight uppercase">Supplier Network</h1>
-            <p className="text-slate-500 text-xs lg:text-sm font-medium">Manage your sourcing and manufacturing contacts.</p>
+            <p className="text-slate-500 text-[10px] lg:text-xs font-medium">Manage sourcing and manufacturing contacts.</p>
           </div>
           <div className="flex gap-2">
             <button 
               onClick={downloadExcel}
               disabled={suppliers.length === 0}
-              className="px-4 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl text-xs font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+              className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
             >
-              <Download className="w-4 h-4" /> Export
+              <Download className="w-3.5 h-3.5" /> Export
             </button>
             <button 
               onClick={() => business ? setIsAddModalOpen(true) : navigate('/onboarding')}
-              className="flex-1 md:flex-none px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-100"
+              className="flex-1 md:flex-none px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-100"
             >
-              <Plus className="w-4 h-4" /> Add Supplier
+              <Plus className="w-3.5 h-3.5" /> Add
             </button>
           </div>
         </div>
 
         {!business && (
-          <div className="bg-amber-50 border border-amber-100 p-6 rounded-[32px] flex items-center gap-6">
-            <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 shrink-0">
-               <Truck className="w-8 h-8" />
+          <div className="bg-amber-50 border border-amber-100 p-4 rounded-[24px] flex items-center gap-4">
+            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 shrink-0">
+               <Truck className="w-6 h-6" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-bold text-amber-900">Partner Sourcing Paused</h3>
-              <p className="text-sm font-medium text-amber-700 mt-1 leading-relaxed">
-                Connect your business to start adding suppliers and tracking your sourcing network.
+              <h3 className="text-sm font-bold text-amber-900 leading-none">Partner Sourcing Paused</h3>
+              <p className="text-[10px] font-medium text-amber-700 mt-1 leading-tight">
+                Connect your business to start adding suppliers.
               </p>
-              <button 
-                onClick={() => navigate('/onboarding')}
-                className="mt-4 px-6 py-2 bg-amber-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-amber-200 active:scale-95 transition-all"
-              >
-                Connect Now
-              </button>
             </div>
           </div>
         )}
 
         {/* Stats Strip */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-           <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-              <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                 <Truck className="w-4 h-4" />
+        <div className="grid grid-cols-1 gap-2">
+           <div className="bg-white p-2.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+              <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
+                 <Truck className="w-3.5 h-3.5" />
               </div>
               <div>
-                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Suppliers</p>
-                 <p className="text-base font-bold text-slate-900 tracking-tight">{suppliers.length}</p>
-              </div>
-           </div>
-           <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-              <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
-                 <Package className="w-4 h-4" />
-              </div>
-              <div>
-                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Global Reach</p>
-                 <p className="text-base font-bold text-emerald-600 tracking-tight">Active Sourcing</p>
+                 <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Total Suppliers</p>
+                 <p className="text-xs font-bold text-slate-900 tracking-tight leading-none">{suppliers.length}</p>
               </div>
            </div>
         </div>
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
           <input 
-            className="w-full bg-white border border-slate-100 h-10 pl-10 pr-4 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-xs font-medium"
-            placeholder="Search suppliers, products, or locations..."
+            className="w-full bg-white border border-slate-100 h-9 pl-9 pr-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm text-xs font-medium"
+            placeholder="Search suppliers, products..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
         {/* List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
            {filteredSuppliers.map((supplier, idx) => (
              <SupplierCard 
                key={`${supplier.id}-${idx}`} 
@@ -198,52 +184,52 @@ function SupplierCard({ supplier, onClick, onEdit, onDelete }: { supplier: Suppl
     <motion.div 
       layout
       onClick={onClick}
-      className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all group flex flex-col cursor-pointer active:scale-95"
+      className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all group flex flex-col cursor-pointer active:scale-95"
     >
-       <div className="flex items-start justify-between mb-4">
+       <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-3">
-             <div className="w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                <Truck className="w-4 h-4" />
+             <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                <Truck className="w-3.5 h-3.5" />
              </div>
              <div className="text-left">
-                <h3 className="text-sm lg:text-base font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{supplier.name}</h3>
-                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{supplier.shop_name || 'Generic Supplier'}</p>
+                <h3 className="text-xs lg:text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{supplier.name}</h3>
+                <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{supplier.shop_name || 'Generic Supplier'}</p>
              </div>
           </div>
-          <div className="flex gap-1.5">
+          <div className="flex gap-1">
              <button 
                 onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                className="p-1.5 rounded-lg bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
+                className="p-1.5 rounded-lg bg-slate-50 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all"
              >
-                <MoreVertical className="w-3.5 h-3.5" />
+                <MoreVertical className="w-3 h-3" />
              </button>
              <div className="p-1.5 rounded-lg bg-slate-50 text-slate-400">
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-3 h-3" />
              </div>
           </div>
        </div>
 
-       <div className="space-y-2 mb-4 text-left">
+       <div className="space-y-1 mb-2 text-left">
           {supplier.phone && (
-            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
-               <Phone className="w-3 h-3 text-slate-300" /> {supplier.phone}
+            <div className="flex items-center gap-2 text-[9px] font-bold text-slate-500">
+               <Phone className="w-2.5 h-2.5 text-slate-300" /> {supplier.phone}
             </div>
           )}
           {supplier.location && (
-            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 truncate">
-               <MapPin className="w-3 h-3 text-slate-300" /> {supplier.location}
+            <div className="flex items-center gap-2 text-[9px] font-bold text-slate-500 truncate">
+               <MapPin className="w-2.5 h-2.5 text-slate-300" /> {supplier.location}
             </div>
           )}
           {supplier.products_list && (
-            <div className="flex items-center gap-2 text-[10px] font-semibold text-indigo-600 truncate py-1 px-2 bg-indigo-50 rounded-lg w-fit">
-               <Package className="w-3 h-3 text-indigo-400" /> {supplier.products_list}
+            <div className="flex items-center gap-2 text-[9px] font-semibold text-blue-600 truncate py-0.5 px-1.5 bg-blue-50 rounded-lg w-fit">
+               <Package className="w-2.5 h-2.5 text-blue-400" /> {supplier.products_list}
             </div>
           )}
        </div>
 
-       <div className="mt-auto pt-3 border-t border-slate-50 flex items-center justify-between">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Communication</span>
-          <div className="flex items-center gap-2">
+       <div className="mt-auto pt-2 border-t border-slate-50 flex items-center justify-between">
+          <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest">Comm</span>
+          <div className="flex items-center gap-1.5">
             {supplier.wechat && (
               <div className="px-2 py-1 bg-emerald-50 rounded text-[9px] font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-1">
                 <MessageCircle className="w-3 h-3" /> WeChat
@@ -262,6 +248,7 @@ function SupplierCard({ supplier, onClick, onEdit, onDelete }: { supplier: Suppl
 
 function AddSupplierModal({ onClose }: { onClose: () => void }) {
   const { business } = useBusiness();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({ 
     name: '', 
@@ -288,6 +275,19 @@ function AddSupplierModal({ onClose }: { onClose: () => void }) {
         });
         
       if (error) throw error;
+
+      // Log Activity
+      await supabase.from('activity_log').insert({
+        business_id: business.id,
+        user_id: user?.id,
+        action: 'ADD_SUPPLIER',
+        details: {
+          title: `Added Supplier: ${data.name}`,
+          sub: data.shop_name || 'Global Network',
+          amount: 'NEW',
+          type: 'supplier'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
@@ -380,7 +380,7 @@ function AddSupplierModal({ onClose }: { onClose: () => void }) {
                 <div className="md:col-span-2">
                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Notes</label>
                    <textarea 
-                     className="w-full bg-slate-50 border border-slate-100 p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-xs font-bold h-24"
+                     className="w-full bg-slate-50 border border-slate-100 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs font-bold h-24"
                      value={formData.notes}
                      onChange={(e) => setFormData({...formData, notes: e.target.value})}
                      placeholder="Any additional details..."
@@ -394,7 +394,7 @@ function AddSupplierModal({ onClose }: { onClose: () => void }) {
               <button 
                 type="submit"
                 disabled={mutation.isPending}
-                className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-indigo-100 transition-all active:scale-95 disabled:bg-slate-300 disabled:shadow-none"
+                className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-blue-100 transition-all active:scale-95 disabled:bg-slate-300 disabled:shadow-none"
               >
                 {mutation.isPending ? 'Saving...' : 'Save Supplier'}
               </button>
@@ -482,7 +482,7 @@ function EditSupplierModal({ supplier, onClose }: { supplier: Supplier, onClose:
                 <div className="md:col-span-2">
                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Notes</label>
                    <textarea 
-                     className="w-full bg-slate-50 border border-slate-100 p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-xs font-bold h-24"
+                     className="w-full bg-slate-50 border border-slate-100 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs font-bold h-24"
                      value={formData.notes}
                      onChange={(e) => setFormData({...formData, notes: e.target.value})}
                    />
@@ -495,7 +495,7 @@ function EditSupplierModal({ supplier, onClose }: { supplier: Supplier, onClose:
               <button 
                 type="submit"
                 disabled={mutation.isPending}
-                className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-indigo-100 transition-all active:scale-95 disabled:bg-slate-300 disabled:shadow-none"
+                className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-blue-100 transition-all active:scale-95 disabled:bg-slate-300 disabled:shadow-none"
               >
                 {mutation.isPending ? 'Updating...' : 'Update Supplier'}
               </button>
@@ -517,7 +517,7 @@ function SupplierDetailDrawer({ supplier, onClose, onEdit, onDelete }: { supplie
          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
          className="bg-white w-full max-w-xl relative p-0 flex flex-col shadow-2xl"
        >
-          <div className="p-6 border-b border-slate-50 bg-indigo-900 text-white flex items-center justify-between">
+          <div className="p-6 border-b border-slate-50 bg-blue-600 text-white flex items-center justify-between">
              <div className="flex items-center gap-4">
                 <button onClick={onClose} className="p-2 rounded-xl bg-white/10 text-white">
                    <ChevronRight className="w-5 h-5 rotate-180" />
@@ -525,8 +525,8 @@ function SupplierDetailDrawer({ supplier, onClose, onEdit, onDelete }: { supplie
                 <div>
                    <h2 className="text-xl font-bold tracking-tight leading-none mb-1 uppercase">{supplier.name}</h2>
                    <div className="flex items-center gap-4">
-                      <button onClick={onEdit} className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest hover:text-indigo-300">Edit</button>
-                      <button onClick={onDelete} className="text-[10px] font-bold text-red-400 uppercase tracking-widest hover:text-red-300">Delete</button>
+                      <button onClick={onEdit} className="text-[10px] font-bold text-blue-200 uppercase tracking-widest hover:text-white transition-colors">Edit</button>
+                      <button onClick={onDelete} className="text-[10px] font-bold text-red-300 uppercase tracking-widest hover:text-red-100 transition-colors">Delete</button>
                    </div>
                 </div>
              </div>
@@ -551,7 +551,7 @@ function SupplierDetailDrawer({ supplier, onClose, onEdit, onDelete }: { supplie
                         href={supplier.shop_link.startsWith('http') ? supplier.shop_link : `https://${supplier.shop_link}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="flex items-center justify-between p-4 bg-indigo-50 border border-indigo-100 rounded-2xl text-indigo-700 hover:bg-indigo-100 transition-all font-bold text-xs uppercase tracking-widest"
+                        className="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-2xl text-blue-700 hover:bg-blue-100 transition-all font-bold text-xs uppercase tracking-widest"
                        >
                          View Online Store <ExternalLink className="w-4 h-4" />
                        </a>
@@ -574,7 +574,7 @@ function SupplierDetailDrawer({ supplier, onClose, onEdit, onDelete }: { supplie
                    <button 
                      onClick={() => window.open(supplier.shop_link?.startsWith('http') ? supplier.shop_link : `https://${supplier.shop_link}`, '_blank')}
                      disabled={!supplier.shop_link}
-                     className="w-full py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
+                     className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-100 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50"
                    >
                      Order via Shop Link
                    </button>
@@ -596,6 +596,8 @@ function DetailItem({ label, value }: { label: string, value?: string }) {
 }
 
 function DeleteSupplierModal({ supplier, onClose, onSuccess }: { supplier: Supplier, onClose: () => void, onSuccess?: () => void }) {
+  const { business } = useBusiness();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
@@ -606,6 +608,19 @@ function DeleteSupplierModal({ supplier, onClose, onSuccess }: { supplier: Suppl
         .delete()
         .eq('id', supplier.id);
       if (error) throw error;
+
+      // Log Activity
+      await supabase.from('activity_log').insert({
+        business_id: business?.id,
+        user_id: user?.id,
+        action: 'DELETE_SUPPLIER',
+        details: {
+          title: `Deleted Supplier: ${supplier.name}`,
+          sub: 'Network Record Removed',
+          amount: 'REMOVED',
+          type: 'supplier'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
@@ -661,7 +676,7 @@ function Input({ label, value, onChange, type = "text", placeholder, required }:
       <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">{label}</label>
       <input 
         type={type}
-        className="w-full bg-slate-50 border border-slate-100 h-9 px-3 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-xs font-bold"
+        className="w-full bg-slate-50 border border-slate-100 h-9 px-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs font-bold"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
