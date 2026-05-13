@@ -13,7 +13,7 @@ import {
   ArrowDownRight
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { formatBDT, formatDate } from '../lib/utils';
+import { formatBDT, formatDate, isValidDate } from '../lib/utils';
 import { generateBusinessReport } from '../lib/pdfGenerator';
 import { format, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
@@ -36,7 +36,12 @@ export default function Reports() {
         const lastMonth = subMonths(now, 1);
         return { start: startOfMonth(lastMonth), end: endOfMonth(lastMonth) };
       case 'Custom':
-        return { start: startOfDay(new Date(customStart)), end: endOfDay(new Date(customEnd)) };
+        const s = new Date(customStart);
+        const e = new Date(customEnd);
+        return { 
+          start: startOfDay(isValidDate(s) ? s : now), 
+          end: endOfDay(isValidDate(e) ? e : now) 
+        };
       default:
         return { start: startOfMonth(now), end: endOfDay(now) };
     }
@@ -190,7 +195,9 @@ export default function Reports() {
     
     let periodString = dateRange;
     if (dateRange === 'Custom') {
-      periodString = `${format(new Date(customStart), 'dd/MM/yyyy')} - ${format(new Date(customEnd), 'dd/MM/yyyy')}`;
+      const startStr = isValidDate(customStart) ? format(new Date(customStart), 'dd/MM/yyyy') : 'Start';
+      const endStr = isValidDate(customEnd) ? format(new Date(customEnd), 'dd/MM/yyyy') : 'End';
+      periodString = `${startStr} - ${endStr}`;
     }
 
     try {
@@ -287,7 +294,7 @@ export default function Reports() {
                   />
                 </div>
                 <p className="text-[9px] font-bold text-blue-600/60 uppercase tracking-widest px-1">
-                  Selected: {format(new Date(customStart), 'dd/MM/yyyy')}
+                  Selected: {isValidDate(customStart) ? format(new Date(customStart), 'dd/MM/yyyy') : '-'}
                 </p>
               </div>
               <div className="space-y-1">
@@ -302,7 +309,7 @@ export default function Reports() {
                   />
                 </div>
                 <p className="text-[9px] font-bold text-blue-600/60 uppercase tracking-widest px-1">
-                  Selected: {format(new Date(customEnd), 'dd/MM/yyyy')}
+                  Selected: {isValidDate(customEnd) ? format(new Date(customEnd), 'dd/MM/yyyy') : '-'}
                 </p>
               </div>
             </motion.div>

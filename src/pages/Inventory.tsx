@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatBDT } from '../lib/utils';
+import { logActivity } from '../lib/activity';
 import { InventoryItem } from '../types';
 import { useScrollLock } from '../hooks/useScrollLock';
 
@@ -51,7 +52,7 @@ export default function Inventory() {
 
   return (
     <MainLayout>
-      <div className="space-y-4">
+      <div className="space-y-4 px-0.5">
         <AnimatePresence mode="wait">
           {view === 'list' ? (
             <motion.div 
@@ -59,12 +60,12 @@ export default function Inventory() {
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
-              className="space-y-3"
+              className="space-y-4"
             >
               {/* Header Section */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div>
-                  <h1 className="text-xl lg:text-3xl font-bold text-slate-900 tracking-tight uppercase">Inventory</h1>
+                  <h1 className="text-xl lg:text-3xl font-bold text-slate-900 tracking-tight uppercase">Product Hub</h1>
                   <p className="text-slate-500 text-[10px] lg:text-xs font-medium">Manage your products and stock movements.</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -172,13 +173,13 @@ export default function Inventory() {
 
 function StatCard({ title, value, icon: Icon, color }: any) {
   return (
-    <div className="bg-white p-2.5 lg:p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-2 lg:gap-3">
-      <div className="w-7 h-7 lg:w-8 lg:h-8 bg-slate-50 rounded-lg flex items-center justify-center">
-        <Icon className={`w-3.5 h-3.5 ${color}`} />
+    <div className="bg-white p-3 lg:p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-2 lg:gap-3">
+      <div className="w-8 h-8 lg:w-9 lg:h-9 bg-slate-50 rounded-xl flex items-center justify-center">
+        <Icon className={`w-4 h-4 ${color}`} />
       </div>
       <div>
-        <span className="text-[7px] lg:text-[8px] font-black text-slate-400 uppercase tracking-widest block leading-tight">{title}</span>
-        <p className="text-xs lg:text-sm font-bold text-slate-900 tracking-tight leading-tight truncate">{value}</p>
+        <p className="text-[8px] lg:text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">{title}</p>
+        <p className="text-sm lg:text-base font-bold text-slate-900 tracking-tight leading-none">{value}</p>
       </div>
     </div>
   );
@@ -189,62 +190,62 @@ function ItemCard({ item, onAddStock, onEdit, onDelete }: { item: InventoryItem,
   return (
     <motion.div 
       layout
-      className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col active:scale-95 cursor-pointer"
+      className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-100 transition-all group flex flex-col active:scale-95 cursor-pointer"
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
             <Package className="w-3.5 h-3.5" />
           </div>
-          <div>
-            <h3 className="text-xs lg:text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight truncate max-w-[120px]">{item.name}</h3>
+          <div className="text-left">
+            <h3 className="text-xs lg:text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight truncate max-w-[140px]">{item.name}</h3>
             <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{item.sku}</p>
           </div>
         </div>
         <div className="text-right">
           <p className={`text-sm lg:text-base font-bold tracking-tight ${isLow ? 'text-red-500' : 'text-slate-900'}`}>
-            {item.current_stock} <span className="text-[8px] text-slate-400 font-bold ml-0.5 uppercase">{item.unit}</span>
+            {item.current_stock} <span className="text-[8px] text-slate-400 font-bold ml-0.5 uppercase tracking-widest">{item.unit}</span>
           </p>
           {isLow && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-50 text-red-500 rounded text-[6px] font-black uppercase tracking-widest mt-0.5">
-              Low
+            <span className="inline-flex px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[7px] font-black uppercase tracking-tighter mt-1">
+              Low Stock
             </span>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 p-2 bg-slate-50 rounded-xl mb-2 border border-slate-100">
-        <div className="flex flex-col">
-          <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Buy Price</span>
-          <p className="text-xs font-bold text-slate-900">৳{((item.last_landed_cost_cents || 0) / 100).toLocaleString()}</p>
+      <div className="grid grid-cols-2 gap-2 p-2 bg-slate-50/50 rounded-2xl mb-2 border border-slate-100/50">
+        <div className="flex flex-col text-left px-1">
+          <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-1">Buy Price</span>
+          <p className="text-xs font-bold text-slate-900">{formatBDT(item.last_landed_cost_cents || 0)}</p>
         </div>
-        <div className="flex flex-col border-l border-slate-200 pl-2">
-          <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Sell Price</span>
-          <p className="text-xs font-bold text-emerald-600">৳{((item.default_selling_price_cents || 0) / 100).toLocaleString()}</p>
+        <div className="flex flex-col border-l border-slate-200 pl-3">
+          <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-1">Sell Price</span>
+          <p className="text-xs font-bold text-emerald-600">{formatBDT(item.default_selling_price_cents || 0)}</p>
         </div>
       </div>
 
       <div className="mt-auto pt-2 border-t border-slate-50 flex items-center justify-between">
-        <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-widest">Active</span>
-        <div className="flex items-center gap-1.5">
+        <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-widest">Controls</span>
+        <div className="flex items-center gap-2">
           <button 
             onClick={(e) => { e.stopPropagation(); onAddStock(); }}
-            className="px-2 py-1 bg-blue-50 rounded text-[9px] font-bold text-blue-600 uppercase tracking-widest flex items-center gap-1 hover:bg-blue-100 transition-all"
+            className="px-2.5 py-1.5 bg-blue-50 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 hover:bg-blue-100 transition-all text-blue-600 active:scale-95 shadow-sm shadow-blue-50"
           >
             <Truck className="w-3 h-3" /> Restock
           </button>
           <div className="flex gap-1">
             <button 
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="p-1.5 bg-slate-50 text-slate-400 rounded-lg hover:text-blue-600 hover:bg-blue-50 transition-all"
+              className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:text-blue-600 hover:bg-blue-50 transition-all active:scale-95"
             >
-              <Edit2 className="w-3 h-3" />
+              <Edit2 className="w-3.5 h-3.5" />
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="p-1.5 bg-red-50 text-red-400 rounded-lg hover:text-red-600 hover:bg-red-100 transition-all"
+              className="p-2 bg-red-50 text-red-400 rounded-xl hover:text-red-600 hover:bg-red-100 transition-all active:scale-95"
             >
-              <Trash2 className="w-3 h-3" />
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -255,65 +256,330 @@ function ItemCard({ item, onAddStock, onEdit, onDelete }: { item: InventoryItem,
 
 // Edit Item Modal
 function EditItemModal({ item, onClose }: { item: InventoryItem, onClose: () => void }) {
+  const { business } = useBusiness();
   const queryClient = useQueryClient();
+  
+  // Fetch the latest purchase transaction to pre-fill the cost breakdown
+  const { data: latestPurchase } = useQuery({
+    queryKey: ['latest-purchase', item.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('purchase_transactions')
+        .select('*')
+        .eq('item_id', item.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 is no rows found
+      return data;
+    },
+    enabled: !!item.id
+  });
+
   const [formData, setFormData] = useState({
     name: item.name,
     category: item.category || '',
     sku: item.sku,
     threshold: item.low_stock_threshold.toString(),
     sellingPrice: ((item.default_selling_price_cents || 0) / 100).toString(),
-    unit: item.unit || 'pcs'
+    unit: item.unit || 'pcs',
+    currentStock: item.current_stock.toString(),
+    lastLandedCost: ((item.last_landed_cost_cents || 0) / 100).toString(),
+    unitWeight: (item.weight_per_unit || 0).toString(),
+    weightPerUnit: (item.weight_per_unit || 0).toString(),
+    supplier: item.supplier || '',
+    description: item.description || '',
+    // Breakdown fields
+    quantity: item.current_stock.toString(),
+    unitBuyingRmb: '0',
+    totalBuyingRmb: '0',
+    exchangeRate: business?.exchange_rate?.toString() || '18.15',
+    shippingMethod: 'Sea',
+    shippingRate: '0',
+    additionalCost: '0',
+    additionalCostCurrency: 'BDT' as 'BDT' | 'RMB',
+    totalWeight: '0'
   });
+
+  // Update breakdown fields when latestPurchase is loaded
+  React.useEffect(() => {
+    if (latestPurchase) {
+      const q = latestPurchase.quantity || 1;
+      const tRmb = (latestPurchase.buying_cost_per_unit_rmb_cents || 0) * q / 100;
+      const uRmb = (latestPurchase.buying_cost_per_unit_rmb_cents || 0) / 100;
+      setFormData(prev => ({
+        ...prev,
+        unitBuyingRmb: uRmb.toString(),
+        totalBuyingRmb: tRmb.toString(),
+        exchangeRate: (latestPurchase.exchange_rate_used || 0).toString(),
+        shippingMethod: latestPurchase.shipping_method || 'Sea',
+        shippingRate: ((latestPurchase.shipping_rate_bdt_per_kg_cents || 0) / 100).toString(),
+        additionalCost: ((latestPurchase.additional_cost_bdt_cents || 0) / (latestPurchase.additional_cost_currency === 'RMB' ? latestPurchase.exchange_rate_used || 1 : 1) / 100).toString(),
+        additionalCostCurrency: (latestPurchase.additional_cost_currency || 'BDT') as 'BDT' | 'RMB',
+        unitWeight: (item.weight_per_unit || 0).toString(),
+        totalWeight: ((item.weight_per_unit || 0) * q).toString(),
+        quantity: q.toString()
+      }));
+    }
+  }, [latestPurchase, item.weight_per_unit]);
+
+  const handleQuantityChange = (v: string) => {
+    const qty = parseFloat(v) || 0;
+    const uWeight = parseFloat(formData.unitWeight) || 0;
+    const uRmb = parseFloat(formData.unitBuyingRmb) || 0;
+    setFormData({
+      ...formData,
+      quantity: v,
+      totalWeight: (qty * uWeight).toFixed(3),
+      totalBuyingRmb: (qty * uRmb).toFixed(2)
+    });
+  };
+
+  const handleUnitWeightChange = (v: string) => {
+    const uWeight = parseFloat(v) || 0;
+    const qty = parseFloat(formData.quantity) || 0;
+    setFormData({
+      ...formData,
+      unitWeight: v,
+      totalWeight: (qty * uWeight).toFixed(3)
+    });
+  };
+
+  const handleTotalWeightChange = (v: string) => {
+    const tWeight = parseFloat(v) || 0;
+    const qty = parseFloat(formData.quantity) || 0;
+    setFormData({
+      ...formData,
+      totalWeight: v,
+      unitWeight: qty > 0 ? (tWeight / qty).toFixed(3) : '0.000'
+    });
+  };
+
+  const handleUnitBuyingRmbChange = (v: string) => {
+    const uRmb = parseFloat(v) || 0;
+    const qty = parseFloat(formData.quantity) || 0;
+    setFormData({
+      ...formData,
+      unitBuyingRmb: v,
+      totalBuyingRmb: (qty * uRmb).toFixed(2)
+    });
+  };
+
+  const handleTotalBuyingRmbChange = (v: string) => {
+    const tRmb = parseFloat(v) || 0;
+    const qty = parseFloat(formData.quantity) || 0;
+    setFormData({
+      ...formData,
+      totalBuyingRmb: v,
+      unitBuyingRmb: qty > 0 ? (tRmb / qty).toFixed(2) : '0.00'
+    });
+  };
+
+  const editQty = parseInt(formData.quantity) || 0;
+  const weight = parseFloat(formData.totalWeight) || 0;
+  const rate = parseFloat(formData.exchangeRate) || 0;
+  const totalRmb = parseFloat(formData.totalBuyingRmb) || 0;
+  const shipRate = parseFloat(formData.shippingRate) || 0;
+  const addCost = parseFloat(formData.additionalCost) || 0;
+
+  const totalBuyingBDT = totalRmb * rate;
+  const totalShippingBDT = weight * shipRate;
+  const addCostBDT = formData.additionalCostCurrency === 'RMB' ? addCost * rate : addCost;
+  const totalLandedCostBDT = totalBuyingBDT + totalShippingBDT + addCostBDT;
+  const calculatedLandedCostPerUnit = editQty > 0 ? totalLandedCostBDT / editQty : 0;
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const updatedLandedCost = Math.round(calculatedLandedCostPerUnit * 100);
       const { error } = await supabase
         .from('inventory_items')
         .update({
           name: formData.name,
           category: formData.category,
           sku: formData.sku,
-          low_stock_threshold: parseInt(formData.threshold),
-          default_selling_price_cents: Math.round(parseFloat(formData.sellingPrice) * 100),
-          unit: formData.unit
+          low_stock_threshold: parseInt(formData.threshold) || 0,
+          default_selling_price_cents: Math.round(parseFloat(formData.sellingPrice || '0') * 100),
+          unit: formData.unit,
+          current_stock: parseInt(formData.currentStock) || 0,
+          last_landed_cost_cents: updatedLandedCost > 0 ? updatedLandedCost : Math.round(parseFloat(formData.lastLandedCost || '0') * 100),
+          weight_per_unit: weight > 0 && editQty > 0 ? weight / editQty : parseFloat(formData.weightPerUnit || '0'),
+          supplier: formData.supplier,
+          description: formData.description
         })
         .eq('id', item.id);
       
       if (error) throw error;
+
+      // If they changed the cost breakdown, we might want to update the latest purchase too
+      if (latestPurchase && (totalRmb > 0 || addCost > 0)) {
+        await supabase
+          .from('purchase_transactions')
+          .update({
+            quantity: editQty,
+            buying_cost_per_unit_rmb_cents: Math.round((editQty > 0 ? totalRmb / editQty : 0) * 100),
+            exchange_rate_used: rate,
+            shipping_method: formData.shippingMethod,
+            shipping_rate_bdt_per_kg_cents: Math.round(shipRate * 100),
+            additional_cost_bdt_cents: Math.round(addCostBDT * 100),
+            landed_cost_per_unit_bdt_cents: updatedLandedCost,
+            total_landed_cost_bdt_cents: Math.round(totalLandedCostBDT * 100)
+          })
+          .eq('id', latestPurchase.id);
+      }
+
+      const { user } = (await supabase.auth.getUser()).data;
+      await logActivity({
+        business_id: business?.id || '',
+        user_id: user?.id,
+        action: 'EDIT_ITEM',
+        details: {
+          title: `Updated: ${formData.name}`,
+          sub: `SKU: ${formData.sku}`,
+          amount: 'EDITED',
+          type: 'inventory'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       onClose();
     }
   });
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative overflow-hidden z-10"
+        className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl relative overflow-hidden z-10 my-8"
       >
         <div className="p-6 border-b border-slate-50 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-slate-900 tracking-tight">Edit Item</h2>
-            <p className="text-xs text-slate-400 font-medium">Update the details for {item.name}</p>
+            <p className="text-xs text-slate-400 font-medium">Full inventory record management</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-50"><X className="w-5 h-5 text-slate-400" /></button>
         </div>
-        <div className="p-6 space-y-4">
-          <Input label="Item Name" value={formData.name} onChange={(v: string) => setFormData({...formData, name: v})} />
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="SKU" value={formData.sku} onChange={(v: string) => setFormData({...formData, sku: v})} />
-            <Input label="Category" value={formData.category} onChange={(v: string) => setFormData({...formData, category: v})} />
+        <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+          {/* Section 1: General Info */}
+          <div className="space-y-4">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-2">General Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+              <Input label="Item Name" value={formData.name} onChange={(v: string) => setFormData({...formData, name: v})} />
+              <Input label="Category" value={formData.category} onChange={(v: string) => setFormData({...formData, category: v})} />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
+              <Input label="SKU" value={formData.sku} onChange={(v: string) => setFormData({...formData, sku: v})} />
+              <Input label="Unit" value={formData.unit} onChange={(v: string) => setFormData({...formData, unit: v})} />
+              <Input label="Current Stock" type="number" value={formData.currentStock} onChange={(v: string) => setFormData({...formData, currentStock: v})} />
+              <Input label="Alert Threshold" type="number" value={formData.threshold} onChange={(v: string) => setFormData({...formData, threshold: v})} />
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Low Stock Alert" type="number" value={formData.threshold} onChange={(v: string) => setFormData({...formData, threshold: v})} />
-            <Input label="Unit" value={formData.unit} onChange={(v: string) => setFormData({...formData, unit: v})} />
+
+          {/* Section 2: Costing Breakdown (Mirroring Add Product) */}
+          <div className="space-y-4 border-t border-slate-50 pt-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-orange-600">Calculated Costing Breakdown</h3>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Recalculates Landed Cost</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+              <FormRow label="Batch Quantity" type="number" value={formData.quantity} onChange={handleQuantityChange} />
+              <FormRow label="Unit Weight (kg)" type="number" step="0.001" value={formData.unitWeight} onChange={handleUnitWeightChange} />
+              <FormRow label="Batch Weight (kg)" type="number" step="0.01" value={formData.totalWeight} onChange={handleTotalWeightChange} />
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
+              <div className="col-span-2">
+                <FormRow label="Buying Cost (RMB Total)" type="number" value={formData.totalBuyingRmb} onChange={handleTotalBuyingRmbChange} />
+              </div>
+              <FormRow label="RMB/unit" type="number" value={formData.unitBuyingRmb} onChange={handleUnitBuyingRmbChange} />
+              <FormRow label="Exchange Rate" type="number" value={formData.exchangeRate} onChange={(v: string) => setFormData({...formData, exchangeRate: v})} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+              <div className="space-y-1.5 flex-1">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Shipping Method</label>
+                <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 font-bold h-11">
+                  {['Sea', 'Air', 'Luggage'].map(m => (
+                    <button 
+                      key={m} 
+                      onClick={() => setFormData({...formData, shippingMethod: m})} 
+                      className={`flex-1 rounded-lg text-[9px] uppercase transition-all ${formData.shippingMethod === m ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <FormRow label="Ship Rate (BDT/kg)" type="number" value={formData.shippingRate} onChange={(v: string) => setFormData({...formData, shippingRate: v})} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+              <div className="space-y-1.5 flex-1">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Other Cost</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="number"
+                    className="w-full bg-slate-50 border border-slate-100 h-11 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
+                    value={formData.additionalCost}
+                    onChange={(e) => setFormData({...formData, additionalCost: e.target.value})}
+                  />
+                  <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 font-bold h-11">
+                    {['BDT', 'RMB'].map(c => (
+                      <button 
+                        key={c} 
+                        onClick={() => setFormData({...formData, additionalCostCurrency: c as any})} 
+                        className={`px-3 flex items-center justify-center rounded-lg text-[9px] uppercase transition-all ${formData.additionalCostCurrency === c ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <FormRow label="Selling Price (BDT)" type="number" value={formData.sellingPrice} onChange={(v: string) => setFormData({...formData, sellingPrice: v})} />
+            </div>
+
+            {/* Analysis Box */}
+            <div className="p-4 bg-slate-900 rounded-2xl text-white flex items-center justify-between">
+               <div className="flex items-center gap-4">
+                 <div className="p-2 bg-white/10 rounded-xl">
+                   <TrendingUp className="w-4 h-4 text-blue-400" />
+                 </div>
+                 <div>
+                   <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest leading-none">New Landed Cost Per Unit</p>
+                   <p className="text-xl font-bold font-mono">৳{calculatedLandedCostPerUnit.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                 </div>
+               </div>
+               <div className="text-right">
+                 <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest leading-none">Original Landed Cost</p>
+                 <p className="text-sm font-bold text-slate-400">৳{((item.last_landed_cost_cents || 0) / 100).toLocaleString()}</p>
+               </div>
+            </div>
           </div>
-          <Input label="Default Selling Price (BDT)" type="number" value={formData.sellingPrice} onChange={(v: string) => setFormData({...formData, sellingPrice: v})} />
+
+          {/* Section 3: Logistics & Meta */}
+          <div className="space-y-4 border-t border-slate-50 pt-6">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Supplier & Logistics</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+              <FormRow label="Supplier Name" value={formData.supplier} onChange={(v: string) => setFormData({...formData, supplier: v})} />
+              <FormRow label="Weight/Unit (Calculated)" type="number" value={(weight > 0 && editQty > 0 ? weight / editQty : parseFloat(formData.weightPerUnit || '0')).toFixed(3)} readOnly />
+            </div>
+            <div className="space-y-1.5 text-left pt-2">
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Description</label>
+              <textarea 
+                 className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium min-h-[80px]"
+                 value={formData.description}
+                 onChange={(e) => setFormData({...formData, description: e.target.value})}
+                 placeholder="Enter item description..."
+              />
+            </div>
+          </div>
         </div>
         <div className="p-6 bg-slate-50 flex gap-3">
           <button onClick={onClose} className="flex-1 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-95">Cancel</button>
@@ -322,7 +588,7 @@ function EditItemModal({ item, onClose }: { item: InventoryItem, onClose: () => 
             disabled={mutation.isPending}
             className="flex-[2] py-3 bg-blue-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-100 transition-all active:scale-95"
           >
-            {mutation.isPending ? 'Updating...' : 'Update Product'}
+            {mutation.isPending ? 'Updating...' : 'Save All Changes'}
           </button>
         </div>
       </motion.div>
@@ -340,8 +606,10 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
     name: '',
     category: '',
     quantity: '0',
+    unitWeight: '0.000',
     totalWeight: '0.00',
     threshold: '5',
+    unitBuyingRmb: '0.00',
     totalBuyingRmb: '0.00',
     rmbRate: business?.exchange_rate?.toString() || '18.15',
     shippingMethod: 'Sea',
@@ -350,6 +618,58 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
     additionalCostCurrency: 'BDT' as 'BDT' | 'RMB',
     sellingPrice: '0.00'
   });
+
+  const handleQuantityChange = (v: string) => {
+    const qty = parseFloat(v) || 0;
+    const uWeight = parseFloat(formData.unitWeight) || 0;
+    const uRmb = parseFloat(formData.unitBuyingRmb) || 0;
+    setFormData({
+      ...formData,
+      quantity: v,
+      totalWeight: (qty * uWeight).toFixed(3),
+      totalBuyingRmb: (qty * uRmb).toFixed(2)
+    });
+  };
+
+  const handleUnitWeightChange = (v: string) => {
+    const uWeight = parseFloat(v) || 0;
+    const qty = parseFloat(formData.quantity) || 0;
+    setFormData({
+      ...formData,
+      unitWeight: v,
+      totalWeight: (qty * uWeight).toFixed(3)
+    });
+  };
+
+  const handleTotalWeightChange = (v: string) => {
+    const tWeight = parseFloat(v) || 0;
+    const qty = parseFloat(formData.quantity) || 0;
+    setFormData({
+      ...formData,
+      totalWeight: v,
+      unitWeight: qty > 0 ? (tWeight / qty).toFixed(3) : '0.000'
+    });
+  };
+
+  const handleUnitBuyingRmbChange = (v: string) => {
+    const uRmb = parseFloat(v) || 0;
+    const qty = parseFloat(formData.quantity) || 0;
+    setFormData({
+      ...formData,
+      unitBuyingRmb: v,
+      totalBuyingRmb: (qty * uRmb).toFixed(2)
+    });
+  };
+
+  const handleTotalBuyingRmbChange = (v: string) => {
+    const tRmb = parseFloat(v) || 0;
+    const qty = parseFloat(formData.quantity) || 0;
+    setFormData({
+      ...formData,
+      totalBuyingRmb: v,
+      unitBuyingRmb: qty > 0 ? (tRmb / qty).toFixed(2) : '0.00'
+    });
+  };
 
   // Balance Check Logic
   const { data: balances } = useQuery({
@@ -482,10 +802,24 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
       });
 
       if (pError) throw pError;
+
+      const { user } = (await supabase.auth.getUser()).data;
+      await logActivity({
+        business_id: business.id,
+        user_id: user?.id,
+        action: 'ADD_ITEM',
+        details: {
+          title: `New Product: ${formData.name}`,
+          sub: `Category: ${formData.category || 'General'}`,
+          amount: 'NEW',
+          type: 'inventory'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       refreshBusiness?.();
       onBack();
     },
@@ -580,9 +914,10 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
                       </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <FormRow label="Initial Stock" type="number" value={formData.quantity} onChange={(v:any) => setFormData({...formData, quantity: v})} />
-                    <FormRow label="Total Weight" sub="kg" type="number" step="0.01" value={formData.totalWeight} onChange={(v:any) => setFormData({...formData, totalWeight: v})} />
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <FormRow label="Initial Stock" type="number" value={formData.quantity} onChange={handleQuantityChange} />
+                    <FormRow label="Unit Weight" sub="kg" type="number" step="0.001" value={formData.unitWeight} onChange={handleUnitWeightChange} />
+                    <FormRow label="Total Weight" sub="kg" type="number" step="0.01" value={formData.totalWeight} onChange={handleTotalWeightChange} />
                     <FormRow label="Alert Threshold" type="number" value={formData.threshold} onChange={(v:any) => setFormData({...formData, threshold: v})} />
                   </div>
                 </div>
@@ -596,8 +931,11 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
                    <h3 className="text-xs lg:text-sm font-bold uppercase tracking-widest text-slate-900">Costing & Logistics</h3>
                 </div>
                 <div className="p-4 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <FormRow label="Buying Cost (RMB Total)" type="number" value={formData.totalBuyingRmb} onChange={(v:any) => setFormData({...formData, totalBuyingRmb: v})} />
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="col-span-2">
+                      <FormRow label="Buying Cost (RMB Total)" type="number" value={formData.totalBuyingRmb} onChange={handleTotalBuyingRmbChange} />
+                    </div>
+                    <FormRow label="RMB/unit" type="number" value={formData.unitBuyingRmb} onChange={handleUnitBuyingRmbChange} />
                     <FormRow label="Daily RMB Rate" type="number" step="0.01" value={formData.rmbRate} onChange={(v:any) => setFormData({...formData, rmbRate: v})} />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -721,11 +1059,35 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
   const queryClient = useQueryClient();
   const [qty, setQty] = useState('');
   const [buyingCostRmb, setBuyingCostRmb] = useState('');
+  const [totalCostRmb, setTotalCostRmb] = useState('');
   const [shippingRate, setShippingRate] = useState(''); // BDT per KG
   const [additionalCost, setAdditionalCost] = useState('0');
   const [additionalCostCurrency, setAdditionalCostCurrency] = useState<'BDT' | 'RMB'>('BDT');
   const [exchangeRate, setExchangeRate] = useState(business?.exchange_rate?.toString() || '');
   const [isPaid, setIsPaid] = useState(false);
+
+  const handleQtyChange = (v: string) => {
+    setQty(v);
+    const q = parseFloat(v) || 0;
+    const unitRmb = parseFloat(buyingCostRmb) || 0;
+    setTotalCostRmb((q * unitRmb).toFixed(2));
+  };
+
+  const handleUnitRmbChange = (v: string) => {
+    setBuyingCostRmb(v);
+    const unitRmb = parseFloat(v) || 0;
+    const q = parseFloat(qty) || 0;
+    setTotalCostRmb((q * unitRmb).toFixed(2));
+  };
+
+  const handleTotalRmbChange = (v: string) => {
+    setTotalCostRmb(v);
+    const totalRmb = parseFloat(v) || 0;
+    const q = parseFloat(qty) || 0;
+    if (q > 0) {
+      setBuyingCostRmb((totalRmb / q).toFixed(2));
+    }
+  };
 
   // Balance Check Logic
   const { data: balances } = useQuery({
@@ -839,10 +1201,24 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
         .eq('id', item.id);
       
       if (iError) throw iError;
+
+      const { user } = (await supabase.auth.getUser()).data;
+      await logActivity({
+        business_id: business?.id || '',
+        user_id: user?.id,
+        action: 'RESTOCK_ITEM',
+        details: {
+          title: `Restocked: ${item.name}`,
+          sub: `Added ${totalQty} ${item.unit}`,
+          amount: `+${totalQty}`,
+          type: 'inventory'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       onClose();
     },
     onError: (err: any) => {
@@ -873,12 +1249,17 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
         </div>
 
         <div className="p-6 space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Quantity" type="number" value={qty} onChange={setQty} />
-            <Input label="Buying Cost (RMB/unit)" type="number" value={buyingCostRmb} onChange={setBuyingCostRmb} />
+          <div className="grid grid-cols-1 gap-4">
+            <Input label="Quantity" type="number" value={qty} onChange={handleQtyChange} />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="col-span-2">
+                <Input label="RMB Cost (Total)" type="number" value={totalCostRmb} onChange={handleTotalRmbChange} />
+              </div>
+              <Input label="RMB/unit" type="number" value={buyingCostRmb} onChange={handleUnitRmbChange} />
+              <Input label="Exchange Rate (BDT/RMB)" type="number" value={exchangeRate} onChange={setExchangeRate} />
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Exchange Rate (BDT/RMB)" type="number" value={exchangeRate} onChange={setExchangeRate} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input label="Shipping Rate (BDT/kg)" type="number" value={shippingRate} onChange={setShippingRate} />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -1079,8 +1460,8 @@ function DeleteConfirmModal({ item, onClose }: { item: InventoryItem, onClose: (
       if (error) throw error;
 
       // Log Activity
-      await supabase.from('activity_log').insert({
-        business_id: business?.id,
+      await logActivity({
+        business_id: business?.id || '',
         user_id: user?.id,
         action: 'DELETE_ITEM',
         details: {
@@ -1094,6 +1475,7 @@ function DeleteConfirmModal({ item, onClose }: { item: InventoryItem, onClose: (
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       onClose();
     }
   });

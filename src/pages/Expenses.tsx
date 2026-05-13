@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatBDT, formatDate } from '../lib/utils';
+import { logActivity } from '../lib/activity';
 import { useScrollLock } from '../hooks/useScrollLock';
 
 export default function Expenses() {
@@ -68,8 +69,8 @@ export default function Expenses() {
 
       // Log Activity
       if (expense) {
-        await supabase.from('activity_log').insert({
-          business_id: business?.id,
+        await logActivity({
+          business_id: business?.id || '',
           user_id: user?.id,
           action: 'DELETE_EXPENSE',
           details: {
@@ -84,6 +85,7 @@ export default function Expenses() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       setIsDeleteModalOpen(false);
       setExpenseToDelete(null);
     }
@@ -225,6 +227,7 @@ function CategoryStat({ label, amount, icon: Icon }: any) {
 
 function AddExpenseModal({ expense, onClose }: { expense?: any, onClose: () => void }) {
   const { business } = useBusiness();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({ 
     title: expense?.title || '', 
@@ -252,16 +255,41 @@ function AddExpenseModal({ expense, onClose }: { expense?: any, onClose: () => v
           .update(payload)
           .eq('id', expense.id);
         if (error) throw error;
+
+        await logActivity({
+          business_id: business?.id || '',
+          user_id: user?.id,
+          action: 'EDIT_EXPENSE',
+          details: {
+            title: `Updated Expense: ${data.title}`,
+            sub: data.category || 'General',
+            amount: `${data.currency === 'RMB' ? '¥' : '৳'} ${data.amount}`,
+            type: 'expense'
+          }
+        });
       } else {
         const { error } = await supabase
           .from('expenses')
           .insert(payload);
         if (error) throw error;
+
+        await logActivity({
+          business_id: business?.id || '',
+          user_id: user?.id,
+          action: 'ADD_EXPENSE',
+          details: {
+            title: `New Expense: ${data.title}`,
+            sub: data.category || 'General',
+            amount: `${data.currency === 'RMB' ? '¥' : '৳'} ${data.amount}`,
+            type: 'expense'
+          }
+        });
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       onClose();
     },
     onError: (err: any) => setError(err.message)

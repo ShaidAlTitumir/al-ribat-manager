@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatBDT, formatDate } from '../lib/utils';
+import { logActivity } from '../lib/activity';
 import { InventoryItem, Customer } from '../types';
 import { useScrollLock } from '../hooks/useScrollLock';
 
@@ -28,6 +29,7 @@ export default function Sales() {
   
   // New Sale Form State
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [quantity, setQuantity] = useState('1');
   const [unitPrice, setUnitPrice] = useState('0');
@@ -236,12 +238,25 @@ export default function Sales() {
           }
         }
       }
+
+      await logActivity({
+        business_id: business.id,
+        user_id: user?.id,
+        action: 'NEW_SALE',
+        details: {
+          title: `New Sale: ${selectedItem?.name || 'Item'}`,
+          sub: `Invoice #${invoiceNo}`,
+          amount: `+৳${total.toLocaleString()}`,
+          type: 'sale'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       setSuccess('Sale confirmed successfully!');
       setTimeout(() => {
         setActiveTab('history');
@@ -299,8 +314,8 @@ export default function Sales() {
       if (error) throw error;
 
       // Log Activity
-      await supabase.from('activity_log').insert({
-        business_id: business?.id,
+      await logActivity({
+        business_id: business?.id || '',
         user_id: user?.id,
         action: 'DELETE_SALE',
         details: {
@@ -316,6 +331,7 @@ export default function Sales() {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       setSaleToDelete(null);
     }
   });
@@ -384,13 +400,23 @@ export default function Sales() {
                     </div>
                     <div className="p-4 space-y-4 text-left">
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <SelectInput 
-                            label="Customer" 
-                            value={selectedCustomerId} 
-                            onChange={setSelectedCustomerId} 
-                            options={customers.map(c => ({ value: c.id, label: `${c.name} - Due: ${formatBDT(c.total_due_cents || 0)}` }))}
-                            placeholder="Walk-in Customer"
-                          />
+                          <div className="flex items-end gap-2">
+                             <SelectInput 
+                               label="Customer" 
+                               value={selectedCustomerId} 
+                               onChange={setSelectedCustomerId} 
+                               options={customers.map(c => ({ value: c.id, label: `${c.name} - Due: ${formatBDT(c.total_due_cents || 0)}` }))}
+                               placeholder="Walk-in Customer"
+                             />
+                             <button 
+                               type="button"
+                               onClick={() => setIsAddCustomerModalOpen(true)}
+                               className="h-10 px-3 bg-blue-50 text-blue-600 rounded-lg border border-slate-100 hover:bg-blue-100 transition-all flex items-center justify-center shrink-0 mb-[1px]"
+                               title="Add New Customer"
+                             >
+                               <Plus className="w-4 h-4" />
+                             </button>
+                          </div>
                           <SelectInput 
                             label="Product" 
                             value={selectedItemId} 
@@ -404,8 +430,14 @@ export default function Sales() {
                           <Input label="Unit Price" type="number" value={unitPrice} onChange={setUnitPrice} />
                           <Input label="Discount" type="number" value={discount} onChange={setDiscount} />
                        </div>
-                       <div className="grid grid-cols-2 gap-3">
-                          <Input label="Received Now" type="number" value={receivedNow} onChange={setReceivedNow} />
+                       <div className="grid grid-cols-3 gap-2 md:gap-3">
+                          <Input label="Received" type="number" value={receivedNow} onChange={setReceivedNow} />
+                          <div className="space-y-1 text-left">
+                             <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Subtotal</label>
+                             <div className="h-10 px-2 flex items-center bg-slate-50 border border-slate-100 rounded-lg font-mono font-bold text-slate-900 border-dashed border-slate-200 overflow-hidden whitespace-nowrap text-[11px] md:text-sm">
+                                {formatBDT(subtotal * 100)}
+                             </div>
+                          </div>
                           <SelectInput 
                              label="Method" 
                              value={paymentMethod} 
@@ -663,9 +695,124 @@ export default function Sales() {
               onClose={() => setSaleToEdit(null)}
             />
           )}
+
+          {isAddCustomerModalOpen && (
+            <QuickAddCustomerModal 
+              onClose={() => setIsAddCustomerModalOpen(false)}
+              onSuccess={(customerId: string) => {
+                setSelectedCustomerId(customerId);
+                setIsAddCustomerModalOpen(false);
+              }}
+            />
+          )}
         </AnimatePresence>
       </div>
     </MainLayout>
+  );
+}
+
+function QuickAddCustomerModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: (id: string) => void }) {
+  const { business } = useBusiness();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState({ name: '', phone: '' });
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async (data: { name: string, phone: string }) => {
+      if (!business?.id) throw new Error("Business context not found");
+      if (!data.name.trim()) throw new Error("Name is required");
+
+      const { data: newCustomer, error } = await supabase
+        .from('customers')
+        .insert({
+          business_id: business.id,
+          user_id: user?.id,
+          name: data.name,
+          phone: data.phone,
+          total_due_cents: 0
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await logActivity({
+        business_id: business.id,
+        user_id: user?.id,
+        action: 'ADD_CUSTOMER',
+        details: {
+          title: `New Customer: ${data.name}`,
+          sub: `Quick added from sales`,
+          amount: 'JOINED',
+          type: 'customer'
+        }
+      });
+
+      return newCustomer;
+    },
+    onSuccess: (newCustomer) => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      onSuccess(newCustomer.id);
+    },
+    onError: (err: any) => setError(err.message)
+  });
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 text-left">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl relative overflow-hidden z-10 p-6"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Quick Add Customer</h2>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 text-red-600 text-[10px] font-bold uppercase rounded-xl border border-red-100 flex items-center gap-2">
+              <AlertCircle className="w-3.5 h-3.5" /> {error}
+            </div>
+          )}
+          
+          <Input 
+            label="Full Name *" 
+            value={formData.name} 
+            onChange={(v: string) => setFormData({...formData, name: v})} 
+            placeholder="Customer name"
+          />
+          <Input 
+            label="Phone Number" 
+            value={formData.phone} 
+            onChange={(v: string) => setFormData({...formData, phone: v})} 
+            placeholder="017xxxxxxxx"
+          />
+
+          <div className="flex gap-3 pt-2">
+            <button 
+              onClick={onClose}
+              className="flex-1 py-3 bg-slate-50 text-slate-500 rounded-xl font-bold text-[10px] uppercase tracking-widest"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={() => mutation.mutate(formData)}
+              disabled={mutation.isPending}
+              className="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-blue-100"
+            >
+              {mutation.isPending ? 'Saving...' : 'Save & Select'}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
@@ -745,11 +892,24 @@ function EditSaleModal({ sale, customers, items, onClose }: any) {
            }).eq('id', formData.customer_id);
         }
       }
+
+      await logActivity({
+        business_id: sale.business_id,
+        user_id: user?.id,
+        action: 'EDIT_SALE',
+        details: {
+          title: `Updated Sale: ${sale.invoice_no}`,
+          sub: `Total: ৳${gTotal.toLocaleString()}`,
+          amount: 'EDITED',
+          type: 'sale'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       onClose();
     },
     onError: (err: any) => setError(err.message)

@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
+import { formatDate, formatDateTime, isValidDate } from './utils';
 
 export interface BusinessInfo {
   name: string;
@@ -89,7 +90,7 @@ export const generateSaleInvoice = (
   doc.setFontSize(10);
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
   doc.text(`#${sale.invoiceNo}`, 25, 74);
-  doc.text(format(new Date(sale.date), 'dd/MM/yyyy'), 75, 74);
+  doc.text(formatDate(sale.date), 75, 74);
   doc.text(customer.name.length > 25 ? customer.name.substring(0, 22) + '...' : customer.name, 125, 74);
 
   // 3. Billing Sections
@@ -239,7 +240,7 @@ export const generateSaleInvoice = (
   doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
   doc.setFontSize(8);
   doc.setTextColor(148, 163, 184);
-  doc.text(`${business.name}  |  Generated on ${format(new Date(), 'dd/MM/yyyy, hh:mm a')}`, pageWidth / 2, pageHeight - 6, { align: 'center' });
+  doc.text(`${business.name}  |  Generated on ${formatDateTime(new Date())}`, pageWidth / 2, pageHeight - 6, { align: 'center' });
 
   const fileName = `Invoice_${sale.invoiceNo}_${customer.name.replace(/\s+/g, '_')}.pdf`;
   doc.save(fileName);
@@ -283,7 +284,7 @@ export const generateCustomerStatement = (
   doc.text(businessHeader.join('  |  '), 15, 33);
 
   doc.text('CUSTOMER ACCOUNT STATEMENT', pageWidth - 15, 25, { align: 'right' });
-  doc.text(`${format(dateRange.start, 'dd/MM/yyyy')} - ${format(dateRange.end, 'dd/MM/yyyy')}`, pageWidth - 15, 32, { align: 'right' });
+  doc.text(`${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`, pageWidth - 15, 32, { align: 'right' });
 
   // 2. Customer Profile Section
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
@@ -372,7 +373,7 @@ export const generateCustomerStatement = (
     startY: 140,
     head: [['Date', 'Description / Ref', 'Type', 'Billed', 'Paid', 'Invoice Balance']],
     body: activities.map(act => [
-      format(new Date(act.date), 'dd/MM/yyyy'),
+      formatDate(act.date),
       act.ref,
       act.type,
       act.billed > 0 ? `Tk ${act.billed.toLocaleString()}` : '-',
@@ -481,7 +482,7 @@ export const generatePaymentReceipt = (
   doc.setFont('helvetica', 'normal');
   doc.text('Payment Date:', 25, 105);
   doc.setFont('helvetica', 'bold');
-  doc.text(format(new Date(payment.date), 'dd/MM/yyyy, hh:mm a'), 70, 105);
+  doc.text(formatDateTime(payment.date), 70, 105);
 
   doc.setFont('helvetica', 'normal');
   doc.text('Payment Type:', 25, 115);
@@ -584,7 +585,7 @@ export const generateBusinessReport = (
   doc.setTextColor(255, 255, 255);
   doc.text(data.period.toUpperCase(), pageWidth - 15, 30, { align: 'right' });
   doc.setFontSize(8);
-  doc.text(`ISSUED: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, pageWidth - 15, 38, { align: 'right' });
+  doc.text(`ISSUED: ${isValidDate(new Date()) ? format(new Date(), 'dd/MM/yyyy HH:mm') : '-'}`, pageWidth - 15, 38, { align: 'right' });
 
   // 2. Dashboard
   let currentY = 75;

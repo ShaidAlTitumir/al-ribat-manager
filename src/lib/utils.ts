@@ -7,18 +7,35 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const formatDate = (date: Date | string | number) => {
+export const formatDate = (date: Date | string | number | null | undefined) => {
   if (!date) return '-';
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return '-';
-  return format(d, 'dd/MM/yyyy');
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
+    // date-fns format will throw if passed an Invalid Date, but we checked isNaN
+    return format(d, 'dd/MM/yyyy');
+  } catch (e) {
+    console.error('Date formatting error:', e);
+    return '-';
+  }
 };
 
-export const formatDateTime = (date: Date | string | number) => {
+export const formatDateTime = (date: Date | string | number | null | undefined) => {
   if (!date) return '-';
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
+    return format(d, 'dd/MM/yyyy, hh:mm a');
+  } catch (e) {
+    console.error('DateTime formatting error:', e);
+    return '-';
+  }
+};
+
+export const isValidDate = (date: any): boolean => {
+  if (!date) return false;
   const d = new Date(date);
-  if (isNaN(d.getTime())) return '-';
-  return format(d, 'dd/MM/yyyy, hh:mm a');
+  return !isNaN(d.getTime());
 };
 
 export const formatBDT = (amountInCents: number) => {

@@ -176,59 +176,27 @@ export default function Dashboard() {
     queryFn: async () => {
       if (!business?.id) return [];
       
-      // Fetch only essential recent activities for better performance
-      const [
-        { data: activity_log },
-        { data: sales },
-        { data: expenses },
-        { data: ledger }
-      ] = await Promise.all([
-        supabase.from('activity_log').select('*').eq('business_id', business.id).order('created_at', { ascending: false }).limit(10),
-        supabase.from('sales').select('*, inventory_items(name)').eq('business_id', business.id).order('created_at', { ascending: false }).limit(5),
-        supabase.from('expenses').select('*').eq('business_id', business.id).order('created_at', { ascending: false }).limit(5),
-        supabase.from('customer_ledger').select('*, customers(name)').eq('business_id', business.id).order('created_at', { ascending: false }).limit(5)
-      ]);
+      const { data, error } = await supabase
+        .from('activity_log')
+        .select(`
+          *,
+          profiles:user_id(full_name, username)
+        `)
+        .eq('business_id', business.id)
+        .order('created_at', { ascending: false })
+        .limit(30);
 
-      const items = [
-        ...(activity_log?.map(a => ({
-          id: a.id,
-          title: a.details?.title || a.action,
-          sub: a.details?.sub || 'System Activity',
-          amount: a.details?.amount || 'LOG',
-          time: formatDateTime(a.created_at).split(', ')[1],
-          type: a.details?.type || 'activity',
-          raw_date: a.created_at
-        })) || []),
-        ...(sales?.map(s => ({
-          id: s.id,
-          title: `Sale: ${s.inventory_items?.name || 'Unknown Item'}`,
-          sub: `Invoice #${s.invoice_no}`,
-          amount: `+৳${(s.total_cents / 100).toLocaleString()}`,
-          time: formatDateTime(s.created_at).split(', ')[1],
-          type: 'sale',
-          raw_date: s.created_at
-        })) || []),
-        ...(expenses?.map(e => ({
-          id: e.id,
-          title: e.title,
-          sub: e.category || 'General Expense',
-          amount: `-৳${(e.amount_cents / 100).toLocaleString()}`,
-          time: formatDateTime(e.created_at).split(', ')[1],
-          type: 'expense',
-          raw_date: e.created_at
-        })) || []),
-        ...(ledger?.filter(l => l.transaction_type !== 'sale').map(l => ({
-          id: l.id,
-          title: l.transaction_type === 'payment' ? `Payment: ${l.customers?.name}` : `Return: ${l.customers?.name}`,
-          sub: l.transaction_type === 'payment' ? 'Customer Payment' : 'Sales Return',
-          amount: l.transaction_type === 'payment' ? `+৳${(l.amount_cents / 100).toLocaleString()}` : `-৳${(l.amount_cents / 100).toLocaleString()}`,
-          time: formatDateTime(l.created_at).split(', ')[1],
-          type: l.transaction_type === 'payment' ? 'payment' : 'return',
-          raw_date: l.created_at
-        })) || [])
-      ].sort((a, b) => new Date(b.raw_date).getTime() - new Date(a.raw_date).getTime());
+      if (error) throw error;
 
-      return items;
+      return (data || []).map(a => ({
+        id: a.id,
+        title: a.details?.title || a.action,
+        sub: a.details?.sub || (a.profiles?.full_name || a.profiles?.username || 'System Activity'),
+        amount: a.details?.amount || 'LOG',
+        time: formatDateTime(a.created_at).split(', ')[1],
+        type: a.details?.type || 'activity',
+        raw_date: a.created_at
+      }));
     },
     enabled: !!business?.id
   });
@@ -445,6 +413,8 @@ function ActivityItem({ title, sub, amount, time, type }: any) {
     customer: 'bg-purple-50 text-purple-600',
     partner: 'bg-pink-50 text-pink-600',
     inventory: 'bg-amber-50 text-amber-600',
+    supplier: 'bg-indigo-50 text-indigo-600',
+    wallet: 'bg-cyan-50 text-cyan-600',
   };
   
   const getIcon = () => {
@@ -459,6 +429,8 @@ function ActivityItem({ title, sub, amount, time, type }: any) {
       case 'customer': return <Users className="w-4 h-4" />;
       case 'partner': return <Users className="w-4 h-4" />;
       case 'inventory': return <ShoppingCart className="w-4 h-4" />;
+      case 'supplier': return <Users className="w-4 h-4" />;
+      case 'wallet': return <Wallet className="w-4 h-4" />;
       default: return <History className="w-4 h-4" />;
     }
   };
@@ -473,7 +445,7 @@ function ActivityItem({ title, sub, amount, time, type }: any) {
         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">{sub}</p>
       </div>
       <div className="text-right">
-        <p className={`text-[11px] font-mono font-black ${amount.startsWith('+') || amount === 'NEW' || amount === 'JOINED' ? 'text-emerald-600' : 'text-slate-900'}`}>{amount}</p>
+        <p className={`text-[11px] font-mono font-black ${amount.startsWith('+') || ['NEW', 'JOINED', 'FUNDED', 'ADDED', 'ACTIVE'].includes(amount) ? 'text-emerald-600' : (amount === 'REMOVED' || amount === 'DELETED' || amount === 'REVERTED' || amount.startsWith('-') ? 'text-red-500' : 'text-slate-900')}`}>{amount}</p>
         <p className="text-[8px] font-bold text-slate-300 mt-0.5">{time}</p>
       </div>
     </div>

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Supplier } from '../types';
+import { logActivity } from '../lib/activity';
 import { useScrollLock } from '../hooks/useScrollLock';
 import * as XLSX from 'xlsx';
 
@@ -70,10 +71,10 @@ export default function Suppliers() {
 
   return (
     <MainLayout>
-      <div className="space-y-3">
+      <div className="space-y-4 px-0.5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl lg:text-3xl font-bold text-slate-900 tracking-tight uppercase">Supplier Network</h1>
+            <h1 className="text-xl lg:text-3xl font-bold text-slate-900 tracking-tight uppercase">Supplier Hub</h1>
             <p className="text-slate-500 text-[10px] lg:text-xs font-medium">Manage sourcing and manufacturing contacts.</p>
           </div>
           <div className="flex gap-2">
@@ -88,7 +89,7 @@ export default function Suppliers() {
               onClick={() => business ? setIsAddModalOpen(true) : navigate('/onboarding')}
               className="flex-1 md:flex-none px-4 py-2 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-100"
             >
-              <Plus className="w-3.5 h-3.5" /> Add
+              <Plus className="w-3.5 h-3.5" /> Add Supplier
             </button>
           </div>
         </div>
@@ -230,7 +231,7 @@ function SupplierCard({ supplier, onClick, onEdit, onDelete }: { supplier: Suppl
             </div>
           )}
           {supplier.products_list && (
-            <div className="flex items-center gap-2 text-[9px] font-semibold text-blue-600 truncate py-0.5 px-1.5 bg-blue-50 rounded-lg w-fit">
+            <div className="flex items-center gap-2 text-[9px] font-bold text-blue-600 truncate py-1 px-2 bg-blue-50/50 rounded-lg w-fit">
                <Package className="w-2.5 h-2.5 text-blue-400" /> {supplier.products_list}
             </div>
           )}
@@ -286,7 +287,7 @@ function AddSupplierModal({ onClose }: { onClose: () => void }) {
       if (error) throw error;
 
       // Log Activity
-      await supabase.from('activity_log').insert({
+      await logActivity({
         business_id: business.id,
         user_id: user?.id,
         action: 'ADD_SUPPLIER',
@@ -415,6 +416,7 @@ function AddSupplierModal({ onClose }: { onClose: () => void }) {
 }
 
 function EditSupplierModal({ supplier, onClose }: { supplier: Supplier, onClose: () => void }) {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({ 
     name: supplier.name, 
@@ -435,6 +437,19 @@ function EditSupplierModal({ supplier, onClose }: { supplier: Supplier, onClose:
         .update(data)
         .eq('id', supplier.id);
       if (error) throw error;
+
+      // Log Activity
+      await logActivity({
+        business_id: supplier.business_id,
+        user_id: user?.id,
+        action: 'EDIT_SUPPLIER',
+        details: {
+          title: `Updated Supplier: ${data.name}`,
+          sub: data.shop_name || 'Network Update',
+          amount: 'EDITED',
+          type: 'supplier'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
@@ -526,7 +541,7 @@ function SupplierDetailDrawer({ supplier, onClose, onEdit, onDelete }: { supplie
          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
          className="bg-white w-full max-w-xl relative p-0 flex flex-col shadow-2xl"
        >
-          <div className="p-6 border-b border-slate-50 bg-blue-600 text-white flex items-center justify-between">
+          <div className="p-6 border-b border-slate-50 bg-slate-900 text-white flex items-center justify-between">
              <div className="flex items-center gap-4">
                 <button onClick={onClose} className="p-2 rounded-xl bg-white/10 text-white">
                    <ChevronRight className="w-5 h-5 rotate-180" />
@@ -534,8 +549,8 @@ function SupplierDetailDrawer({ supplier, onClose, onEdit, onDelete }: { supplie
                 <div>
                    <h2 className="text-xl font-bold tracking-tight leading-none mb-1 uppercase">{supplier.name}</h2>
                    <div className="flex items-center gap-4">
-                      <button onClick={onEdit} className="text-[10px] font-bold text-blue-200 uppercase tracking-widest hover:text-white transition-colors">Edit</button>
-                      <button onClick={onDelete} className="text-[10px] font-bold text-red-300 uppercase tracking-widest hover:text-red-100 transition-colors">Delete</button>
+                      <button onClick={onEdit} className="text-[10px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300 transition-colors">Edit</button>
+                      <button onClick={onDelete} className="text-[10px] font-bold text-red-400 uppercase tracking-widest hover:text-red-300 transition-colors">Delete</button>
                    </div>
                 </div>
              </div>
@@ -619,8 +634,8 @@ function DeleteSupplierModal({ supplier, onClose, onSuccess }: { supplier: Suppl
       if (error) throw error;
 
       // Log Activity
-      await supabase.from('activity_log').insert({
-        business_id: business?.id,
+      await logActivity({
+        business_id: business?.id || '',
         user_id: user?.id,
         action: 'DELETE_SUPPLIER',
         details: {

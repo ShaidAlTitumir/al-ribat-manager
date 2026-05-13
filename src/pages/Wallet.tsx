@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import MainLayout from '../components/layout/MainLayout';
 import { useBusiness } from '../context/BusinessContext';
 import { supabase } from '../lib/supabase';
+import { logActivity } from '../lib/activity';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Wallet as WalletIcon, RefreshCw, ArrowRightLeft, 
@@ -56,10 +57,23 @@ export default function Wallet() {
         rate: parseFloat(rate)
       });
       if (error) throw error;
+
+      await logActivity({
+        business_id: business?.id || '',
+        user_id: business?.owner_id, // Or current user
+        action: 'EXCHANGE_CURRENCY',
+        details: {
+          title: `Exchanged ${fromCurrency} to ${toCurrency}`,
+          sub: `Rate: ${rate}`,
+          amount: `${parseFloat(amountFrom).toLocaleString()} ${fromCurrency}`,
+          type: 'wallet'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exchanges'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       setAmountFrom('');
     },
     onError: (err: any) => {
@@ -81,11 +95,24 @@ export default function Wallet() {
       if (!data || data.length === 0) {
         throw new Error("Could not delete activity. It may have already been removed or you lack permission.");
       }
+
+      await logActivity({
+        business_id: business?.id || '',
+        user_id: business?.owner_id,
+        action: 'DELETE_EXCHANGE',
+        details: {
+          title: `Reverted Exchange`,
+          sub: `${data[0].from_currency} to ${data[0].to_currency} record removed`,
+          amount: 'REVERTED',
+          type: 'wallet'
+        }
+      });
     },
     onSuccess: () => {
       // Aggressive cache reset to ensure balance and list are perfect
       queryClient.invalidateQueries({ queryKey: ['exchanges'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
     },
     onError: (err: any) => {
       alert('Delete failed: ' + err.message);
@@ -488,6 +515,7 @@ function DeleteConfirmationModal({ exchange, isDeleting, onClose, onConfirm }: a
 }
 
 function EditExchangeModal({ exchange, onClose }: { exchange: any, onClose: () => void }) {
+  const { business } = useBusiness();
   const queryClient = useQueryClient();
   const [rate, setRate] = useState(exchange.rate.toString());
   const [amountFrom, setAmountFrom] = useState((exchange.amount_from_cents / 100).toString());
@@ -526,6 +554,18 @@ function EditExchangeModal({ exchange, onClose }: { exchange: any, onClose: () =
       }).eq('id', exchange.id);
 
       if (error) throw error;
+
+      await logActivity({
+        business_id: exchange.business_id,
+        user_id: business?.owner_id,
+        action: 'EDIT_EXCHANGE',
+        details: {
+          title: `Updated Exchange Rate/Amount`,
+          sub: `${exchange.from_currency} to ${exchange.to_currency} entry adjusted`,
+          amount: 'EDITED',
+          type: 'wallet'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exchanges'] });

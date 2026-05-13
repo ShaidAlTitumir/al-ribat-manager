@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatBDT, formatDate } from '../lib/utils';
+import { logActivity } from '../lib/activity';
 import { Partner } from '../types';
 import { useScrollLock } from '../hooks/useScrollLock';
 
@@ -147,14 +148,14 @@ export default function Partners() {
       }
 
       // Log Activity
-      await supabase.from('activity_log').insert({
-        business_id: business?.id,
+      await logActivity({
+        business_id: business?.id || '',
         user_id: user?.id,
         action: 'DELETE_PARTNER',
         details: {
-          title: `Deleted Partner`,
+          title: `Removed Partner: ${pData.name}`,
           sub: 'Governance Record Removed',
-          amount: 'DELETED',
+          amount: 'REMOVED',
           type: 'partner'
         }
       });
@@ -162,6 +163,7 @@ export default function Partners() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partners'] });
       queryClient.invalidateQueries({ queryKey: ['contributions'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       setPartnerToDelete(null);
       setPartnerError(null);
     },
@@ -176,8 +178,8 @@ export default function Partners() {
       if (error) throw error;
 
       // Log Activity
-      await supabase.from('activity_log').insert({
-        business_id: business?.id,
+      await logActivity({
+        business_id: business?.id || '',
         user_id: user?.id,
         action: 'DELETE_CAPITAL',
         details: {
@@ -191,25 +193,26 @@ export default function Partners() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contributions'] });
       queryClient.invalidateQueries({ queryKey: ['partners'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       setCapitalToDelete(null);
     }
   });
 
   return (
     <MainLayout>
-      <div className="space-y-8">
+      <div className="space-y-4 px-0.5">
         {/* Info Header */}
-        <section className="bg-slate-900 rounded-[32px] p-8 text-white relative overflow-hidden shadow-2xl shadow-blue-900/20">
+        <section className="bg-slate-900 rounded-[32px] p-6 text-white relative overflow-hidden shadow-2xl shadow-blue-900/20">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 blur-[100px]" />
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-3">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                  <ShieldCheck className="w-6 h-6" />
+                <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
                 <h1 className="text-xl lg:text-3xl font-bold tracking-tight uppercase text-white">Partnership Desk</h1>
               </div>
-              <p className="text-white/70 text-xs lg:text-sm font-medium uppercase tracking-widest max-w-md">Manage your partner roster, equity shares, and governance workflows.</p>
+              <p className="text-white/70 text-[10px] lg:text-xs font-medium uppercase tracking-widest max-w-md">Manage your partner roster, equity shares, and governance workflows.</p>
             </div>
           </div>
         </section>
@@ -498,6 +501,7 @@ function PartnerCard({ partner, onEdit, onDelete, showOptions, setShowOptions, i
 
 function PartnerModal({ partner, partners, onClose }: any) {
   const { business } = useBusiness();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<any>({
     name: partner?.name || '',
@@ -587,6 +591,18 @@ function PartnerModal({ partner, partners, onClose }: any) {
       if (partner) {
         const { error } = await supabase.from('partners').update(payload).eq('id', partner.id);
         if (error) throw error;
+
+        await logActivity({
+          business_id: business?.id || '',
+          user_id: user?.id,
+          action: 'EDIT_PARTNER',
+          details: {
+            title: `Updated Partner: ${formData.name}`,
+            sub: 'Profile Adjustment',
+            amount: 'EDITED',
+            type: 'partner'
+          }
+        });
       } else {
         // If it's a linked user, run the full robust process
         if (formData.user_id) {
@@ -618,11 +634,24 @@ function PartnerModal({ partner, partners, onClose }: any) {
           business_id: business?.id
         });
         if (error) throw error;
+
+        await logActivity({
+          business_id: business?.id || '',
+          user_id: user?.id,
+          action: 'ADD_PARTNER',
+          details: {
+            title: `Added Partner: ${formData.name}`,
+            sub: 'Governance Expansion',
+            amount: 'JOINED',
+            type: 'partner'
+          }
+        });
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partners'] });
       queryClient.invalidateQueries({ queryKey: ['business'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       onClose();
     },
     onError: (err: any) => setError(err.message)
@@ -784,6 +813,7 @@ function PartnerModal({ partner, partners, onClose }: any) {
 
 function CapitalModal({ contribution, partners, onClose }: any) {
   const { business } = useBusiness();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     partner_id: contribution?.partner_id || '',
@@ -806,6 +836,18 @@ function CapitalModal({ contribution, partners, onClose }: any) {
           notes: formData.notes
         }).eq('id', contribution.id);
         if (error) throw error;
+
+        await logActivity({
+          business_id: business?.id || '',
+          user_id: user?.id,
+          action: 'EDIT_CAPITAL',
+          details: {
+            title: `Updated Capital: ${formData.amount} ${formData.currency}`,
+            sub: `Entry Corrected`,
+            amount: 'EDITED',
+            type: 'capital'
+          }
+        });
       } else {
         const { error } = await supabase.from('capital_contributions').insert({
           business_id: business?.id,
@@ -815,11 +857,24 @@ function CapitalModal({ contribution, partners, onClose }: any) {
           notes: formData.notes
         });
         if (error) throw error;
+
+        await logActivity({
+          business_id: business?.id || '',
+          user_id: user?.id,
+          action: 'ADD_CAPITAL',
+          details: {
+            title: `Capital: ${formData.amount} ${formData.currency}`,
+            sub: 'Contribution Logged',
+            amount: 'FUNDED',
+            type: 'capital'
+          }
+        });
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contributions'] });
       queryClient.invalidateQueries({ queryKey: ['partners'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       onClose();
     },
     onError: (err: any) => setError(err.message)

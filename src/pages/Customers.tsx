@@ -13,7 +13,8 @@ import {
   Filter, X, AlertCircle, Download, Info, Pencil
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { formatBDT, formatDate, formatDateTime } from '../lib/utils';
+import { formatBDT, formatDate, formatDateTime, isValidDate } from '../lib/utils';
+import { logActivity } from '../lib/activity';
 import { Customer } from '../types';
 import { useScrollLock } from '../hooks/useScrollLock';
 
@@ -250,9 +251,22 @@ function AddCustomerModal({ onClose }: { onClose: () => void }) {
         });
         
       if (error) throw error;
+
+      await logActivity({
+        business_id: business.id,
+        user_id: user.id,
+        action: 'ADD_CUSTOMER',
+        details: {
+          title: `New Customer: ${data.name}`,
+          sub: data.shop_name || 'Individual',
+          amount: 'JOINED',
+          type: 'customer'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       onClose();
     },
     onError: (err: any) => {
@@ -456,20 +470,23 @@ function CustomerDetailDrawer({ customer, onClose, onEdit, onDelete }: { custome
                         onClick={async () => {
                           if (!business) return;
                           
+                          const startIso = isValidDate(startDate) ? new Date(startDate).toISOString() : new Date().toISOString();
+                          const endIso = isValidDate(endDate) ? new Date(endDate + 'T23:59:59').toISOString() : new Date().toISOString();
+
                           const { data: salesData, error: sError } = await supabase
                             .from('sales')
                             .select('*')
                             .eq('customer_id', customer.id)
-                            .gte('created_at', new Date(startDate).toISOString())
-                            .lte('created_at', new Date(endDate + 'T23:59:59').toISOString());
+                            .gte('created_at', startIso)
+                            .lte('created_at', endIso);
 
                           const { data: ledgerData, error: lError } = await supabase
                             .from('customer_ledger')
                             .select('*')
                             .eq('customer_id', customer.id)
                             .eq('transaction_type', 'payment')
-                            .gte('created_at', new Date(startDate).toISOString())
-                            .lte('created_at', new Date(endDate + 'T23:59:59').toISOString());
+                            .gte('created_at', startIso)
+                            .lte('created_at', endIso);
                             
                           if (sError || lError) {
                             alert('Failed to fetch data for statement');
@@ -496,7 +513,7 @@ function CustomerDetailDrawer({ customer, onClose, onEdit, onDelete }: { custome
                               customerInfo, 
                               salesData || [], 
                               ledgerData || [],
-                              { start: new Date(startDate), end: new Date(endDate) }
+                              { start: isValidDate(startDate) ? new Date(startDate) : new Date(), end: isValidDate(endDate) ? new Date(endDate) : new Date() }
                             );
                           });
                         }}
@@ -751,9 +768,22 @@ function EditCustomerModal({ customer, onClose }: { customer: Customer, onClose:
         .update(data)
         .eq('id', customer.id);
       if (error) throw error;
+
+      await logActivity({
+        business_id: customer.business_id,
+        user_id: customer.user_id,
+        action: 'EDIT_CUSTOMER',
+        details: {
+          title: `Updated Customer: ${data.name}`,
+          sub: data.shop_name || 'CRM Update',
+          amount: 'EDITED',
+          type: 'customer'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       onClose();
     },
     onError: (err: any) => {
@@ -890,8 +920,8 @@ function DeleteCustomerModal({ customer, onClose, onSuccess }: { customer: Custo
       if (error) throw error;
 
       // Log Activity
-      await supabase.from('activity_log').insert({
-        business_id: business?.id,
+      await logActivity({
+        business_id: business?.id || '',
         user_id: user?.id,
         action: 'DELETE_CUSTOMER',
         details: {
@@ -904,6 +934,7 @@ function DeleteCustomerModal({ customer, onClose, onSuccess }: { customer: Custo
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       if (onSuccess) onSuccess();
       onClose();
     },
@@ -1082,11 +1113,24 @@ function RecordPaymentModal({ customer, onClose }: { customer: Customer, onClose
           }
         }
       }
+
+      await logActivity({
+        business_id: business.id,
+        user_id: user?.id,
+        action: 'COLLECT_PAYMENT',
+        details: {
+          title: `Payment: ${customer.name}`,
+          sub: `Method: ${method.toUpperCase()}`,
+          amount: `+${formatBDT(amountCents)}`,
+          type: 'customer'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['customer_ledger', customer.id] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       onClose();
     },
     onError: (err: any) => setError(err.message)
@@ -1201,8 +1245,21 @@ function DeleteLedgerEntryModal({ entry, customer, onClose, onSuccess }: any) {
       const { error: deleteError } = await supabase.from('customer_ledger').delete().eq('id', entry.id);
       if (deleteError) throw deleteError;
 
+      await logActivity({
+        business_id: customer.business_id,
+        user_id: customer.user_id,
+        action: 'DELETE_PAYMENT',
+        details: {
+          title: `Deleted Receipt: ${customer.name}`,
+          sub: 'Payment Record Removed',
+          amount: `-${formatBDT(entry.amount_cents)}`,
+          type: 'customer'
+        }
+      });
+
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -1355,8 +1412,21 @@ function EditLedgerEntryModal({ entry, customer, onClose, onSuccess }: any) {
         }
       }
 
+      await logActivity({
+        business_id: business.id,
+        user_id: user?.id,
+        action: 'EDIT_PAYMENT',
+        details: {
+          title: `Updated Payment: ${customer.name}`,
+          sub: `Original: ${formatBDT(entry.amount_cents)}`,
+          amount: `NEW: ${formatBDT(newAmountCents)}`,
+          type: 'customer'
+        }
+      });
+
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       onSuccess();
       onClose();
     } catch (err: any) {
