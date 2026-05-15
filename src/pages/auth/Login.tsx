@@ -118,6 +118,12 @@ export default function Login() {
         return;
       }
 
+      if (phone.replace(/\D/g, '').length < 11) {
+        setError('Phone number must be at least 11 digits');
+        setLoading(false);
+        return;
+      }
+
       const { data, error: signUpError } = await supabase.auth.signUp({ 
         email, 
         password,
@@ -208,14 +214,10 @@ export default function Login() {
       >
         <div className="flex flex-col items-center mb-8">
           <img 
-            src="/logo.png" 
+            src="/logo.svg" 
             className="w-16 h-16 rounded-2xl shadow-lg shadow-blue-100 object-contain" 
             alt="Logo" 
             referrerPolicy="no-referrer"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = "/logo.svg";
-            }}
           />
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight mt-4">Al-Ribat Manager</h1>
           <p className="text-slate-400 text-sm mt-1 uppercase tracking-widest font-semibold text-[10px]">Business & Partnership Hub</p>

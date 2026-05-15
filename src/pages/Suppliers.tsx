@@ -276,6 +276,9 @@ function AddSupplierModal({ onClose }: { onClose: () => void }) {
     mutationFn: async (data: any) => {
       if (!business?.id) throw new Error("Business not found. Please reload.");
       if (!data.name.trim()) throw new Error("Supplier name is required.");
+      if (data.phone && data.phone.replace(/\D/g, '').length < 11) {
+        throw new Error("Phone number must be at least 11 digits");
+      }
       
       const { error } = await supabase
         .from('suppliers')
@@ -301,6 +304,7 @@ function AddSupplierModal({ onClose }: { onClose: () => void }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onClose();
     },
     onError: (err: any) => {
@@ -432,6 +436,9 @@ function EditSupplierModal({ supplier, onClose }: { supplier: Supplier, onClose:
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
+      if (data.phone && data.phone.replace(/\D/g, '').length < 11) {
+        throw new Error("Phone number must be at least 11 digits");
+      }
       const { error } = await supabase
         .from('suppliers')
         .update(data)
@@ -453,6 +460,7 @@ function EditSupplierModal({ supplier, onClose }: { supplier: Supplier, onClose:
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onClose();
     },
     onError: (err: any) => {
@@ -648,6 +656,7 @@ function DeleteSupplierModal({ supplier, onClose, onSuccess }: { supplier: Suppl
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       if (onSuccess) onSuccess();
       onClose();
     },

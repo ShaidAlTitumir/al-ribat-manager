@@ -163,7 +163,7 @@ export default function Partners() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partners'] });
       queryClient.invalidateQueries({ queryKey: ['contributions'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       setPartnerToDelete(null);
       setPartnerError(null);
     },
@@ -193,7 +193,7 @@ export default function Partners() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contributions'] });
       queryClient.invalidateQueries({ queryKey: ['partners'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       setCapitalToDelete(null);
     }
   });
@@ -574,6 +574,9 @@ function PartnerModal({ partner, partners, onClose }: any) {
   const mutation = useMutation({
     mutationFn: async () => {
       if (!formData.name) throw new Error('Name is required');
+      if (formData.phone && formData.phone.replace(/\D/g, '').length < 11) {
+        throw new Error('Phone number must be at least 11 digits');
+      }
 
       if (!partner && isDuplicate) {
         throw new Error('This partner is already added to this business.');
@@ -651,7 +654,7 @@ function PartnerModal({ partner, partners, onClose }: any) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partners'] });
       queryClient.invalidateQueries({ queryKey: ['business'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onClose();
     },
     onError: (err: any) => setError(err.message)
@@ -874,7 +877,7 @@ function CapitalModal({ contribution, partners, onClose }: any) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contributions'] });
       queryClient.invalidateQueries({ queryKey: ['partners'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onClose();
     },
     onError: (err: any) => setError(err.message)

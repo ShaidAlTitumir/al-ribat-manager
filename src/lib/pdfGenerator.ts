@@ -126,12 +126,10 @@ export const generateSaleInvoice = (
 
   // 4. PAID Stamp (If applicable)
   if (sale.due <= 0) {
-    doc.setGState(doc.setGState(new (doc as any).GState({ opacity: 0.15 })));
     doc.setFontSize(60);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(34, 197, 94); // emerald-500
+    doc.setTextColor(220, 252, 231); // emerald-100 equivalent for "background" look
     doc.text('PAID', pageWidth / 2, 120, { align: 'center', angle: -20 });
-    doc.setGState(doc.setGState(new (doc as any).GState({ opacity: 1 })));
   }
 
   // 5. Items Table
@@ -238,9 +236,10 @@ export const generateSaleInvoice = (
   // Bottom Line
   doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
   doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
-  doc.text(`${business.name}  |  Generated on ${formatDateTime(new Date())}`, pageWidth / 2, pageHeight - 6, { align: 'center' });
+  doc.text(`${business.name}  |  Generated on ${formatDateTime(new Date())}`, pageWidth / 2, pageHeight - 9, { align: 'center' });
+  doc.text(`Al-Ribat Manager developed by Al-Ribat international`, pageWidth / 2, pageHeight - 4, { align: 'center' });
 
   const fileName = `Invoice_${sale.invoiceNo}_${customer.name.replace(/\s+/g, '_')}.pdf`;
   doc.save(fileName);
@@ -419,8 +418,10 @@ export const generateCustomerStatement = (
   // Bottom Branding
   doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
   doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
-  doc.setFontSize(8);
-  doc.text(`${business.name} | ${business.phone || ''} | Account Statement`, pageWidth / 2, pageHeight - 6, { align: 'center' });
+  doc.setFontSize(7);
+  doc.setTextColor(148, 163, 184);
+  doc.text(`${business.name} | ${business.phone || ''} | Account Statement`, pageWidth / 2, pageHeight - 9, { align: 'center' });
+  doc.text(`Al-Ribat Manager developed by Al-Ribat international`, pageWidth / 2, pageHeight - 4, { align: 'center' });
 
   const fileName = `Statement_${customer.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`;
   doc.save(fileName);
@@ -515,9 +516,10 @@ export const generatePaymentReceipt = (
   // Footer
   doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
   doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setTextColor(148, 163, 184);
-  doc.text(`${business.name}  |  Official Payment Receipt`, pageWidth / 2, pageHeight - 6, { align: 'center' });
+  doc.text(`${business.name}  |  Official Payment Receipt`, pageWidth / 2, pageHeight - 9, { align: 'center' });
+  doc.text(`Al-Ribat Manager developed by Al-Ribat international`, pageWidth / 2, pageHeight - 4, { align: 'center' });
 
   const fileName = `Receipt_${customer.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`;
   doc.save(fileName);
@@ -659,9 +661,10 @@ export const generateBusinessReport = (
   const pageCount = (doc as any).internal.getNumberOfPages();
   for(let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setTextColor(148, 163, 184);
-    doc.text(`${business.name} | Excellence Report | Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    doc.text(`${business.name} | Excellence Report | Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 9, { align: 'center' });
+    doc.text(`Al-Ribat Manager developed by Al-Ribat international`, pageWidth / 2, pageHeight - 4, { align: 'center' });
   }
 
   const fileName = `Excellence_Report_${data.period.replace(/\s+/g, '_')}.pdf`;

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import MainLayout from '../components/layout/MainLayout';
 import { useBusiness } from '../context/BusinessContext';
+import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { logActivity } from '../lib/activity';
 import { motion, AnimatePresence } from 'motion/react';
@@ -16,6 +17,7 @@ import { formatDate } from '../lib/utils';
 
 export default function Wallet() {
   const { business } = useBusiness();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [fromCurrency, setFromCurrency] = useState<'BDT' | 'RMB'>('BDT');
   const [amountFrom, setAmountFrom] = useState('');
@@ -60,7 +62,7 @@ export default function Wallet() {
 
       await logActivity({
         business_id: business?.id || '',
-        user_id: business?.owner_id, // Or current user
+        user_id: user?.id || business?.owner_id,
         action: 'EXCHANGE_CURRENCY',
         details: {
           title: `Exchanged ${fromCurrency} to ${toCurrency}`,
@@ -73,7 +75,7 @@ export default function Wallet() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exchanges'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       setAmountFrom('');
     },
     onError: (err: any) => {
@@ -98,7 +100,7 @@ export default function Wallet() {
 
       await logActivity({
         business_id: business?.id || '',
-        user_id: business?.owner_id,
+        user_id: user?.id || business?.owner_id,
         action: 'DELETE_EXCHANGE',
         details: {
           title: `Reverted Exchange`,
@@ -112,7 +114,7 @@ export default function Wallet() {
       // Aggressive cache reset to ensure balance and list are perfect
       queryClient.invalidateQueries({ queryKey: ['exchanges'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
     },
     onError: (err: any) => {
       alert('Delete failed: ' + err.message);
@@ -516,6 +518,7 @@ function DeleteConfirmationModal({ exchange, isDeleting, onClose, onConfirm }: a
 
 function EditExchangeModal({ exchange, onClose }: { exchange: any, onClose: () => void }) {
   const { business } = useBusiness();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [rate, setRate] = useState(exchange.rate.toString());
   const [amountFrom, setAmountFrom] = useState((exchange.amount_from_cents / 100).toString());
@@ -557,7 +560,7 @@ function EditExchangeModal({ exchange, onClose }: { exchange: any, onClose: () =
 
       await logActivity({
         business_id: exchange.business_id,
-        user_id: business?.owner_id,
+        user_id: user?.id || business?.owner_id,
         action: 'EDIT_EXCHANGE',
         details: {
           title: `Updated Exchange Rate/Amount`,

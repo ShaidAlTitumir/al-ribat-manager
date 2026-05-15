@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { 
   TrendingUp, TrendingDown, Package, Users, 
   ArrowUpRight, ArrowDownRight, Wallet, Receipt,
-  Plus, History, DollarSign, PieChart, RefreshCw, ArrowLeftRight,
+  Plus, History as HistoryIcon, DollarSign, PieChart, RefreshCw, ArrowLeftRight,
   ShoppingCart,
   CreditCard
 } from 'lucide-react';
@@ -168,25 +168,47 @@ export default function Dashboard() {
     enabled: !!business?.id
   });
 
-  const [showAllActivities, setShowAllActivities] = useState(false);
-
   // Recent Activity Data
   const { data: recentActivities = [], isLoading: activityLoading } = useQuery({
-    queryKey: ['recentActivity', business?.id],
+    queryKey: ['activity_log', 'dashboard', business?.id],
     queryFn: async () => {
       if (!business?.id) return [];
       
+      // Attempt join first
       const { data, error } = await supabase
         .from('activity_log')
         .select(`
           *,
-          profiles:user_id(full_name, username)
+          profiles:user_id (
+            full_name,
+            username
+          )
         `)
         .eq('business_id', business.id)
         .order('created_at', { ascending: false })
-        .limit(30);
+        .limit(20);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Activity fetch error:', error);
+        // Fallback to basic fetch if join fails
+        const { data: basicData, error: basicError } = await supabase
+          .from('activity_log')
+          .select('*')
+          .eq('business_id', business.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+        
+        if (basicError) throw basicError;
+        return (basicData || []).map(a => ({
+          id: a.id,
+          title: a.details?.title || a.action,
+          sub: a.details?.sub || 'System Activity',
+          amount: a.details?.amount || 'LOG',
+          time: formatDateTime(a.created_at).split(', ')[1],
+          type: a.details?.type || 'activity',
+          raw_date: a.created_at
+        }));
+      }
 
       return (data || []).map(a => ({
         id: a.id,
@@ -320,12 +342,20 @@ export default function Dashboard() {
           <div className="space-y-4">
             <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-tighter">Recent Activities</h3>
-                <History className="w-3.5 h-3.5 text-slate-300" />
+                <div className="flex items-center gap-2">
+                  <HistoryIcon className="w-3.5 h-3.5 text-blue-600" />
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-tighter">Recent Activities</h3>
+                </div>
+                <button 
+                  onClick={() => navigate('/activities')}
+                  className="text-[9px] font-bold text-blue-600 uppercase tracking-widest hover:underline"
+                >
+                  View All
+                </button>
               </div>
               <div className="max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-100 scrollbar-track-transparent">
                 <div className="space-y-4">
-                  {(showAllActivities ? recentActivities : recentActivities.slice(0, 8)).map((activity) => (
+                  {recentActivities.map((activity, idx) => (
                     <ActivityItem 
                       key={activity.id}
                       title={activity.title}
@@ -333,12 +363,13 @@ export default function Dashboard() {
                       amount={activity.amount}
                       time={activity.time}
                       type={activity.type}
+                      index={idx}
                     />
                   ))}
                   
                   {recentActivities.length === 0 && !activityLoading && (
                     <div className="text-center py-8">
-                      <History className="w-8 h-8 text-slate-100 mx-auto mb-3" />
+                      <HistoryIcon className="w-8 h-8 text-slate-100 mx-auto mb-3" />
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No activities recorded yet</p>
                     </div>
                   )}
@@ -358,20 +389,12 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
-              {!showAllActivities && recentActivities.length > 6 && (
+              {recentActivities.length > 6 && (
                 <button 
-                  onClick={() => setShowAllActivities(true)}
-                  className="w-full mt-8 py-3 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
+                  onClick={() => navigate('/activities')}
+                  className="w-full mt-8 py-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 group/btn"
                 >
-                  View Full Audit Log
-                </button>
-              )}
-              {showAllActivities && (
-                <button 
-                  onClick={() => setShowAllActivities(false)}
-                  className="w-full mt-8 py-3 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
-                >
-                  Show Less
+                  View Full Audit Log <ArrowUpRight className="w-3 h-3 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
                 </button>
               )}
             </div>
@@ -401,7 +424,7 @@ function KpiCard({ title, value, color, subtext, icon, loading }: any) {
   );
 }
 
-function ActivityItem({ title, sub, amount, time, type }: any) {
+function ActivityItem({ title, sub, amount, time, type, index }: any) {
   const colors = {
     sale: 'bg-emerald-50 text-emerald-600',
     expense: 'bg-red-50 text-red-600',
@@ -431,12 +454,21 @@ function ActivityItem({ title, sub, amount, time, type }: any) {
       case 'inventory': return <ShoppingCart className="w-4 h-4" />;
       case 'supplier': return <Users className="w-4 h-4" />;
       case 'wallet': return <Wallet className="w-4 h-4" />;
-      default: return <History className="w-4 h-4" />;
+      default: return <HistoryIcon className="w-4 h-4" />;
     }
   };
 
+  const amountString = amount || '';
+  const isPositive = typeof amountString === 'string' && (amountString.startsWith('+') || ['NEW', 'JOINED', 'FUNDED', 'ADDED', 'ACTIVE'].includes(amountString));
+  const isNegative = typeof amountString === 'string' && (amountString.startsWith('-') || ['REMOVED', 'DELETED', 'REVERTED'].includes(amountString));
+
   return (
-    <div className="flex items-center gap-3 group cursor-pointer">
+    <motion.div 
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: (index % 10) * 0.05 }}
+      className="flex items-center gap-3 group cursor-pointer"
+    >
       <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform group-active:scale-90 ${colors[type as keyof typeof colors] || 'bg-slate-50 text-slate-400'}`}>
         {getIcon()}
       </div>
@@ -445,9 +477,9 @@ function ActivityItem({ title, sub, amount, time, type }: any) {
         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">{sub}</p>
       </div>
       <div className="text-right">
-        <p className={`text-[11px] font-mono font-black ${amount.startsWith('+') || ['NEW', 'JOINED', 'FUNDED', 'ADDED', 'ACTIVE'].includes(amount) ? 'text-emerald-600' : (amount === 'REMOVED' || amount === 'DELETED' || amount === 'REVERTED' || amount.startsWith('-') ? 'text-red-500' : 'text-slate-900')}`}>{amount}</p>
+        <p className={`text-[11px] font-mono font-black ${isPositive ? 'text-emerald-600' : (isNegative ? 'text-red-500' : 'text-slate-900')}`}>{amount}</p>
         <p className="text-[8px] font-bold text-slate-300 mt-0.5">{time}</p>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -12,6 +12,7 @@ import {
   Trash2, FileText, Printer, MoreVertical, X, Info, AlertCircle,
   ShoppingBag,
   TrendingUp,
+  Download,
   History as HistoryIcon
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -256,7 +257,7 @@ export default function Sales() {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       setSuccess('Sale confirmed successfully!');
       setTimeout(() => {
         setActiveTab('history');
@@ -331,7 +332,7 @@ export default function Sales() {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       setSaleToDelete(null);
     }
   });
@@ -557,7 +558,7 @@ export default function Sales() {
                         </p>
                      </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
                      <div className="text-right">
                         <p className="text-sm lg:text-base font-mono font-bold text-slate-900 tracking-tighter">{formatBDT(sale.total_cents)}</p>
                         {sale.due_cents > 0 ? (
@@ -566,6 +567,51 @@ export default function Sales() {
                           <span className="inline-flex h-4 items-center px-1.5 bg-emerald-50 text-emerald-500 text-[11px] lg:text-xs font-semibold uppercase rounded">Paid</span>
                         )}
                      </div>
+                     <button 
+                       onClick={() => {
+                         if (business) {
+                           const saleData = {
+                             invoiceNo: sale.invoice_no,
+                             date: sale.created_at, // Pass ISO string
+                             items: [
+                               {
+                                 name: sale.inventory_items?.name || 'Product',
+                                 quantity: sale.quantity,
+                                 unitPrice: sale.unit_price_bdt_cents / 100,
+                                 total: (sale.unit_price_bdt_cents * sale.quantity) / 100
+                               }
+                             ],
+                             subtotal: (sale.unit_price_bdt_cents * sale.quantity) / 100,
+                             discount: sale.discount_cents / 100,
+                             total: sale.total_cents / 100,
+                             received: (sale.total_cents - sale.due_cents) / 100,
+                             due: sale.due_cents / 100
+                           };
+                           
+                           const customerInfo = {
+                             name: sale.customers?.name || 'Walk-in Customer',
+                             phone: sale.customers?.phone || '',
+                             address: sale.customers?.address || '',
+                             shopName: sale.customers?.shop_name || ''
+                           };
+                           
+                           const businessInfo = {
+                             name: business.name,
+                             phone: business.phone || '',
+                             address: business.address || '',
+                             email: business.email || ''
+                           };
+                           
+                           import('../lib/pdfGenerator').then(module => {
+                             module.generateSaleInvoice(businessInfo, customerInfo, saleData);
+                           });
+                         }
+                       }}
+                       className="p-2 bg-white text-slate-400 rounded-xl hover:text-blue-600 hover:shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+                       title="Download Invoice"
+                     >
+                        <Download className="w-4 h-4" />
+                     </button>
                      <div className="relative">
                         <button 
                           onClick={() => setShowOptionsId(showOptionsId === sale.id ? null : sale.id)}
@@ -581,7 +627,7 @@ export default function Sales() {
                                  if (business) {
                                    const saleData = {
                                      invoiceNo: sale.invoice_no,
-                                     date: sale.created_at,
+                                     date: sale.created_at, // Pass raw ISO
                                      items: [
                                        {
                                          name: sale.inventory_items?.name || 'Product',
@@ -593,7 +639,7 @@ export default function Sales() {
                                      subtotal: (sale.unit_price_bdt_cents * sale.quantity) / 100,
                                      discount: sale.discount_cents / 100,
                                      total: sale.total_cents / 100,
-                                     received: sale.received_now_bdt_cents / 100,
+                                     received: (sale.total_cents - sale.due_cents) / 100,
                                      due: sale.due_cents / 100
                                    };
                                    
@@ -612,10 +658,7 @@ export default function Sales() {
                                    };
                                    
                                    import('../lib/pdfGenerator').then(module => {
-                                     module.generateSaleInvoice(businessInfo, customerInfo, {
-                                       ...saleData,
-                                       date: formatDate(sale.created_at)
-                                     });
+                                     module.generateSaleInvoice(businessInfo, customerInfo, saleData);
                                    });
                                  }
                                  setShowOptionsId(null);
@@ -715,13 +758,16 @@ function QuickAddCustomerModal({ onClose, onSuccess }: { onClose: () => void, on
   const { business } = useBusiness();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({ name: '', phone: '' });
+  const [formData, setFormData] = useState({ name: '', phone: '', address: '' });
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
-    mutationFn: async (data: { name: string, phone: string }) => {
+    mutationFn: async (data: { name: string, phone: string, address: string }) => {
       if (!business?.id) throw new Error("Business context not found");
       if (!data.name.trim()) throw new Error("Name is required");
+      if (data.phone && data.phone.replace(/\D/g, '').length < 11) {
+        throw new Error("Phone number must be at least 11 digits");
+      }
 
       const { data: newCustomer, error } = await supabase
         .from('customers')
@@ -730,6 +776,7 @@ function QuickAddCustomerModal({ onClose, onSuccess }: { onClose: () => void, on
           user_id: user?.id,
           name: data.name,
           phone: data.phone,
+          address: data.address,
           total_due_cents: 0
         })
         .select()
@@ -753,7 +800,7 @@ function QuickAddCustomerModal({ onClose, onSuccess }: { onClose: () => void, on
     },
     onSuccess: (newCustomer) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onSuccess(newCustomer.id);
     },
     onError: (err: any) => setError(err.message)
@@ -792,7 +839,13 @@ function QuickAddCustomerModal({ onClose, onSuccess }: { onClose: () => void, on
             label="Phone Number" 
             value={formData.phone} 
             onChange={(v: string) => setFormData({...formData, phone: v})} 
-            placeholder="017xxxxxxxx"
+            placeholder="01XXXXXXXXX"
+          />
+          <Input 
+            label="Address" 
+            value={formData.address} 
+            onChange={(v: string) => setFormData({...formData, address: v})} 
+            placeholder="Customer address"
           />
 
           <div className="flex gap-3 pt-2">
@@ -909,7 +962,7 @@ function EditSaleModal({ sale, customers, items, onClose }: any) {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onClose();
     },
     onError: (err: any) => setError(err.message)

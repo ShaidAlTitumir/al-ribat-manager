@@ -46,6 +46,9 @@ export default function Onboarding() {
 
   const handleCreateBusiness = async () => {
     if (!businessName.trim()) return setError('Business name is required');
+    if (phone && phone.replace(/\D/g, '').length < 11) {
+      return setError('Phone number must be at least 11 digits');
+    }
     if (!user) return setError('You must be logged in to create a business');
     
     setLoading(true);

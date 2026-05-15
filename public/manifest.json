@@ -5,7 +5,7 @@
     {
       "src": "logo.svg",
       "type": "image/svg+xml",
-      "sizes": "any",
+      "sizes": "192x192",
       "purpose": "any"
     },
     {

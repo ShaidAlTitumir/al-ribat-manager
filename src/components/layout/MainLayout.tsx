@@ -5,7 +5,7 @@ import {
   Home, Package, ShoppingCart, Users, RefreshCw, 
   Settings, LogOut, Bell, Menu, X, Receipt, 
   ArrowLeftRight, Wallet, FileText, ChevronRight,
-  LayoutGrid, Truck
+  LayoutGrid, Truck, History as HistoryIcon
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useBusiness } from '../../context/BusinessContext';
@@ -38,6 +38,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     { path: '/transactions', label: 'Transfers', icon: ArrowLeftRight },
     { path: '/expenses', label: 'Expenses', icon: Wallet },
     { path: '/reports', label: 'Reports', icon: FileText },
+    { path: '/activities', label: 'Activities', icon: HistoryIcon },
     { path: '/businesses', label: 'Businesses', icon: LayoutGrid },
   ];
 
@@ -82,14 +83,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   onClick={() => { setIsDrawerOpen(false); navigate('/businesses'); }}
                 >
                   <img 
-                    src="/logo.png" 
+                    src="/logo.svg" 
                     className="w-8 h-8 rounded-xl object-contain group-hover:scale-110 transition-transform" 
                     alt="Logo" 
                     referrerPolicy="no-referrer"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = "/logo.svg";
-                    }}
                   />
                   <div>
                     <h2 className="font-bold text-sm text-slate-900 truncate max-w-[140px] group-hover:text-blue-600 transition-colors">
@@ -202,6 +199,16 @@ export default function MainLayout({ children }: MainLayoutProps) {
       {/* Main Content */}
       <main className="pt-16 pb-16 px-4 max-w-6xl mx-auto w-full">
         {children}
+        <div className="mt-20 pt-8 border-t border-slate-100 flex flex-col items-center gap-4">
+           <img 
+             src="/logo.svg" 
+             className="w-10 h-10 grayscale opacity-10 group-hover:opacity-30 transition-opacity" 
+             alt="Logo" 
+           />
+           <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] text-center">
+             Al-Ribat Manager developed by Al-Ribat international
+           </p>
+        </div>
       </main>
 
       {/* Mobile Bottom Nav */}

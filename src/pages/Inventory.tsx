@@ -443,7 +443,8 @@ function EditItemModal({ item, onClose }: { item: InventoryItem, onClose: () => 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onClose();
     }
   });
@@ -493,56 +494,39 @@ function EditItemModal({ item, onClose }: { item: InventoryItem, onClose: () => 
               <FormRow label="Batch Weight (kg)" type="number" step="0.01" value={formData.totalWeight} onChange={handleTotalWeightChange} />
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
               <div className="col-span-2">
-                <FormRow label="Buying Cost (RMB Total)" type="number" value={formData.totalBuyingRmb} onChange={handleTotalBuyingRmbChange} />
+                <FormRow label="Total Buying RMB" type="number" value={formData.totalBuyingRmb} onChange={handleTotalBuyingRmbChange} />
               </div>
               <FormRow label="RMB/unit" type="number" value={formData.unitBuyingRmb} onChange={handleUnitBuyingRmbChange} />
-              <FormRow label="Exchange Rate" type="number" value={formData.exchangeRate} onChange={(v: string) => setFormData({...formData, exchangeRate: v})} />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+              <FormRow label="BDT/RMB Rate" type="number" value={formData.exchangeRate} onChange={(v: string) => setFormData({...formData, exchangeRate: v})} />
+              <FormRow label="Selling Price (BDT)" type="number" value={formData.sellingPrice} onChange={(v: string) => setFormData({...formData, sellingPrice: v})} />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-              <div className="space-y-1.5 flex-1">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Shipping Method</label>
+            <div className="space-y-1.5 text-left">
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Other Cost</label>
+              <div className="flex gap-2">
+                <input 
+                  type="number"
+                  className="w-full bg-slate-50 border border-slate-100 h-11 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
+                  value={formData.additionalCost}
+                  onChange={(e) => setFormData({...formData, additionalCost: e.target.value})}
+                />
                 <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 font-bold h-11">
-                  {['Sea', 'Air', 'Luggage'].map(m => (
+                  {['BDT', 'RMB'].map(c => (
                     <button 
-                      key={m} 
-                      onClick={() => setFormData({...formData, shippingMethod: m})} 
-                      className={`flex-1 rounded-lg text-[9px] uppercase transition-all ${formData.shippingMethod === m ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                      key={c} 
+                      onClick={() => setFormData({...formData, additionalCostCurrency: c as any})} 
+                      className={`px-3 flex items-center justify-center rounded-lg text-[9px] uppercase transition-all ${formData.additionalCostCurrency === c ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
                     >
-                      {m}
+                      {c}
                     </button>
                   ))}
                 </div>
               </div>
-              <FormRow label="Ship Rate (BDT/kg)" type="number" value={formData.shippingRate} onChange={(v: string) => setFormData({...formData, shippingRate: v})} />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-              <div className="space-y-1.5 flex-1">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Other Cost</label>
-                <div className="flex gap-2">
-                  <input 
-                    type="number"
-                    className="w-full bg-slate-50 border border-slate-100 h-11 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
-                    value={formData.additionalCost}
-                    onChange={(e) => setFormData({...formData, additionalCost: e.target.value})}
-                  />
-                  <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 font-bold h-11">
-                    {['BDT', 'RMB'].map(c => (
-                      <button 
-                        key={c} 
-                        onClick={() => setFormData({...formData, additionalCostCurrency: c as any})} 
-                        className={`px-3 flex items-center justify-center rounded-lg text-[9px] uppercase transition-all ${formData.additionalCostCurrency === c ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
-                      >
-                        {c}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <FormRow label="Selling Price (BDT)" type="number" value={formData.sellingPrice} onChange={(v: string) => setFormData({...formData, sellingPrice: v})} />
             </div>
 
             {/* Analysis Box */}
@@ -819,7 +803,7 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       refreshBusiness?.();
       onBack();
     },
@@ -931,23 +915,15 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
                    <h3 className="text-xs lg:text-sm font-bold uppercase tracking-widest text-slate-900">Costing & Logistics</h3>
                 </div>
                 <div className="p-4 space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="col-span-2">
-                      <FormRow label="Buying Cost (RMB Total)" type="number" value={formData.totalBuyingRmb} onChange={handleTotalBuyingRmbChange} />
+                       <FormRow label="Total Buying RMB" type="number" value={formData.totalBuyingRmb} onChange={handleTotalBuyingRmbChange} />
                     </div>
                     <FormRow label="RMB/unit" type="number" value={formData.unitBuyingRmb} onChange={handleUnitBuyingRmbChange} />
-                    <FormRow label="Daily RMB Rate" type="number" step="0.01" value={formData.rmbRate} onChange={(v:any) => setFormData({...formData, rmbRate: v})} />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                     <div className="space-y-1.5 text-left">
-                        <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest ml-1">Shipping Method</label>
-                        <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 font-bold">
-                           {['Sea', 'Air', 'Luggage'].map(m => (
-                             <button key={m} onClick={() => setFormData({...formData, shippingMethod: m})} className={`flex-1 py-2 rounded-lg text-[9px] uppercase ${formData.shippingMethod === m ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}>{m}</button>
-                           ))}
-                        </div>
-                     </div>
-                     <FormRow label="Shipping Rate (BDT/kg)" type="number" value={formData.shippingRate} onChange={(v:any) => setFormData({...formData, shippingRate: v})} />
+                    <FormRow label="BDT/RMB Rate" type="number" step="0.01" value={formData.rmbRate} onChange={(v:any) => setFormData({...formData, rmbRate: v})} />
+                    <FormRow label="Initial Stock" type="number" value={formData.quantity} onChange={handleQuantityChange} />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                      <div className="space-y-1 text-left">
@@ -1218,7 +1194,7 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onClose();
     },
     onError: (err: any) => {
@@ -1251,48 +1227,48 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 gap-4">
             <Input label="Quantity" type="number" value={qty} onChange={handleQtyChange} />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="col-span-2">
                 <Input label="RMB Cost (Total)" type="number" value={totalCostRmb} onChange={handleTotalRmbChange} />
               </div>
               <Input label="RMB/unit" type="number" value={buyingCostRmb} onChange={handleUnitRmbChange} />
-              <Input label="Exchange Rate (BDT/RMB)" type="number" value={exchangeRate} onChange={setExchangeRate} />
             </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="Shipping Rate (BDT/kg)" type="number" value={shippingRate} onChange={setShippingRate} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5 text-left">
-               <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Other Cost</label>
-               <div className="flex gap-2">
-                  <input 
-                    type="number"
-                    className="w-full bg-slate-50 border border-slate-100 h-11 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
-                    value={additionalCost}
-                    onChange={(e) => setAdditionalCost(e.target.value)}
-                  />
-                  <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 font-bold h-11">
-                    {['BDT', 'RMB'].map(c => (
-                      <button 
-                        key={c} 
-                        onClick={() => setAdditionalCostCurrency(c as any)} 
-                        className={`px-3 flex items-center justify-center rounded-lg text-[9px] uppercase transition-all ${additionalCostCurrency === c ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
-                      >
-                        {c}
-                      </button>
-                    ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input label="Exchange Rate (BDT/RMB)" type="number" value={exchangeRate} onChange={setExchangeRate} />
+              <Input label="Shipping Rate (BDT/kg)" type="number" value={shippingRate} onChange={setShippingRate} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+               <div className="space-y-1.5 text-left">
+                  <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Other Cost</label>
+                  <div className="flex gap-2">
+                     <input 
+                       type="number"
+                       className="w-full bg-slate-50 border border-slate-100 h-11 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
+                       value={additionalCost}
+                       onChange={(e) => setAdditionalCost(e.target.value)}
+                     />
+                     <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 font-bold h-11">
+                       {['BDT', 'RMB'].map(c => (
+                         <button 
+                           key={c} 
+                           onClick={() => setAdditionalCostCurrency(c as any)} 
+                           className={`px-3 flex items-center justify-center rounded-lg text-[9px] uppercase transition-all ${additionalCostCurrency === c ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                         >
+                           {c}
+                         </button>
+                       ))}
+                     </div>
                   </div>
                </div>
-            </div>
-            <div className="flex flex-col text-left">
-               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 ml-1">Payment Status</label>
-               <button 
-                onClick={() => setIsPaid(!isPaid)}
-                className={`flex-1 flex items-center justify-center gap-2 rounded-xl border font-bold text-xs transition-all ${isPaid ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
-               >
-                 {isPaid ? 'Supplier Paid' : 'Unpaid (Payable)'}
-               </button>
+               <div className="flex flex-col text-left">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 ml-1">Payment Status</label>
+                  <button 
+                   onClick={() => setIsPaid(!isPaid)}
+                   className={`flex-1 flex items-center justify-center gap-2 rounded-xl border font-bold text-xs transition-all ${isPaid ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
+                  >
+                    {isPaid ? 'Supplier Paid' : 'Unpaid (Payable)'}
+                  </button>
+               </div>
             </div>
           </div>
 
@@ -1475,7 +1451,7 @@ function DeleteConfirmModal({ item, onClose }: { item: InventoryItem, onClose: (
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onClose();
     }
   });

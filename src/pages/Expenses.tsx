@@ -85,7 +85,7 @@ export default function Expenses() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       setIsDeleteModalOpen(false);
       setExpenseToDelete(null);
     }
@@ -289,7 +289,7 @@ function AddExpenseModal({ expense, onClose }: { expense?: any, onClose: () => v
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onClose();
     },
     onError: (err: any) => setError(err.message)

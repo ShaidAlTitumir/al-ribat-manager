@@ -14,6 +14,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatBDT, formatDate } from '../lib/utils';
 import { Partner } from '../types';
+import { logActivity } from '../lib/activity';
 
 export default function Transactions() {
   const { business } = useBusiness();
@@ -51,8 +52,8 @@ export default function Transactions() {
       if (error) throw error;
 
       // Log Activity
-      await supabase.from('activity_log').insert({
-        business_id: business?.id,
+      await logActivity({
+        business_id: business?.id || '',
         user_id: user?.id,
         action: 'DELETE_TRANSFER',
         details: {
@@ -165,6 +166,7 @@ function TransferStat({ label, value, sub, color }: any) {
 
 function AddTransferModal({ onClose, partners }: { onClose: () => void, partners: Partner[] }) {
   const { business } = useBusiness();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     from_partner_id: '', to_partner_id: '', amount: '', currency: 'BDT', method: 'cash', notes: ''
@@ -172,12 +174,27 @@ function AddTransferModal({ onClose, partners }: { onClose: () => void, partners
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
+      const fromPartner = partners.find(p => p.id === data.from_partner_id);
+      const toPartner = partners.find(p => p.id === data.to_partner_id);
+
       const { error } = await supabase.from('partner_transfers').insert({
         ...data,
         business_id: business?.id,
         amount_cents: Math.round(parseFloat(data.amount) * 100)
       });
       if (error) throw error;
+
+      await logActivity({
+        business_id: business?.id || '',
+        user_id: user?.id,
+        action: 'ADD_TRANSFER',
+        details: {
+          title: `Partner Transfer: ${fromPartner?.name || 'Partner'} → ${toPartner?.name || 'Partner'}`,
+          sub: `Method: ${data.method}`,
+          amount: `${data.currency === 'RMB' ? '¥' : '৳'} ${data.amount}`,
+          type: 'transfer'
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partner_transfers'] });

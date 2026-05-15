@@ -61,6 +61,9 @@ export default function Businesses() {
   const createBusinessMutation = useMutation({
     mutationFn: async () => {
       if (!newBusinessName.trim()) throw new Error('Business name is required');
+      if (newBusinessPhone && newBusinessPhone.replace(/\D/g, '').length < 11) {
+        throw new Error('Phone number must be at least 11 digits');
+      }
       
       setIsCreating(true);
       
@@ -119,6 +122,9 @@ export default function Businesses() {
 
   const updateBusinessMutation = useMutation({
     mutationFn: async (data: any) => {
+      if (data.phone && data.phone.replace(/\D/g, '').length < 11) {
+        throw new Error('Phone number must be at least 11 digits');
+      }
       setIsUpdating(true);
       const { error } = await supabase
         .from('businesses')

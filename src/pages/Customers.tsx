@@ -10,7 +10,7 @@ import {
   Users, Search, Plus, Phone, Store, MapPin, 
   ArrowRight, FileText, ArrowDownLeft, Trash2, 
   MoreVertical, ChevronRight, UserCircle, Calculator,
-  Filter, X, AlertCircle, Download, Info, Pencil
+  Filter, X, AlertCircle, Download, Info, Pencil, Printer
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatBDT, formatDate, formatDateTime, isValidDate } from '../lib/utils';
@@ -238,6 +238,9 @@ function AddCustomerModal({ onClose }: { onClose: () => void }) {
       if (!business?.id) throw new Error("Business not found. Please reload.");
       if (!user?.id) throw new Error("User session not found.");
       if (!data.name.trim()) throw new Error("Customer name is required.");
+      if (data.phone && data.phone.replace(/\D/g, '').length < 11) {
+        throw new Error("Phone number must be at least 11 digits");
+      }
       
       const { error } = await supabase
         .from('customers')
@@ -266,7 +269,7 @@ function AddCustomerModal({ onClose }: { onClose: () => void }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onClose();
     },
     onError: (err: any) => {
@@ -475,7 +478,7 @@ function CustomerDetailDrawer({ customer, onClose, onEdit, onDelete }: { custome
 
                           const { data: salesData, error: sError } = await supabase
                             .from('sales')
-                            .select('*')
+                            .select('*, inventory_items(name)')
                             .eq('customer_id', customer.id)
                             .gte('created_at', startIso)
                             .lte('created_at', endIso);
@@ -645,7 +648,7 @@ function CustomerDetailDrawer({ customer, onClose, onEdit, onDelete }: { custome
                                   subtotal: (sale.unit_price_bdt_cents * sale.quantity) / 100,
                                   discount: sale.discount_cents / 100,
                                   total: sale.total_cents / 100,
-                                  received: sale.received_now_bdt_cents / 100,
+                                  received: (sale.total_cents - sale.due_cents) / 100,
                                   due: sale.due_cents / 100
                                 };
                                 
@@ -763,6 +766,9 @@ function EditCustomerModal({ customer, onClose }: { customer: Customer, onClose:
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
+      if (data.phone && data.phone.replace(/\D/g, '').length < 11) {
+        throw new Error("Phone number must be at least 11 digits");
+      }
       const { error } = await supabase
         .from('customers')
         .update(data)
@@ -783,7 +789,7 @@ function EditCustomerModal({ customer, onClose }: { customer: Customer, onClose:
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onClose();
     },
     onError: (err: any) => {
@@ -934,7 +940,7 @@ function DeleteCustomerModal({ customer, onClose, onSuccess }: { customer: Custo
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       if (onSuccess) onSuccess();
       onClose();
     },
@@ -1130,7 +1136,7 @@ function RecordPaymentModal({ customer, onClose }: { customer: Customer, onClose
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['customer_ledger', customer.id] });
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onClose();
     },
     onError: (err: any) => setError(err.message)
@@ -1259,7 +1265,7 @@ function DeleteLedgerEntryModal({ entry, customer, onClose, onSuccess }: any) {
 
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -1426,7 +1432,7 @@ function EditLedgerEntryModal({ entry, customer, onClose, onSuccess }: any) {
 
       queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
       queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
       onSuccess();
       onClose();
     } catch (err: any) {

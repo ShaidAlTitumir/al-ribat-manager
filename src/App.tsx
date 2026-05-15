@@ -17,6 +17,7 @@ const Wallet = React.lazy(() => import('./pages/Wallet'));
 const Transactions = React.lazy(() => import('./pages/Transactions'));
 const Expenses = React.lazy(() => import('./pages/Expenses'));
 const Reports = React.lazy(() => import('./pages/Reports'));
+const Activities = React.lazy(() => import('./pages/Activities'));
 const Profile = React.lazy(() => import('./pages/Profile'));
 const Businesses = React.lazy(() => import('./pages/Businesses'));
 const Login = React.lazy(() => import('./pages/auth/Login'));
@@ -59,6 +60,7 @@ export default function App() {
                     <Route path="/transactions" element={<Transactions />} />
                     <Route path="/expenses" element={<Expenses />} />
                     <Route path="/reports" element={<Reports />} />
+                    <Route path="/activities" element={<Activities />} />
                   </Route>
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/businesses" element={<Businesses />} />

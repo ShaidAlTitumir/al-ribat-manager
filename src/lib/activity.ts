@@ -30,15 +30,19 @@ interface LogOptions {
 }
 
 export async function logActivity({ business_id, user_id, action, details }: LogOptions) {
+  if (!business_id || business_id === '') {
+    console.warn('Skipping activity log: business_id is missing');
+    return;
+  }
+
   try {
     const { error } = await supabase
       .from('activity_log')
       .insert({
         business_id,
-        user_id,
+        user_id: user_id || null,
         action,
-        details,
-        created_at: new Date().toISOString()
+        details
       });
     
     if (error) {

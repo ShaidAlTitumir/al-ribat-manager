@@ -86,6 +86,12 @@ export default function Profile() {
     setBizSaving(true);
     setBizMessage(null);
 
+    if (bizPhone && bizPhone.replace(/\D/g, '').length < 11) {
+      setBizMessage({ type: 'error', text: 'Business phone number must be at least 11 digits' });
+      setBizSaving(false);
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('businesses')
@@ -116,6 +122,12 @@ export default function Profile() {
     
     setSaving(true);
     setMessage(null);
+
+    if (phone && phone.replace(/\D/g, '').length < 11) {
+      setMessage({ type: 'error', text: 'Phone number must be at least 11 digits' });
+      setSaving(false);
+      return;
+    }
 
     try {
       const { error } = await supabase
