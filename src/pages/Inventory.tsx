@@ -422,6 +422,7 @@ function EditItemModal({ item, onClose }: { item: InventoryItem, onClose: () => 
             shipping_method: formData.shippingMethod,
             shipping_rate_bdt_per_kg_cents: Math.round(shipRate * 100),
             additional_cost_bdt_cents: Math.round(addCostBDT * 100),
+            additional_cost_currency: formData.additionalCostCurrency,
             landed_cost_per_unit_bdt_cents: updatedLandedCost,
             total_landed_cost_bdt_cents: Math.round(totalLandedCostBDT * 100)
           })

@@ -118,7 +118,7 @@ export default function Dashboard() {
         supabase.from('partner_profit_distributions').select('amount_cents').eq('business_id', business.id),
         supabase.from('exchanges').select('*').eq('business_id', business.id),
         supabase.from('customer_ledger').select('amount_cents, transaction_type').eq('business_id', business.id),
-        supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, buying_cost_per_unit_rmb_cents, quantity, exchange_rate_used, paid').eq('business_id', business.id).eq('paid', true)
+        supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, buying_cost_per_unit_rmb_cents, quantity, exchange_rate_used, paid, additional_cost_bdt_cents, additional_cost_currency').eq('business_id', business.id).eq('paid', true)
       ]);
 
       if (sErr || eErr || cErr || dErr || exErr || lErr || pErr) {
@@ -148,9 +148,15 @@ export default function Dashboard() {
       purchases?.forEach(p => {
         const productCostRmbCents = (p.buying_cost_per_unit_rmb_cents || 0) * (p.quantity || 0);
         rmb -= productCostRmbCents;
+        const addCostBDTCents = p.additional_cost_bdt_cents || 0;
+        if (p.additional_cost_currency === 'RMB') {
+          rmb -= Math.round(addCostBDTCents / (p.exchange_rate_used || 1));
+        } else {
+          bdt -= addCostBDTCents;
+        }
         const productCostBDTCents = Math.round(productCostRmbCents * (p.exchange_rate_used || 1));
-        const shippingAndOtherBDTCents = (p.total_landed_cost_bdt_cents || 0) - productCostBDTCents;
-        bdt -= Math.max(0, shippingAndOtherBDTCents);
+        const shippingBDTCents = (p.total_landed_cost_bdt_cents || 0) - productCostBDTCents - addCostBDTCents;
+        bdt -= Math.max(0, shippingBDTCents);
       });
 
       internalExchanges?.forEach((ex: any) => {
