@@ -182,7 +182,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 </div>
               ) : (
                 <button onClick={() => setIsRateEditing(true)} className="text-xs font-black font-mono text-slate-900">
-                  ৳{business?.exchange_rate?.toFixed(2) || '18.00'}
+                  ৳{business?.exchange_rate?.toFixed(3) || '18.000'}
                 </button>
               )}
             </div>

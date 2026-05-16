@@ -142,8 +142,8 @@ export default function Activities() {
           <div className="lg:col-span-3">
              <div className="bg-white rounded-[32px] sm:rounded-[40px] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
                 <div className="px-5 py-6 sm:p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between shrink-0">
-                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">Chronological Feed</h3>
-                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{filteredActivities.length} Operations</span>
+                   <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Chronological Feed</h3>
+                   <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">{filteredActivities.length} Operations</span>
                 </div>
 
                 <div className="divide-y divide-slate-50 overflow-y-auto flex-1">
@@ -180,8 +180,8 @@ export default function Activities() {
                         ).map(([date, items]: [string, any]) => (
                           <div key={date} className="relative">
                             <div className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm px-6 py-2 border-y border-slate-100 flex items-center justify-between">
-                              <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{date}</span>
-                              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{items.length} Activities</span>
+                              <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">{date}</span>
+                              <span className="text-[8px] font-medium text-slate-400 uppercase tracking-widest">{items.length} Activities</span>
                             </div>
                             <div className="divide-y divide-slate-50 border-b border-slate-50 pb-20">
                               {items.map((activity: any, idx: number) => (
@@ -246,7 +246,7 @@ function ActivityRow({ activity }: { activity: any }) {
              <h4 className="text-sm font-bold text-slate-900 leading-tight break-words">{activity.title}</h4>
              {activity.amount && (
                <div className="flex shrink-0">
-                 <span className={`text-[10px] font-mono font-black border px-1.5 py-0.5 rounded-lg ${
+                 <span className={`text-[10px] font-mono font-bold border px-1.5 py-0.5 rounded-lg ${
                    activity.amount.startsWith('+') || ['NEW', 'JOINED', 'FUNDED', 'ADDED', 'ACTIVE'].includes(activity.amount) 
                    ? 'bg-emerald-50 border-emerald-100 text-emerald-600' 
                    : (activity.amount === 'REMOVED' || activity.amount === 'DELETED' || activity.amount === 'REVERTED' || activity.amount.startsWith('-') ? 'bg-red-50 border-red-100 text-red-500' : 'bg-slate-50 border-slate-100 text-slate-900')

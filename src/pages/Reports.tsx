@@ -244,13 +244,13 @@ export default function Reports() {
       <div className="space-y-5 md:space-y-8 pb-10 px-0 sm:px-2 md:px-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 sm:px-0">
            <div>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight uppercase">Financial Reports</h1>
-              <p className="text-slate-400 text-[10px] sm:text-xs lg:text-sm font-bold uppercase tracking-[0.2em] mt-1">Deep dive into your business analytics.</p>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight uppercase">Financial Reports</h1>
+              <p className="text-slate-400 text-[10px] sm:text-xs lg:text-sm font-medium uppercase tracking-[0.2em] mt-1">Deep dive into your business analytics.</p>
            </div>
             <button 
               onClick={generatePDF}
               disabled={generating}
-              className="w-full sm:w-auto px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xl shadow-slate-200/50 disabled:opacity-50"
+              className="w-full sm:w-auto px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xl shadow-slate-200/50 disabled:opacity-50"
             >
                {generating ? (
                  <Loader2 className="w-4 h-4 animate-spin" />
@@ -268,7 +268,7 @@ export default function Reports() {
                <button 
                 key={range}
                 onClick={() => setDateRange(range)}
-                className={`flex-1 min-w-[85px] sm:min-w-[100px] py-2 sm:py-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${dateRange === range ? 'bg-blue-600 text-white shadow-lg shadow-blue-200/50' : 'text-slate-400 hover:bg-slate-50'}`}
+                className={`flex-1 min-w-[85px] sm:min-w-[100px] py-2 sm:py-2.5 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${dateRange === range ? 'bg-blue-600 text-white shadow-lg shadow-blue-200/50' : 'text-slate-400 hover:bg-slate-50'}`}
                >
                   {range}
                </button>
@@ -311,9 +311,9 @@ export default function Reports() {
                     <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 shrink-0">
                        <PieChart className="w-4 h-4" />
                     </div>
-                    <h3 className="text-[10px] sm:text-xs font-black text-slate-900 uppercase tracking-widest">Financial Performance</h3>
+                    <h3 className="text-[10px] sm:text-xs font-bold text-slate-900 uppercase tracking-widest">Financial Performance</h3>
                  </div>
-                 <div className="hidden sm:block text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 whitespace-nowrap">
+                 <div className="hidden sm:block text-[9px] font-medium text-slate-400 uppercase tracking-widest bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100 whitespace-nowrap">
                    {format(start, 'dd MMM')} - {format(end, 'dd MMM yyyy')}
                  </div>
               </div>
@@ -334,7 +334,7 @@ export default function Reports() {
                      <div className="w-8 h-8 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 shrink-0">
                         <TrendingUp className="w-4 h-4" />
                      </div>
-                     <h3 className="text-[10px] sm:text-xs font-black text-slate-900 uppercase tracking-widest">Top Selling Products</h3>
+                     <h3 className="text-[10px] sm:text-xs font-bold text-slate-900 uppercase tracking-widest">Top Selling Products</h3>
                   </div>
                </div>
                <div className="space-y-5 sm:space-y-6">
@@ -408,9 +408,9 @@ function ReportMetricCard({ label, value, sub, icon: Icon, color }: any) {
           <Icon className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
        </div>
        <div>
-          <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 sm:mb-1.5">{label}</p>
-          <p className={`text-sm sm:text-lg font-black tracking-tighter ${color || 'text-slate-900'}`}>{value}</p>
-          <p className="text-[7px] sm:text-[9px] font-bold text-slate-300 uppercase tracking-widest mt-1 sm:mt-1.5">{sub}</p>
+          <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1 sm:mb-1.5">{label}</p>
+          <p className={`text-sm sm:text-lg font-bold tracking-tighter ${color || 'text-slate-900'}`}>{value}</p>
+          <p className="text-[7px] sm:text-[9px] font-medium text-slate-300 uppercase tracking-widest mt-1 sm:mt-1.5">{sub}</p>
        </div>
     </div>
   );
@@ -420,14 +420,14 @@ function ReportMetric({ label, value, sub, color, large, isNegative }: any) {
   return (
     <div className="flex items-center justify-between gap-2 overflow-hidden">
        <div className="text-left min-w-0">
-          <p className="text-[9px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5 md:mb-3 truncate">{label}</p>
-          <p className={`font-black tracking-tighter ${large ? 'text-xl sm:text-2xl lg:text-4xl' : 'text-base sm:text-lg lg:text-2xl'} ${color} truncate`}>
+          <p className="text-[9px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1.5 md:mb-3 truncate">{label}</p>
+          <p className={`font-bold tracking-tighter ${large ? 'text-xl sm:text-2xl lg:text-4xl' : 'text-base sm:text-lg lg:text-2xl'} ${color} truncate`}>
              {isNegative && '- '}{value}
           </p>
        </div>
        {sub && (
          <div className="text-right shrink-0">
-            <span className="text-[8px] sm:text-[9px] font-bold text-slate-300 uppercase block tracking-widest">{sub}</span>
+            <span className="text-[8px] sm:text-[9px] font-medium text-slate-300 uppercase block tracking-widest">{sub}</span>
          </div>
        )}
     </div>

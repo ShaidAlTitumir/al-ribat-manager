@@ -69,7 +69,7 @@ export default function Customers() {
         <h1 className="text-[15px] font-semibold text-slate-900 uppercase tracking-tight">Customers</h1>
         <div className="bg-slate-100 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-slate-200">
           <RefreshCw className="w-3 h-3 text-slate-500" />
-          <span className="font-mono text-[10px] font-semibold text-slate-700">¥1 = ৳{exchangeRate.toFixed(2)}</span>
+          <span className="font-mono text-[10px] font-semibold text-slate-700">¥1 = ৳{exchangeRate.toFixed(3)}</span>
         </div>
       </div>
 

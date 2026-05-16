@@ -70,7 +70,7 @@ export default function Partners() {
         <h1 className="text-[15px] font-semibold text-slate-900 uppercase tracking-tight">Partners</h1>
         <div className="bg-slate-100 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-slate-200">
           <RefreshCw className="w-3 h-3 text-slate-500" />
-          <span className="font-mono text-[10px] font-semibold text-slate-700">¥1 = ৳{exchangeRate.toFixed(2)}</span>
+          <span className="font-mono text-[10px] font-semibold text-slate-700">¥1 = ৳{exchangeRate.toFixed(3)}</span>
         </div>
       </div>
 
@@ -217,7 +217,7 @@ export default function Partners() {
               <div className="text-right">
                 <p className="font-mono font-semibold text-xs text-slate-900">{formatBDT(p.current_balance_cents)}</p>
                 <p className="text-[9px] font-semibold text-blue-600 uppercase tracking-widest">
-                  {totalCapitalCents > 0 ? ((p.current_balance_cents / totalCapitalCents) * 100).toFixed(1) : '0.0'}%
+                  {totalCapitalCents > 0 ? ((p.current_balance_cents / totalCapitalCents) * 100).toFixed(3) : '0.000'}%
                 </p>
               </div>
             </div>

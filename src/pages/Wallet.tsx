@@ -309,7 +309,7 @@ export default function Wallet() {
                        <CurrencyInput 
                           label="Receiving" 
                           currency={toCurrency} 
-                          value={isNaN(amountTo) ? '0.00' : amountTo.toFixed(2)} 
+                          value={isNaN(amountTo) ? '0.000' : amountTo.toFixed(3)} 
                           readOnly 
                        />
                     </div>
@@ -633,7 +633,7 @@ function EditExchangeModal({ exchange, onClose }: { exchange: any, onClose: () =
            <div className="p-6 bg-slate-900 rounded-3xl text-white">
               <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Resulting Amount</p>
               <p className="text-2xl font-black text-indigo-400 tabular-nums">
-                {amountTo.toFixed(2)} <span className="text-xs text-white/40 ml-1">{exchange.to_currency}</span>
+                {amountTo.toFixed(3)} <span className="text-xs text-white/40 ml-1">{exchange.to_currency}</span>
               </p>
            </div>
 
@@ -667,7 +667,7 @@ function BalanceCard({ label, amount, currency, icon, color }: any) {
        <p className={`text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-2 md:mb-4 ${color === 'indigo' ? 'text-white/50' : 'text-slate-400'}`}>{label}</p>
        <div className="flex items-baseline gap-1 md:gap-2">
           <span className="text-xl md:text-3xl font-black tabular-nums tracking-tighter">
-             {amount.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+             {amount.toLocaleString(undefined, { minimumFractionDigits: 3 })}
           </span>
           <span className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest ${color === 'indigo' ? 'text-white/50' : 'text-slate-300'}`}>{currency}</span>
        </div>

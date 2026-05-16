@@ -1097,7 +1097,7 @@ function RecordPaymentModal({ customer, onClose }: { customer: Customer, onClose
                   sale_id: sale.id,
                   ledger_id: ledgerEntry.id,
                   amount_cents: Math.floor(share),
-                  notes: `Profit from Sale ${sale.invoice_no} (Due Payment Collected - Ratio: ${(shareRatio * 100).toFixed(1)}%)`
+                  notes: `Profit from Sale ${sale.invoice_no} (Due Payment Collected - Ratio: ${(shareRatio * 100).toFixed(3)}%)`
                 };
               }).filter(d => d.amount_cents > 0);
 

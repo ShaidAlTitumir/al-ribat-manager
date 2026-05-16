@@ -140,8 +140,8 @@ export const generateSaleInvoice = (
       (i + 1).toString(),
       item.name,
       item.quantity.toString(),
-      `Tk ${item.unitPrice.toLocaleString()}`,
-      `Tk ${item.total.toLocaleString()}`
+      `Tk ${item.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`,
+      `Tk ${item.total.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`
     ]),
     theme: 'plain',
     headStyles: { 
@@ -182,13 +182,13 @@ export const generateSaleInvoice = (
   doc.setFont('helvetica', 'normal');
   doc.text('Subtotal:', pageWidth - 80, totalY);
   doc.setTextColor(255, 255, 255);
-  doc.text(`Tk ${sale.subtotal.toLocaleString()}`, pageWidth - 25, totalY, { align: 'right' });
+  doc.text(`Tk ${sale.subtotal.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, pageWidth - 25, totalY, { align: 'right' });
 
   totalY += rowH;
   doc.setTextColor(180, 180, 180);
   doc.text('Discount:', pageWidth - 80, totalY);
   doc.setTextColor(255, 255, 255);
-  doc.text(`- Tk ${sale.discount.toLocaleString()}`, pageWidth - 25, totalY, { align: 'right' });
+  doc.text(`- Tk ${sale.discount.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, pageWidth - 25, totalY, { align: 'right' });
 
   totalY += 5;
   doc.setDrawColor(51, 65, 85);
@@ -199,7 +199,7 @@ export const generateSaleInvoice = (
   doc.setFont('helvetica', 'bold');
   doc.text('GRAND TOTAL:', pageWidth - 80, totalY);
   doc.setTextColor(59, 130, 246); // light blue
-  doc.text(`Tk ${sale.total.toLocaleString()}`, pageWidth - 25, totalY, { align: 'right' });
+  doc.text(`Tk ${sale.total.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, pageWidth - 25, totalY, { align: 'right' });
 
   // Payment Breakdown (Left side of totals)
   let payY = finalY + 10;
@@ -211,13 +211,13 @@ export const generateSaleInvoice = (
   payY += 8;
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139);
-  doc.text(`Paid Amount: Tk ${sale.received.toLocaleString()}`, 15, payY);
+  doc.text(`Paid Amount: Tk ${sale.received.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, 15, payY);
   
   payY += 6;
   if (sale.due > 0) {
     doc.setTextColor(239, 68, 68);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Due Balance: Tk ${sale.due.toLocaleString()}`, 15, payY);
+    doc.text(`Due Balance: Tk ${sale.due.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, 15, payY);
   } else {
     doc.setTextColor(34, 197, 94);
     doc.text('Status: Fully Paid', 15, payY);
@@ -339,11 +339,11 @@ export const generateCustomerStatement = (
   // Values
   doc.setFontSize(14);
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-  doc.text(`Tk ${totalSold.toLocaleString()}`, 30, 120);
+  doc.text(`Tk ${totalSold.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, 30, 120);
   doc.setTextColor(34, 197, 94); // success
-  doc.text(`Tk ${totalPaid.toLocaleString()}`, 30 + colWidth + 15, 120);
+  doc.text(`Tk ${totalPaid.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, 30 + colWidth + 15, 120);
   doc.setTextColor(239, 68, 68); // danger
-  doc.text(`Tk ${totalDue.toLocaleString()}`, 30 + (colWidth * 2) + 30, 120);
+  doc.text(`Tk ${totalDue.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, 30 + (colWidth * 2) + 30, 120);
 
   // 4. Activity Table
   // Merge sales and ledger payments into one timeline
@@ -375,9 +375,9 @@ export const generateCustomerStatement = (
       formatDate(act.date),
       act.ref,
       act.type,
-      act.billed > 0 ? `Tk ${act.billed.toLocaleString()}` : '-',
-      act.paid > 0 ? `Tk ${act.paid.toLocaleString()}` : '-',
-      act.type === 'SALE' ? `Tk ${act.due.toLocaleString()}` : '-'
+      act.billed > 0 ? `Tk ${act.billed.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}` : '-',
+      act.paid > 0 ? `Tk ${act.paid.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}` : '-',
+      act.type === 'SALE' ? `Tk ${act.due.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}` : '-'
     ]),
     theme: 'plain',
     headStyles: { 
@@ -498,7 +498,7 @@ export const generatePaymentReceipt = (
   doc.setFontSize(16);
   doc.setTextColor(34, 197, 94); // emerald-600
   doc.text('Amount Paid:', 25, 140);
-  doc.text(`Tk ${payment.amount.toLocaleString()}`, 70, 140);
+  doc.text(`Tk ${payment.amount.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, 70, 140);
 
   // Remaining Balance
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
@@ -511,7 +511,7 @@ export const generatePaymentReceipt = (
   } else {
     doc.setTextColor(34, 197, 94);
   }
-  doc.text(`Tk ${payment.remainingDue.toLocaleString()}`, 50, 170);
+  doc.text(`Tk ${payment.remainingDue.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, 50, 170);
 
   // Footer
   doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
@@ -610,9 +610,9 @@ export const generateBusinessReport = (
   const cardW = (pageWidth - 40) / 3;
   const cardH = 30;
   
-  drawCard(15, currentY + 5, cardW, cardH, 'Revenue', `Tk ${data.metrics.totalRevenue.toLocaleString()}`, secondaryColor);
-  drawCard(15 + cardW + 5, currentY + 5, cardW, cardH, 'Gross Profit', `Tk ${data.metrics.grossProfit.toLocaleString()}`, successColor);
-  drawCard(15 + (cardW + 5) * 2, currentY + 5, cardW, cardH, 'Net Profit', `Tk ${data.metrics.netProfit.toLocaleString()}`, data.metrics.netProfit >= 0 ? successColor : dangerColor);
+  drawCard(15, currentY + 5, cardW, cardH, 'Revenue', `Tk ${data.metrics.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, secondaryColor);
+  drawCard(15 + cardW + 5, currentY + 5, cardW, cardH, 'Gross Profit', `Tk ${data.metrics.grossProfit.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, successColor);
+  drawCard(15 + (cardW + 5) * 2, currentY + 5, cardW, cardH, 'Net Profit', `Tk ${data.metrics.netProfit.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, data.metrics.netProfit >= 0 ? successColor : dangerColor);
 
   currentY += 45;
 
@@ -621,10 +621,10 @@ export const generateBusinessReport = (
     startY: currentY,
     head: [['Description', 'Amount (BDT)']],
     body: [
-      ['Sales Revenue', `Tk ${data.metrics.totalRevenue.toLocaleString()}`],
-      ['Cost of Goods (COGS)', `- Tk ${data.metrics.totalCost.toLocaleString()}`],
-      ['Operating Expenses', `- Tk ${data.metrics.totalExpenses.toLocaleString()}`],
-      [{ content: 'NET PROFIT', styles: { fontStyle: 'bold' } }, { content: `Tk ${data.metrics.netProfit.toLocaleString()}`, styles: { fontStyle: 'bold', textColor: data.metrics.netProfit >= 0 ? successColor : dangerColor } }]
+      ['Sales Revenue', `Tk ${data.metrics.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`],
+      ['Cost of Goods (COGS)', `- Tk ${data.metrics.totalCost.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`],
+      ['Operating Expenses', `- Tk ${data.metrics.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`],
+      [{ content: 'NET PROFIT', styles: { fontStyle: 'bold' } }, { content: `Tk ${data.metrics.netProfit.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`, styles: { fontStyle: 'bold', textColor: data.metrics.netProfit >= 0 ? successColor : dangerColor } }]
     ],
     theme: 'striped',
     headStyles: { fillColor: secondaryColor },
@@ -644,12 +644,12 @@ export const generateBusinessReport = (
     startY: currentY + 5,
     head: [['Category', 'Value / Volume']],
     body: [
-      ['Cash Balance (BDT)', `Tk ${data.financials.cashBalance.toLocaleString()}`],
-      ['Receivables (Dues)', `Tk ${data.financials.receivables.toLocaleString()}`],
-      ['Inventory Value', `Tk ${data.financials.inventoryValue.toLocaleString()}`],
-      ['Total Purchases (Cycle)', `Tk ${(data.metrics.totalPurchases || 0).toLocaleString()}`],
-      ['Cash Collected', `Tk ${(data.metrics.cashCollected || 0).toLocaleString()}`],
-      ['Profit Distributions', `Tk ${(data.metrics.distributions || 0).toLocaleString()}`]
+      ['Cash Balance (BDT)', `Tk ${data.financials.cashBalance.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`],
+      ['Receivables (Dues)', `Tk ${data.financials.receivables.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`],
+      ['Inventory Value', `Tk ${data.financials.inventoryValue.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`],
+      ['Total Purchases (Cycle)', `Tk ${(data.metrics.totalPurchases || 0).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`],
+      ['Cash Collected', `Tk ${(data.metrics.cashCollected || 0).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`],
+      ['Profit Distributions', `Tk ${(data.metrics.distributions || 0).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`]
     ],
     theme: 'grid',
     headStyles: { fillColor: [71, 85, 105] },

@@ -11,7 +11,8 @@ import {
   ArrowUpRight, ArrowDownRight, Wallet, Receipt,
   Plus, History as HistoryIcon, DollarSign, PieChart, RefreshCw, ArrowLeftRight,
   ShoppingCart,
-  CreditCard
+  CreditCard,
+  ShieldCheck
 } from 'lucide-react';
 import { formatDateTime } from '../lib/utils';
 import { format } from 'date-fns';
@@ -45,7 +46,12 @@ export default function Dashboard() {
   const isLoading = metricsLoading || !business;
 
   const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('en-BD', { style: 'currency', currency: 'BDT', maximumFractionDigits: 0 }).format(val / 100);
+    return new Intl.NumberFormat('en-BD', { 
+      style: 'currency', 
+      currency: 'BDT', 
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3 
+    }).format(val / 100);
   };
 
   // Performance Trend Data
@@ -232,185 +238,206 @@ export default function Dashboard() {
     <MainLayout>
       <div className="space-y-6 animate-in fade-in duration-700">
         {!business ? (
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[32px] p-8 text-white shadow-xl shadow-blue-200 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-3xl rounded-full -mr-20 -mt-20 group-hover:scale-110 transition-transform duration-700" />
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="flex items-center gap-6">
+          <div className="bg-gradient-to-br from-blue-700 via-indigo-600 to-blue-800 rounded-[32px] sm:rounded-[48px] p-6 sm:p-12 text-white shadow-2xl shadow-blue-200/50 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 blur-3xl rounded-full -mr-32 -mt-32 group-hover:scale-110 transition-transform duration-700" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 blur-2xl rounded-full -ml-20 -mb-20" />
+            
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8 sm:gap-12 text-center md:text-left">
+              <div className="flex flex-col md:flex-row items-center gap-6 sm:gap-8">
                 <div className="shrink-0">
-                  <img 
-                    src="/logo.jpg" 
-                    className="w-20 h-20 bg-white rounded-[24px] p-2 shadow-2xl shadow-blue-900/20" 
-                    alt="Logo" 
-                  />
+                  <div className="w-16 h-16 sm:w-24 sm:h-24 bg-white/10 backdrop-blur-xl rounded-[24px] sm:rounded-[32px] p-3 sm:p-4 border border-white/20 shadow-2xl">
+                    <img 
+                      src="/logo.jpg" 
+                      className="w-full h-full object-contain rounded-xl sm:rounded-2xl" 
+                      alt="Logo" 
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <h2 className="text-2xl font-black tracking-tight leading-none uppercase">Empower Your business</h2>
-                  <p className="text-blue-100 font-bold text-[10px] uppercase tracking-widest leading-relaxed max-w-lg">
-                    Setup your business to unlock full inventory tracking, sales management, and profit analytics.
+                <div className="space-y-3">
+                  <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-none uppercase">Ready to scale?</h2>
+                  <p className="text-blue-100 font-medium text-[10px] sm:text-xs uppercase tracking-[0.2em] leading-relaxed max-w-md mx-auto md:mx-0 opacity-80 flex items-center justify-center md:justify-start gap-2">
+                    <ShieldCheck className="w-4 h-4" /> Setup business for full analytics
                   </p>
                 </div>
               </div>
               <button 
                 onClick={() => navigate('/onboarding')}
-                className="px-8 py-4 bg-white text-blue-600 rounded-2xl font-bold text-xs uppercase tracking-[0.2em] shadow-lg hover:bg-blue-50 transition-all active:scale-95 flex items-center gap-3"
+                className="px-8 py-4 sm:px-10 sm:py-5 bg-white text-blue-700 rounded-2xl sm:rounded-3xl font-black text-[10px] sm:text-xs uppercase tracking-[0.25em] shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:bg-blue-50 active:scale-95 transition-all flex items-center justify-center gap-4 group/btn"
               >
-                Get Started <ArrowUpRight className="w-4 h-4" />
+                Launch Now <ArrowUpRight className="w-5 h-5 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
               </button>
             </div>
           </div>
         ) : null}
         {/* Top KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
           <KpiCard 
             title="Business Value" 
             value={metrics ? formatCurrency(metrics.business_value) : null} 
             color="bg-blue-600 text-white" 
-            subtext="Equity (Net)"
+            subtext="Net Worth"
             loading={isLoading}
             icon={<DollarSign className="w-3.5 h-3.5" />}
           />
           <KpiCard 
             title="BDT Balance" 
             value={balances ? `৳${Math.round(balances.bdt).toLocaleString()}` : null} 
-            subtext="Wallet (Cash)"
+            subtext="Cash in Hand"
             loading={isLoading}
             icon={<Wallet className="w-3.5 h-3.5 text-blue-500" />}
           />
           <KpiCard 
             title="RMB Balance" 
             value={balances ? `¥${Math.round(balances.rmb).toLocaleString()}` : null} 
-            subtext="Wallet (Cash)"
+            subtext="China Wallet"
             loading={isLoading}
             icon={<RefreshCw className="w-3.5 h-3.5 text-emerald-500" />}
           />
           <KpiCard 
             title="Inventory" 
             value={metrics ? formatCurrency(metrics.inventory_value) : null} 
-            subtext="Current Stock"
+            subtext="Asset Value"
             loading={isLoading}
-            icon={<Package className="w-3.5 h-3.5 text-orange-500" />}
+            icon={<Package className="w-3.5 h-3.5 text-amber-500" />}
           />
           <KpiCard 
             title="Total Assets" 
             value={metrics ? formatCurrency(metrics.total_assets) : null} 
-            subtext={metrics ? `Cash + Stock + Dues` : "Gross Value"}
+            subtext="Gross Value"
             loading={isLoading}
             icon={<ArrowUpRight className="w-3.5 h-3.5 text-indigo-500" />}
           />
           <KpiCard 
             title="Total Due" 
             value={metrics ? formatCurrency(metrics.receivables) : null} 
-            subtext="Customer Dues"
+            subtext="Receivables"
             loading={isLoading}
-            icon={<Users className="w-3.5 h-3.5 text-red-500" />}
+            icon={<Users className="w-3.5 h-3.5 text-rose-500" />}
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
           {/* Charts */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-tight">Performance</h3>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-blue-500" /><span className="text-[9px] font-bold text-slate-400 uppercase">Rev</span></div>
-                  <div className="flex items-center gap-1.5 ml-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /><span className="text-[9px] font-bold text-slate-400 uppercase">Profit</span></div>
+          <div className="lg:col-span-8 space-y-4">
+            <div className="bg-white p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border border-slate-100 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tight">Performance Trend</h3>
+                  <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Last 7 Days Revenue & Profit</p>
+                </div>
+                <div className="flex items-center gap-4 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                  <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500" /><span className="text-[9px] font-bold text-slate-500 uppercase">Rev</span></div>
+                  <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span className="text-[9px] font-bold text-slate-500 uppercase">Profit</span></div>
                 </div>
               </div>
-              <div className="h-[200px] w-full flex items-center justify-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+              <div className="h-[240px] sm:h-[280px] w-full">
                 {chartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData}>
+                    <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15}/>
                           <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                         </linearGradient>
                         <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
                           <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                      <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                      <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorRev)" />
-                      <Area type="monotone" dataKey="profit" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorProfit)" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
+                      <XAxis 
+                        dataKey="name" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }}
+                        dy={10}
+                      />
+                      <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          borderRadius: '20px', 
+                          border: 'none', 
+                          boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                          padding: '12px'
+                        }} 
+                      />
+                      <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                      <Area type="monotone" dataKey="profit" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorProfit)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="text-center">
-                    <PieChart className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No chart data available</p>
+                  <div className="h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                    <PieChart className="w-10 h-10 text-slate-200 mb-3" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No activity found yet</p>
                   </div>
                 )}
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            </div>
           </div>
 
           {/* Activity Sidebar */}
-          <div className="space-y-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <HistoryIcon className="w-3.5 h-3.5 text-blue-600" />
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-tighter">Recent Activities</h3>
+          <div className="lg:col-span-4 h-full">
+            <div className="bg-white p-6 rounded-[24px] sm:rounded-[32px] border border-slate-100 shadow-sm h-full flex flex-col">
+              <div className="flex items-center justify-between mb-6 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                    <HistoryIcon className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-tight">Recent Activity</h3>
                 </div>
                 <button 
                   onClick={() => navigate('/activities')}
-                  className="text-[9px] font-bold text-blue-600 uppercase tracking-widest hover:underline"
+                  className="px-3 py-1.5 bg-slate-50 text-[9px] font-bold text-slate-400 uppercase tracking-widest rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors"
                 >
-                  View All
+                  History
                 </button>
               </div>
-              <div className="max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-100 scrollbar-track-transparent">
-                <div className="space-y-4">
-                  {recentActivities.map((activity, idx) => (
-                    <ActivityItem 
-                      key={`${activity.id}-${idx}`}
-                      title={activity.title}
-                      sub={activity.sub}
-                      amount={activity.amount}
-                      time={activity.time}
-                      type={activity.type}
-                      index={idx}
-                    />
-                  ))}
-                  
-                  {recentActivities.length === 0 && !activityLoading && (
-                    <div className="text-center py-8">
-                      <HistoryIcon className="w-8 h-8 text-slate-100 mx-auto mb-3" />
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No activities recorded yet</p>
-                    </div>
-                  )}
-                  
-                  {activityLoading && (
-                    <div className="space-y-4 animate-pulse">
-                      {[1, 2, 3].map(i => (
-                        <div key={i} className="flex gap-4">
-                          <div className="w-10 h-10 bg-slate-50 rounded-2xl" />
-                          <div className="flex-1 space-y-2">
-                            <div className="h-3 bg-slate-50 rounded w-2/3" />
-                            <div className="h-2 bg-slate-50 rounded w-1/3" />
-                          </div>
+              <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide space-y-5 min-h-[300px] lg:max-h-[380px]">
+                {recentActivities.map((activity, idx) => (
+                  <ActivityItem 
+                    key={`${activity.id}-${idx}`}
+                    title={activity.title}
+                    sub={activity.sub}
+                    amount={activity.amount}
+                    time={activity.time}
+                    type={activity.type}
+                    index={idx}
+                  />
+                ))}
+                
+                {recentActivities.length === 0 && !activityLoading && (
+                  <div className="flex flex-col items-center justify-center py-12 opacity-30">
+                    <HistoryIcon className="w-12 h-12 text-slate-200 mb-4" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Awaiting records...</p>
+                  </div>
+                )}
+                
+                {activityLoading && (
+                  <div className="space-y-5 animate-pulse">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className="flex gap-4">
+                        <div className="w-10 h-10 bg-slate-50 rounded-2xl" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-3 bg-slate-50 rounded w-2/3" />
+                          <div className="h-2 bg-slate-50 rounded w-1/3" />
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              {recentActivities.length > 6 && (
+              <div className="mt-6 pt-4 border-t border-slate-50 shrink-0">
                 <button 
                   onClick={() => navigate('/activities')}
-                  className="w-full mt-8 py-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 group/btn"
+                  className="w-full py-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 group/btn"
                 >
-                  View Full Audit Log <ArrowUpRight className="w-3 h-3 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
+                  Full Audit Log <ArrowUpRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
                 </button>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -421,19 +448,19 @@ export default function Dashboard() {
 
 function KpiCard({ title, value, color, subtext, icon, loading }: any) {
   return (
-    <div className={`p-4 rounded-2xl border border-slate-100 shadow-sm ${color || 'bg-white'} transition-all`}>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className={`text-[9px] font-black uppercase tracking-widest ${color ? 'text-white/60' : 'text-slate-400'}`}>{title}</span>
-        <div className={`w-6 h-6 rounded flex items-center justify-center ${color ? 'bg-white/20' : 'bg-slate-50'}`}>
+    <div className={`p-4 sm:p-5 rounded-[24px] sm:rounded-[32px] border border-slate-100 shadow-sm ${color || 'bg-white'} hover:shadow-md transition-all group`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className={`text-[8px] sm:text-[10px] font-bold uppercase tracking-[0.1em] ${color ? 'text-white/60' : 'text-slate-400'}`}>{title}</span>
+        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${color ? 'bg-white/20' : 'bg-slate-50'}`}>
           {icon}
         </div>
       </div>
       {loading ? (
-        <div className={`h-6 w-24 rounded animate-pulse ${color ? 'bg-white/20' : 'bg-slate-100'}`} />
+        <div className={`h-6 w-20 sm:w-24 rounded animate-pulse ${color ? 'bg-white/20' : 'bg-slate-100'}`} />
       ) : (
-        <p className="text-lg font-black tracking-tight">{value || '0'}</p>
+        <p className="text-base sm:text-lg lg:text-xl font-bold tracking-tighter leading-none mb-1">{value || '0'}</p>
       )}
-      <p className={`text-[8px] mt-0.5 font-black ${color ? 'text-white/40' : 'text-slate-400'} uppercase tracking-tight truncate`}>{subtext}</p>
+      <p className={`text-[8px] sm:text-[9px] font-medium ${color ? 'text-white/40' : 'text-slate-400'} uppercase tracking-widest truncate mt-1`}>{subtext}</p>
     </div>
   );
 }
@@ -481,18 +508,18 @@ function ActivityItem({ title, sub, amount, time, type, index }: any) {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: (index % 10) * 0.05 }}
-      className="flex items-center gap-3 group cursor-pointer"
+      className="flex items-center gap-4 group cursor-pointer p-1 -m-1 rounded-2xl hover:bg-slate-50 transition-colors"
     >
-      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform group-active:scale-90 ${colors[type as keyof typeof colors] || 'bg-slate-50 text-slate-400'}`}>
+      <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-[18px] flex items-center justify-center shrink-0 transition-all group-hover:scale-105 group-active:scale-95 ${colors[type as keyof typeof colors] || 'bg-slate-50 text-slate-400'}`}>
         {getIcon()}
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="text-[11px] font-bold text-slate-900 truncate leading-tight">{title}</h4>
-        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">{sub}</p>
+        <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 truncate leading-none mb-1">{title}</h4>
+        <p className="text-[9px] sm:text-[10px] font-medium text-slate-400 uppercase tracking-widest">{sub}</p>
       </div>
-      <div className="text-right">
-        <p className={`text-[11px] font-mono font-black ${isPositive ? 'text-emerald-600' : (isNegative ? 'text-red-500' : 'text-slate-900')}`}>{amount}</p>
-        <p className="text-[8px] font-bold text-slate-300 mt-0.5">{time}</p>
+      <div className="text-right shrink-0">
+        <p className={`text-[11px] sm:text-xs font-mono font-bold ${isPositive ? 'text-emerald-600' : (isNegative ? 'text-red-500' : 'text-slate-900')}`}>{amount}</p>
+        <p className="text-[8px] sm:text-[9px] font-medium text-slate-300 mt-1 uppercase tracking-tighter">{time}</p>
       </div>
     </motion.div>
   );

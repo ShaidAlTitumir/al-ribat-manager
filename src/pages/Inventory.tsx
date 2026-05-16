@@ -363,7 +363,7 @@ function EditItemModal({ item, onClose }: { item: InventoryItem, onClose: () => 
       ...formData,
       quantity: v,
       totalWeight: (qty * uWeight).toFixed(3),
-      totalBuyingRmb: (qty * uRmb).toFixed(2)
+      totalBuyingRmb: (qty * uRmb).toFixed(3)
     });
   };
 
@@ -393,7 +393,7 @@ function EditItemModal({ item, onClose }: { item: InventoryItem, onClose: () => 
     setFormData({
       ...formData,
       unitBuyingRmb: v,
-      totalBuyingRmb: (qty * uRmb).toFixed(2)
+      totalBuyingRmb: (qty * uRmb).toFixed(3)
     });
   };
 
@@ -403,7 +403,7 @@ function EditItemModal({ item, onClose }: { item: InventoryItem, onClose: () => 
     setFormData({
       ...formData,
       totalBuyingRmb: v,
-      unitBuyingRmb: qty > 0 ? (tRmb / qty).toFixed(2) : '0.00'
+      unitBuyingRmb: qty > 0 ? (tRmb / qty).toFixed(3) : '0.000'
     });
   };
 
@@ -640,16 +640,16 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
     category: '',
     quantity: '0',
     unitWeight: '0.000',
-    totalWeight: '0.00',
+    totalWeight: '0.000',
     threshold: '5',
-    unitBuyingRmb: '0.00',
-    totalBuyingRmb: '0.00',
+    unitBuyingRmb: '0.000',
+    totalBuyingRmb: '0.000',
     rmbRate: business?.exchange_rate?.toString() || '18.15',
     shippingMethod: 'SEA',
-    shippingRate: '0.00',
-    additionalCost: '0.00',
+    shippingRate: '0.000',
+    additionalCost: '0.000',
     additionalCostCurrency: 'BDT' as 'BDT' | 'RMB',
-    sellingPrice: '0.00'
+    sellingPrice: '0.000'
   });
 
   const handleQuantityChange = (v: string) => {
@@ -660,7 +660,7 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
       ...formData,
       quantity: v,
       totalWeight: (qty * uWeight).toFixed(3),
-      totalBuyingRmb: (qty * uRmb).toFixed(2)
+      totalBuyingRmb: (qty * uRmb).toFixed(3)
     });
   };
 
@@ -690,7 +690,7 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
     setFormData({
       ...formData,
       unitBuyingRmb: v,
-      totalBuyingRmb: (qty * uRmb).toFixed(2)
+      totalBuyingRmb: (qty * uRmb).toFixed(3)
     });
   };
 
@@ -700,7 +700,7 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
     setFormData({
       ...formData,
       totalBuyingRmb: v,
-      unitBuyingRmb: qty > 0 ? (tRmb / qty).toFixed(2) : '0.00'
+      unitBuyingRmb: qty > 0 ? (tRmb / qty).toFixed(3) : '0.000'
     });
   };
 
@@ -1072,7 +1072,7 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
                         ৳{potentialProfit.toLocaleString()}
                       </p>
                       <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${potentialProfit > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                        {profitMargin.toFixed(1)}% Margin
+                        {profitMargin.toFixed(3)}% Margin
                       </span>
                    </div>
                 </div>
@@ -1119,14 +1119,14 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
     setQty(v);
     const q = parseFloat(v) || 0;
     const unitRmb = parseFloat(buyingCostRmb) || 0;
-    setTotalCostRmb((q * unitRmb).toFixed(2));
+    setTotalCostRmb((q * unitRmb).toFixed(3));
   };
 
   const handleUnitRmbChange = (v: string) => {
     setBuyingCostRmb(v);
     const unitRmb = parseFloat(v) || 0;
     const q = parseFloat(qty) || 0;
-    setTotalCostRmb((q * unitRmb).toFixed(2));
+    setTotalCostRmb((q * unitRmb).toFixed(3));
   };
 
   const handleTotalRmbChange = (v: string) => {
@@ -1134,7 +1134,7 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
     const totalRmb = parseFloat(v) || 0;
     const q = parseFloat(qty) || 0;
     if (q > 0) {
-      setBuyingCostRmb((totalRmb / q).toFixed(2));
+      setBuyingCostRmb((totalRmb / q).toFixed(3));
     }
   };
 

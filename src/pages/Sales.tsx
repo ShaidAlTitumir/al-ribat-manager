@@ -228,7 +228,7 @@ export default function Sales() {
                 partner_id: p.id,
                 sale_id: sale.id,
                 amount_cents: Math.floor(share),
-                notes: `Profit from Sale ${invoiceNo} (Cap share: ${(shareRatio * 100).toFixed(2)}%)`
+                notes: `Profit from Sale ${invoiceNo} (Cap share: ${(shareRatio * 100).toFixed(3)}%)`
               };
             }).filter(d => d.amount_cents > 0);
 

@@ -42,7 +42,8 @@ export const formatBDT = (amountInCents: number) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'BDT',
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
   }).format(amountInCents / 100);
 };
 
@@ -50,7 +51,8 @@ export const formatCNY = (amountInCents: number) => {
   return new Intl.NumberFormat('zh-CN', {
     style: 'currency',
     currency: 'CNY',
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
   }).format(amountInCents / 100);
 };
 

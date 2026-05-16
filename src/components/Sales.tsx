@@ -110,7 +110,7 @@ export default function Sales() {
         <h1 className="text-[15px] font-semibold text-slate-900 uppercase tracking-tight">Record Sale</h1>
         <div className="bg-slate-100 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-slate-200">
           <RefreshCw className="w-3 h-3 text-slate-500" />
-          <span className="font-mono text-[10px] font-semibold text-slate-700">¥1 = ৳{exchangeRate.toFixed(2)}</span>
+          <span className="font-mono text-[10px] font-semibold text-slate-700">¥1 = ৳{exchangeRate.toFixed(3)}</span>
         </div>
       </div>
 
@@ -322,11 +322,11 @@ export default function Sales() {
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
                 <span className="text-[11px] font-semibold text-slate-400">Total Amount</span>
-                <span className="font-mono text-xl font-semibold text-slate-900">৳{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span className="font-mono text-xl font-semibold text-slate-900">৳{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 3 })}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[11px] font-semibold text-slate-400">Amount Due</span>
-                <span className="font-mono text-base font-semibold text-slate-900">৳{amountDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span className="font-mono text-base font-semibold text-slate-900">৳{amountDue.toLocaleString(undefined, { minimumFractionDigits: 3 })}</span>
               </div>
               <div className="h-px bg-slate-50 my-1.5" />
               <div className="flex justify-between items-center">
@@ -334,7 +334,7 @@ export default function Sales() {
                   <TrendingUp className="w-3 h-3 text-slate-300" />
                   <span className="text-[11px] font-semibold text-slate-400">Est. Profit</span>
                 </div>
-                <span className="font-mono text-base font-semibold text-slate-900">৳{estProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span className="font-mono text-base font-semibold text-slate-900">৳{estProfit.toLocaleString(undefined, { minimumFractionDigits: 3 })}</span>
               </div>
             </div>
 

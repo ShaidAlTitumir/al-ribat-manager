@@ -73,7 +73,7 @@ export default function Expenses() {
         <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Expenses</h1>
         <div className="bg-slate-100 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-slate-200">
           <RefreshCw className="w-3 h-3 text-slate-500" />
-          <span className="font-mono text-[11px] font-bold text-slate-700">¥1 = ৳{exchangeRate.toFixed(2)}</span>
+          <span className="font-mono text-[11px] font-bold text-slate-700">¥1 = ৳{exchangeRate.toFixed(3)}</span>
         </div>
       </div>
 

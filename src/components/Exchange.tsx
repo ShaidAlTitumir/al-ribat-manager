@@ -71,7 +71,7 @@ export default function Exchange() {
         <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Wallet</h1>
         <div className="bg-slate-100 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-slate-200">
           <RefreshCw className="w-3 h-3 text-slate-500" />
-          <span className="font-mono text-[11px] font-bold text-slate-700">¥1 = ৳{exchangeRate.toFixed(2)}</span>
+          <span className="font-mono text-[11px] font-bold text-slate-700">¥1 = ৳{exchangeRate.toFixed(3)}</span>
         </div>
       </div>
 
@@ -87,7 +87,7 @@ export default function Exchange() {
           </div>
           <p className="text-xs font-bold text-slate-500 mb-1">BDT Balance</p>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-            ৳-{(bdtBalance / 100).toFixed(2)}
+            ৳-{(bdtBalance / 100).toFixed(3)}
           </h2>
         </div>
 
@@ -101,7 +101,7 @@ export default function Exchange() {
           </div>
           <p className="text-xs font-bold text-slate-500 mb-1">RMB Balance</p>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-            ¥{(rmbBalance / 100).toFixed(2)}
+            ¥{(rmbBalance / 100).toFixed(3)}
           </h2>
         </div>
       </div>
@@ -111,7 +111,7 @@ export default function Exchange() {
         <div className="p-5 flex items-center justify-between">
           <h2 className="text-lg font-black text-slate-900 tracking-tight">Currency Exchange</h2>
           <div className="bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100">
-            <span className="text-[10px] font-black text-blue-600 uppercase">1 RMB = {exchangeRate.toFixed(2)} BDT</span>
+            <span className="text-[10px] font-black text-blue-600 uppercase">1 RMB = {exchangeRate.toFixed(3)} BDT</span>
           </div>
         </div>
 
@@ -159,7 +159,7 @@ export default function Exchange() {
             <div className="flex justify-between items-center">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FROM</span>
               <span className="text-[10px] font-bold text-slate-400">
-                Balance: {fromCurrency === 'BDT' ? `৳-${(bdtBalance/100).toFixed(2)}` : `¥${(rmbBalance/100).toFixed(2)}`}
+                Balance: {fromCurrency === 'BDT' ? `৳-${(bdtBalance/100).toFixed(3)}` : `¥${(rmbBalance/100).toFixed(3)}`}
               </span>
             </div>
             <div className="flex items-center gap-4">
@@ -197,7 +197,7 @@ export default function Exchange() {
                 <span className="text-xs font-black text-slate-900">{toCurrency}</span>
               </div>
               <div className="flex-1 text-3xl font-black text-slate-900">
-                {estimatedToAmount > 0 ? (estimatedToAmount / 100).toFixed(2) : '0.00'}
+                {estimatedToAmount > 0 ? (estimatedToAmount / 100).toFixed(3) : '0.000'}
               </div>
             </div>
           </div>
