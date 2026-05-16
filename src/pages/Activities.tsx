@@ -138,10 +138,10 @@ export default function Activities() {
           </div>
 
           <div className="lg:col-span-3">
-             <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden min-h-[600px]">
-                <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
-                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">Chronological Feed</h3>
-                   <span className="text-[10px] font-bold text-slate-400 uppercase">{filteredActivities.length} Operations logged</span>
+             <div className="bg-white rounded-3xl sm:rounded-[40px] border border-slate-100 shadow-sm overflow-hidden min-h-[600px]">
+                <div className="px-4 py-5 sm:p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
+                   <h3 className="text-[10px] sm:text-xs font-black text-slate-900 uppercase tracking-widest">Chronological Feed</h3>
+                   <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase">{filteredActivities.length} Operations</span>
                 </div>
 
                 <div className="divide-y divide-slate-50">
@@ -214,38 +214,37 @@ function ActivityRow({ activity }: { activity: any }) {
   };
 
   return (
-    <div className="p-5 md:p-6 flex items-center gap-4 md:gap-6 hover:bg-slate-50 transition-all group">
-       <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-110 ${colors[activity.type] || 'bg-slate-50 text-slate-400'}`}>
+    <div className="p-3 md:p-6 flex items-center gap-3 md:gap-6 hover:bg-slate-50 transition-all group">
+       <div className={`w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-110 ${colors[activity.type] || 'bg-slate-50 text-slate-400'}`}>
           {getIcon()}
        </div>
        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-             <h4 className="text-sm md:text-base font-bold text-slate-900 truncate leading-tight">{activity.title}</h4>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-0.5">
+             <h4 className="text-sm font-bold text-slate-900 leading-tight break-words">{activity.title}</h4>
              {activity.amount && (
-               <span className={`text-[10px] md:text-xs font-mono font-black border px-1.5 py-0.5 rounded-lg ${
-                 activity.amount.startsWith('+') || ['NEW', 'JOINED', 'FUNDED', 'ADDED', 'ACTIVE'].includes(activity.amount) 
-                 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' 
-                 : (activity.amount === 'REMOVED' || activity.amount === 'DELETED' || activity.amount === 'REVERTED' || activity.amount.startsWith('-') ? 'bg-red-50 border-red-100 text-red-500' : 'bg-slate-50 border-slate-100 text-slate-900')
-               }`}>
-                 {activity.amount}
-               </span>
+               <div className="flex shrink-0">
+                 <span className={`text-[10px] font-mono font-black border px-1.5 py-0.5 rounded-lg ${
+                   activity.amount.startsWith('+') || ['NEW', 'JOINED', 'FUNDED', 'ADDED', 'ACTIVE'].includes(activity.amount) 
+                   ? 'bg-emerald-50 border-emerald-100 text-emerald-600' 
+                   : (activity.amount === 'REMOVED' || activity.amount === 'DELETED' || activity.amount === 'REVERTED' || activity.amount.startsWith('-') ? 'bg-red-50 border-red-100 text-red-500' : 'bg-slate-50 border-slate-100 text-slate-900')
+                 }`}>
+                   {activity.amount}
+                 </span>
+               </div>
              )}
           </div>
-          <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
-             <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-tight">{activity.sub}</p>
-             <span className="w-1 h-1 rounded-full bg-slate-200 hidden md:block" />
-             <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest underline underline-offset-4 decoration-slate-100">
+          <div className="flex items-center flex-wrap gap-x-2 gap-y-1 sm:gap-x-4">
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{activity.sub}</p>
+             <span className="w-1 h-1 rounded-full bg-slate-200 hidden sm:block" />
+             <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest underline underline-offset-4 decoration-slate-100">
                 <User className="w-3 h-3" />
                 {activity.user}
              </div>
           </div>
        </div>
        <div className="text-right shrink-0">
-          <p className="text-xs md:text-sm font-bold text-slate-900 font-mono tracking-tight">{activity.time}</p>
-          <div className="flex items-center justify-end gap-1 text-[8px] md:text-[9px] font-bold text-slate-300 uppercase tracking-tighter mt-1">
-             <Calendar className="w-2.5 h-2.5" />
-             {activity.time.split(' at ')[0]?.split(',')[0] || ''}
-          </div>
+          <p className="text-[10px] sm:text-xs font-bold text-slate-900 font-mono tracking-tighter sm:tracking-tight leading-none">{activity.time.split(', ')[1]}</p>
+          <p className="text-[9px] font-bold text-slate-400 mt-0.5">{activity.time.split(', ')[0]}</p>
        </div>
     </div>
   );

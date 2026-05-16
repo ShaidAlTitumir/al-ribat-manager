@@ -34,12 +34,27 @@ export default function Sales() {
   const [selectedItemId, setSelectedItemId] = useState<string>('');
   const [quantity, setQuantity] = useState('1');
   const [unitPrice, setUnitPrice] = useState('0');
+  const [totalPrice, setTotalPrice] = useState('0');
   const [discount, setDiscount] = useState('0');
   const [receivedNow, setReceivedNow] = useState('0');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Sync Total Price when Quantity or Unit Price changes
+  useEffect(() => {
+    const q = parseFloat(quantity) || 0;
+    const p = parseFloat(unitPrice) || 0;
+    setTotalPrice((q * p).toString());
+  }, [quantity, unitPrice]);
+
+  const handleTotalPriceChange = (val: string) => {
+    setTotalPrice(val);
+    const q = parseFloat(quantity) || 1;
+    const tp = parseFloat(val) || 0;
+    setUnitPrice((tp / q).toString());
+  };
 
   // Edit/Delete State
   const [saleToEdit, setSaleToEdit] = useState<any>(null);
@@ -426,9 +441,10 @@ export default function Sales() {
                             placeholder="Choose item..."
                           />
                        </div>
-                       <div className="grid grid-cols-3 gap-3">
+                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           <Input label="Quantity" type="number" value={quantity} onChange={setQuantity} />
                           <Input label="Unit Price" type="number" value={unitPrice} onChange={setUnitPrice} />
+                          <Input label="Total Price" type="number" value={totalPrice} onChange={handleTotalPriceChange} />
                           <Input label="Discount" type="number" value={discount} onChange={setDiscount} />
                        </div>
                        <div className="grid grid-cols-3 gap-2 md:gap-3">
@@ -876,12 +892,30 @@ function EditSaleModal({ sale, customers, items, onClose }: any) {
     customer_id: sale.customer_id || '',
     quantity: sale.quantity.toString(),
     unit_price: (sale.unit_price_bdt_cents / 100).toString(),
+    total_price: ((sale.unit_price_bdt_cents * sale.quantity) / 100).toString(),
     discount: (sale.discount_cents / 100).toString(),
     received_now: (sale.received_now_bdt_cents / 100).toString(),
     payment_method: sale.payment_method,
     notes: sale.notes || ''
   });
   const [error, setError] = useState<string | null>(null);
+
+  // Sync Total Price in Edit Modal
+  useEffect(() => {
+    const q = parseFloat(formData.quantity) || 0;
+    const p = parseFloat(formData.unit_price) || 0;
+    setFormData(prev => ({ ...prev, total_price: (q * p).toString() }));
+  }, [formData.quantity, formData.unit_price]);
+
+  const handleEditTotalPriceChange = (val: string) => {
+    const q = parseFloat(formData.quantity) || 1;
+    const tp = parseFloat(val) || 0;
+    setFormData(prev => ({ 
+      ...prev, 
+      total_price: val,
+      unit_price: (tp / q).toString()
+    }));
+  };
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -999,9 +1033,10 @@ function EditSaleModal({ sale, customers, items, onClose }: any) {
               options={customers.map((c: any) => ({ value: c.id, label: c.name }))}
               placeholder="Walk-in"
            />
-           <div className="grid grid-cols-2 gap-4">
+           <div className="grid grid-cols-3 gap-4">
              <Input label="Quantity" value={formData.quantity} onChange={(v: string) => setFormData({...formData, quantity: v})} type="number" />
              <Input label="Price" value={formData.unit_price} onChange={(v: string) => setFormData({...formData, unit_price: v})} type="number" />
+             <Input label="Total" value={formData.total_price} onChange={handleEditTotalPriceChange} type="number" />
            </div>
            <div className="grid grid-cols-2 gap-4">
              <Input label="Discount" value={formData.discount} onChange={(v: string) => setFormData({...formData, discount: v})} type="number" />
