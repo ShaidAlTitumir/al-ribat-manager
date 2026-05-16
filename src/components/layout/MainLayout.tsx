@@ -82,9 +82,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   className="flex items-center gap-3 cursor-pointer group"
                   onClick={() => { setIsDrawerOpen(false); navigate('/businesses'); }}
                 >
-                  <img 
-                    src="/logo.svg" 
-                    className="w-8 h-8 rounded-xl object-contain group-hover:scale-110 transition-transform" 
+                  <img src="/logo.jpg" className="w-10 h-10 rounded-xl object-contain group-hover:scale-110 transition-transform shadow-sm" 
                     alt="Logo" 
                     referrerPolicy="no-referrer"
                   />
@@ -199,16 +197,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
       {/* Main Content */}
       <main className="pt-16 pb-16 px-4 max-w-6xl mx-auto w-full">
         {children}
-        <div className="mt-20 pt-8 border-t border-slate-100 flex flex-col items-center gap-4">
-           <img 
-             src="/logo.svg" 
-             className="w-10 h-10 grayscale opacity-10 group-hover:opacity-30 transition-opacity" 
-             alt="Logo" 
-           />
-           <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] text-center">
-             Al-Ribat Manager developed by Al-Ribat international
-           </p>
-        </div>
       </main>
 
       {/* Mobile Bottom Nav */}

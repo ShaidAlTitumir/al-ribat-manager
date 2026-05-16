@@ -1,12 +1,33 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="512" height="512" rx="128" fill="white"/>
-  <path d="M256 50L446.52 160V380L256 490L65.48 380V160L256 50Z" stroke="#001A41" stroke-width="45" fill="none"/>
-  <rect x="150" y="260" width="50" height="70" rx="6" fill="#00A36C"/>
-  <rect x="220" y="200" width="50" height="130" rx="6" fill="#00A36C"/>
-  <rect x="290" y="120" width="50" height="210" rx="6" fill="#00A36C"/>
-  <path d="M130 370C130 370 230 340 380 190" stroke="#00A36C" stroke-width="20" stroke-linecap="round"/>
-  <path d="M380 190L340 195M380 190L375 230" stroke="#00A36C" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M320 330C320 315 350 290 400 290C450 290 480 315 480 330V400C480 450 400 485 400 485C400 485 320 450 320 400V330Z" fill="#00A36C"/>
-  <rect x="375" y="365" width="50" height="35" rx="4" fill="white"/>
-  <path d="M385 365V350C385 341.716 391.716 335 400 335C408.284 335 415 341.716 415 350V365" stroke="white" stroke-width="8"/>
+  <!-- Hexagon background (Dark Blue) -->
+  <path d="M256 60L429.21 160V352L256 452L82.79 352V160L256 60Z" fill="#003580"/>
+  <!-- White Inner Background (to contain elements) -->
+  <path d="M256 90L395.42 170V342L256 422L116.58 342V170L256 90Z" fill="white"/>
+  
+  <!-- Bar Charts (Green) -->
+  <rect x="150" y="240" width="45" height="55" rx="2" fill="#01A368"/>
+  <rect x="210" y="190" width="45" height="105" rx="2" fill="#01A368"/>
+  <rect x="270" y="140" width="45" height="155" rx="2" fill="#01A368"/>
+  <rect x="330" y="90" width="45" height="205" rx="2" fill="#01A368"/>
+  
+  <!-- Arrow (Green) -->
+  <path d="M140 330C140 330 200 310 400 170" stroke="#01A368" stroke-width="15" stroke-linecap="round"/>
+  <path d="M400 170L360 175M400 170L395 210" stroke="#01A368" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Four Squares (Dark Blue / White depending on context, in original it's white dots in a dark area) -->
+  <!-- In the attachment, they are small white squares at the bottom of the hexagon. -->
+  <rect x="245" y="380" width="12" height="12" fill="#003580"/>
+  <rect x="262" y="380" width="12" height="12" fill="#003580"/>
+  <rect x="245" y="397" width="12" height="12" fill="#003580"/>
+  <rect x="262" y="397" width="12" height="12" fill="#003580"/>
+  
+  <!-- Shield and Lock (Green) -->
+  <path d="M320 280C320 280 320 260 375 260C430 260 430 280 430 280V340C430 390 375 420 375 420C375 420 320 390 320 340V280Z" fill="white" stroke="#01A368" stroke-width="30"/>
+  <path d="M320 280C320 280 320 260 375 260C430 260 430 280 430 280V340C430 390 375 420 375 420C375 420 320 390 320 340V280Z" fill="#01A368"/>
+  
+  <!-- Lock Icon (White) -->
+  <rect x="355" y="330" width="40" height="30" rx="4" fill="white"/>
+  <path d="M363 330V320C363 313.373 368.373 308 375 308C381.627 308 387 313.373 387 320V330" stroke="white" stroke-width="6" fill="none"/>
+  <circle cx="375" cy="342" r="3" fill="#01A368"/>
 </svg>

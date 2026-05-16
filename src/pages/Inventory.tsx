@@ -295,7 +295,7 @@ function EditItemModal({ item, onClose }: { item: InventoryItem, onClose: () => 
     unitBuyingRmb: '0',
     totalBuyingRmb: '0',
     exchangeRate: business?.exchange_rate?.toString() || '18.15',
-    shippingMethod: 'Sea',
+    shippingMethod: 'SEA',
     shippingRate: '0',
     additionalCost: '0',
     additionalCostCurrency: 'BDT' as 'BDT' | 'RMB',
@@ -313,7 +313,7 @@ function EditItemModal({ item, onClose }: { item: InventoryItem, onClose: () => 
         unitBuyingRmb: uRmb.toString(),
         totalBuyingRmb: tRmb.toString(),
         exchangeRate: (latestPurchase.exchange_rate_used || 0).toString(),
-        shippingMethod: latestPurchase.shipping_method || 'Sea',
+        shippingMethod: latestPurchase.shipping_method || 'SEA',
         shippingRate: ((latestPurchase.shipping_rate_bdt_per_kg_cents || 0) / 100).toString(),
         additionalCost: ((latestPurchase.additional_cost_bdt_cents || 0) / (latestPurchase.additional_cost_currency === 'RMB' ? latestPurchase.exchange_rate_used || 1 : 1) / 100).toString(),
         additionalCostCurrency: (latestPurchase.additional_cost_currency || 'BDT') as 'BDT' | 'RMB',
@@ -495,36 +495,53 @@ function EditItemModal({ item, onClose }: { item: InventoryItem, onClose: () => 
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-              <div className="col-span-2">
-                <FormRow label="Total Buying RMB" type="number" value={formData.totalBuyingRmb} onChange={handleTotalBuyingRmbChange} />
-              </div>
-              <FormRow label="RMB/unit" type="number" value={formData.unitBuyingRmb} onChange={handleUnitBuyingRmbChange} />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-              <FormRow label="BDT/RMB Rate" type="number" value={formData.exchangeRate} onChange={(v: string) => setFormData({...formData, exchangeRate: v})} />
-              <FormRow label="Selling Price (BDT)" type="number" value={formData.sellingPrice} onChange={(v: string) => setFormData({...formData, sellingPrice: v})} />
+              <FormRow label="Buying Cost (RMB Total)" type="number" value={formData.totalBuyingRmb} onChange={handleTotalBuyingRmbChange} />
+              <FormRow label="Unit Cost (RMB)" type="number" value={formData.unitBuyingRmb} onChange={handleUnitBuyingRmbChange} />
+              <FormRow label="Daily RMB Rate" type="number" value={formData.exchangeRate} onChange={(v: string) => setFormData({...formData, exchangeRate: v})} />
             </div>
 
-            <div className="space-y-1.5 text-left">
-              <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Other Cost</label>
-              <div className="flex gap-2">
-                <input 
-                  type="number"
-                  className="w-full bg-slate-50 border border-slate-100 h-11 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
-                  value={formData.additionalCost}
-                  onChange={(e) => setFormData({...formData, additionalCost: e.target.value})}
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+              <div className="space-y-1.5 text-left">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Shipping Method</label>
                 <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 font-bold h-11">
-                  {['BDT', 'RMB'].map(c => (
+                  {['SEA', 'AIR', 'LUGGAGE'].map(m => (
                     <button 
-                      key={c} 
-                      onClick={() => setFormData({...formData, additionalCostCurrency: c as any})} 
-                      className={`px-3 flex items-center justify-center rounded-lg text-[9px] uppercase transition-all ${formData.additionalCostCurrency === c ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                      key={m} 
+                      type="button"
+                      onClick={() => setFormData({...formData, shippingMethod: m})} 
+                      className={`flex-1 flex items-center justify-center rounded-lg text-[9px] uppercase transition-all ${formData.shippingMethod === m ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
                     >
-                      {c}
+                      {m}
                     </button>
                   ))}
+                </div>
+              </div>
+              <FormRow label="Shipping Rate (BDT/kg)" type="number" value={formData.shippingRate} onChange={(v: string) => setFormData({...formData, shippingRate: v})} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+              <FormRow label="Selling Price (BDT Unit)" type="number" value={formData.sellingPrice} onChange={(v: string) => setFormData({...formData, sellingPrice: v})} />
+              <div className="space-y-1.5 text-left">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Other Costs</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="number"
+                    className="w-full bg-slate-50 border border-slate-100 h-11 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
+                    value={formData.additionalCost}
+                    onChange={(e) => setFormData({...formData, additionalCost: e.target.value})}
+                  />
+                  <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 font-bold h-11">
+                    {['BDT', 'RMB'].map(c => (
+                      <button 
+                        key={c} 
+                        type="button"
+                        onClick={() => setFormData({...formData, additionalCostCurrency: c as any})} 
+                        className={`px-3 flex items-center justify-center rounded-lg text-[9px] uppercase transition-all ${formData.additionalCostCurrency === c ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -596,7 +613,7 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
     unitBuyingRmb: '0.00',
     totalBuyingRmb: '0.00',
     rmbRate: business?.exchange_rate?.toString() || '18.15',
-    shippingMethod: 'Sea',
+    shippingMethod: 'SEA',
     shippingRate: '0.00',
     additionalCost: '0.00',
     additionalCostCurrency: 'BDT' as 'BDT' | 'RMB',
@@ -676,7 +693,7 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
         supabase.from('partner_profit_distributions').select('amount_cents').eq('business_id', business.id),
         supabase.from('exchanges').select('*').eq('business_id', business.id),
         supabase.from('customer_ledger').select('amount_cents, transaction_type').eq('business_id', business.id),
-        supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, buying_cost_per_unit_rmb_cents, quantity, exchange_rate_used, paid').eq('business_id', business.id).eq('paid', true)
+        supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, buying_cost_per_unit_rmb_cents, quantity, exchange_rate_used, paid, additional_cost_bdt_cents, additional_cost_currency').eq('business_id', business.id).eq('paid', true)
       ]);
 
       let bdt = 0;
@@ -703,9 +720,15 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
       purchases?.forEach(p => {
         const pRmbCents = (p.buying_cost_per_unit_rmb_cents || 0) * (p.quantity || 0);
         rmb -= pRmbCents;
+        const addCostBDTCents = p.additional_cost_bdt_cents || 0;
+        if (p.additional_cost_currency === 'RMB') {
+          rmb -= Math.round(addCostBDTCents / (p.exchange_rate_used || 1));
+        } else {
+          bdt -= addCostBDTCents;
+        }
         const pBDTCents = Math.round(pRmbCents * (p.exchange_rate_used || 1));
-        const shippingOtherBDTCents = (p.total_landed_cost_bdt_cents || 0) - pBDTCents;
-        bdt -= Math.max(0, shippingOtherBDTCents);
+        const shippingBDTCents = (p.total_landed_cost_bdt_cents || 0) - pBDTCents - addCostBDTCents;
+        bdt -= Math.max(0, shippingBDTCents);
       });
 
       // Exchanges
@@ -778,8 +801,10 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
         quantity: qty,
         buying_cost_per_unit_rmb_cents: Math.round((qty > 0 ? totalRmb / qty : 0) * 100),
         exchange_rate_used: rate,
+        shipping_method: formData.shippingMethod,
         shipping_rate_bdt_per_kg_cents: Math.round(shipRate * 100),
         additional_cost_bdt_cents: Math.round(addCostBDT * 100),
+        additional_cost_currency: formData.additionalCostCurrency,
         landed_cost_per_unit_bdt_cents: Math.round(landedCostPerUnit * 100),
         total_landed_cost_bdt_cents: Math.round(totalLandedCostBDT * 100),
         paid: true 
@@ -915,36 +940,51 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
                    <h3 className="text-xs lg:text-sm font-bold uppercase tracking-widest text-slate-900">Costing & Logistics</h3>
                 </div>
                 <div className="p-4 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="col-span-2">
-                       <FormRow label="Total Buying RMB" type="number" value={formData.totalBuyingRmb} onChange={handleTotalBuyingRmbChange} />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pb-2 border-b border-slate-50/50">
+                    <FormRow label="Buying Cost (RMB Total)" type="number" value={formData.totalBuyingRmb} onChange={handleTotalBuyingRmbChange} />
+                    <FormRow label="Unit Cost (RMB)" type="number" value={formData.unitBuyingRmb} onChange={handleUnitBuyingRmbChange} />
+                    <FormRow label="Daily RMB Rate" type="number" step="0.01" value={formData.rmbRate} onChange={(v:any) => setFormData({...formData, rmbRate: v})} />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-1 text-left">
+                      <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest ml-1">Shipping Method</label>
+                      <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 font-bold h-10">
+                        {['SEA', 'AIR', 'LUGGAGE'].map(m => (
+                          <button 
+                            key={m} 
+                            type="button"
+                            onClick={() => setFormData({...formData, shippingMethod: m})} 
+                            className={`flex-1 flex items-center justify-center rounded-lg text-[8px] tracking-tight uppercase transition-all ${formData.shippingMethod === m ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                          >
+                            {m}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <FormRow label="RMB/unit" type="number" value={formData.unitBuyingRmb} onChange={handleUnitBuyingRmbChange} />
+                    <FormRow label="Shipping Rate (BDT/kg)" type="number" value={formData.shippingRate} onChange={(v:any) => setFormData({...formData, shippingRate: v})} />
                   </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <FormRow label="BDT/RMB Rate" type="number" step="0.01" value={formData.rmbRate} onChange={(v:any) => setFormData({...formData, rmbRate: v})} />
-                    <FormRow label="Initial Stock" type="number" value={formData.quantity} onChange={handleQuantityChange} />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                     <div className="space-y-1 text-left">
-                        <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest ml-1">Other Costs</label>
-                        <div className="flex items-center gap-2">
-                           <div className="flex-1">
-                              <input 
-                                type="number"
-                                className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
-                                value={formData.additionalCost}
-                                onChange={(e) => setFormData({...formData, additionalCost: e.target.value})}
-                              />
-                           </div>
-                           <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 font-bold h-10">
-                              {['BDT', 'RMB'].map(c => (
-                                <button key={c} onClick={() => setFormData({...formData, additionalCostCurrency: c as any})} className={`px-3 flex items-center justify-center rounded-lg text-[9px] uppercase transition-all ${formData.additionalCostCurrency === c ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}>{c}</button>
-                              ))}
-                           </div>
-                        </div>
-                     </div>
-                     <FormRow label="Selling Price (BDT Unit)" type="number" value={formData.sellingPrice} onChange={(v:any) => setFormData({...formData, sellingPrice: v})} />
+                    <div className="space-y-1 text-left">
+                      <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest ml-1">Other Costs</label>
+                      <div className="flex items-center gap-2">
+                         <div className="flex-1">
+                            <input 
+                              type="number"
+                              className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+                              value={formData.additionalCost}
+                              onChange={(e) => setFormData({...formData, additionalCost: e.target.value})}
+                            />
+                         </div>
+                         <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 font-bold h-10">
+                            {['BDT', 'RMB'].map(c => (
+                              <button key={c} type="button" onClick={() => setFormData({...formData, additionalCostCurrency: c as any})} className={`px-3 flex items-center justify-center rounded-lg text-[9px] uppercase transition-all ${formData.additionalCostCurrency === c ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}>{c}</button>
+                            ))}
+                         </div>
+                      </div>
+                    </div>
+                    <FormRow label="Selling Price (BDT Unit)" type="number" value={formData.sellingPrice} onChange={(v:any) => setFormData({...formData, sellingPrice: v})} />
                   </div>
                 </div>
              </section>
@@ -1040,6 +1080,7 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
   const [additionalCost, setAdditionalCost] = useState('0');
   const [additionalCostCurrency, setAdditionalCostCurrency] = useState<'BDT' | 'RMB'>('BDT');
   const [exchangeRate, setExchangeRate] = useState(business?.exchange_rate?.toString() || '');
+  const [shippingMethod, setShippingMethod] = useState('SEA');
   const [isPaid, setIsPaid] = useState(false);
 
   const handleQtyChange = (v: string) => {
@@ -1086,7 +1127,7 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
         supabase.from('partner_profit_distributions').select('amount_cents').eq('business_id', business.id),
         supabase.from('exchanges').select('*').eq('business_id', business.id),
         supabase.from('customer_ledger').select('amount_cents, transaction_type').eq('business_id', business.id),
-        supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, buying_cost_per_unit_rmb_cents, quantity, exchange_rate_used, paid').eq('business_id', business.id).eq('paid', true)
+        supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, buying_cost_per_unit_rmb_cents, quantity, exchange_rate_used, paid, additional_cost_bdt_cents, additional_cost_currency').eq('business_id', business.id).eq('paid', true)
       ]);
 
       let bdt = 0;
@@ -1110,9 +1151,15 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
       purchases?.forEach(p => {
         const pRmbCents = (p.buying_cost_per_unit_rmb_cents || 0) * (p.quantity || 0);
         rmb -= pRmbCents;
+        const addCostBDTCents = p.additional_cost_bdt_cents || 0;
+        if (p.additional_cost_currency === 'RMB') {
+          rmb -= Math.round(addCostBDTCents / (p.exchange_rate_used || 1));
+        } else {
+          bdt -= addCostBDTCents;
+        }
         const pBDTCents = Math.round(pRmbCents * (p.exchange_rate_used || 1));
-        const shippingOtherBDTCents = (p.total_landed_cost_bdt_cents || 0) - pBDTCents;
-        bdt -= Math.max(0, shippingOtherBDTCents);
+        const shippingBDTCents = (p.total_landed_cost_bdt_cents || 0) - pBDTCents - addCostBDTCents;
+        bdt -= Math.max(0, shippingBDTCents);
       });
       internalExchanges?.forEach((ex: any) => {
         if (ex.from_currency === 'BDT') {
@@ -1161,8 +1208,10 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
         quantity: totalQty,
         buying_cost_per_unit_rmb_cents: Math.round(costRmb * 100),
         exchange_rate_used: rate,
+        shipping_method: shippingMethod,
         shipping_rate_bdt_per_kg_cents: Math.round(shipRate * 100),
         additional_cost_bdt_cents: Math.round(addCostBDT * 100),
+        additional_cost_currency: additionalCostCurrency,
         landed_cost_per_unit_bdt_cents: Math.round(landedCostUnit * 100),
         total_landed_cost_bdt_cents: Math.round(grandTotalBDT * 100),
         paid: isPaid
@@ -1228,13 +1277,26 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
           <div className="grid grid-cols-1 gap-4">
             <Input label="Quantity" type="number" value={qty} onChange={handleQtyChange} />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="col-span-2">
-                <Input label="RMB Cost (Total)" type="number" value={totalCostRmb} onChange={handleTotalRmbChange} />
-              </div>
-              <Input label="RMB/unit" type="number" value={buyingCostRmb} onChange={handleUnitRmbChange} />
+              <Input label="Buying Cost (RMB Total)" type="number" value={totalCostRmb} onChange={handleTotalRmbChange} />
+              <Input label="Unit Cost (RMB)" type="number" value={buyingCostRmb} onChange={handleUnitRmbChange} />
+              <Input label="Daily RMB Rate" type="number" value={exchangeRate} onChange={setExchangeRate} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input label="Exchange Rate (BDT/RMB)" type="number" value={exchangeRate} onChange={setExchangeRate} />
+              <div className="space-y-1.5 text-left">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Shipping Method</label>
+                <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 font-bold h-11">
+                  {['SEA', 'AIR', 'LUGGAGE'].map(m => (
+                    <button 
+                      key={m} 
+                      type="button"
+                      onClick={() => setShippingMethod(m)} 
+                      className={`flex-1 flex items-center justify-center rounded-lg text-[9px] uppercase transition-all ${shippingMethod === m ? 'bg-white shadow-sm text-blue-600' : 'text-slate-400'}`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <Input label="Shipping Rate (BDT/kg)" type="number" value={shippingRate} onChange={setShippingRate} />
             </div>
             <div className="grid grid-cols-2 gap-4">

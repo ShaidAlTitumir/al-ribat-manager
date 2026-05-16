@@ -230,11 +230,20 @@ export default function Dashboard() {
           <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[32px] p-8 text-white shadow-xl shadow-blue-200 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-3xl rounded-full -mr-20 -mt-20 group-hover:scale-110 transition-transform duration-700" />
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-2">
-                <h2 className="text-2xl font-black tracking-tight leading-none uppercase">Empower Your business</h2>
-                <p className="text-blue-100 font-black text-[10px] uppercase tracking-widest leading-relaxed max-w-lg">
-                  Setup your business to unlock full inventory tracking, sales management, and profit analytics.
-                </p>
+              <div className="flex items-center gap-6">
+                <div className="shrink-0">
+                  <img 
+                    src="/logo.jpg" 
+                    className="w-20 h-20 bg-white rounded-[24px] p-2 shadow-2xl shadow-blue-900/20" 
+                    alt="Logo" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-black tracking-tight leading-none uppercase">Empower Your business</h2>
+                  <p className="text-blue-100 font-bold text-[10px] uppercase tracking-widest leading-relaxed max-w-lg">
+                    Setup your business to unlock full inventory tracking, sales management, and profit analytics.
+                  </p>
+                </div>
               </div>
               <button 
                 onClick={() => navigate('/onboarding')}

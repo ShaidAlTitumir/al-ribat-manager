@@ -141,6 +141,11 @@ export default function Onboarding() {
               className="space-y-6"
             >
               <div className="text-center mb-10">
+                <img 
+                  src="/logo.jpg" 
+                  className="w-20 h-20 mx-auto mb-6 shadow-xl shadow-blue-100 rounded-3xl" 
+                  alt="Logo" 
+                />
                 <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome to Al-Ribat</h1>
                 <p className="text-slate-500 mt-2">Let's get your business account setup.</p>
                 <button 

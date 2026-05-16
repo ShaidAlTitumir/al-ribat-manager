@@ -211,11 +211,18 @@ export default function Businesses() {
     <MainLayout>
       <div className="space-y-6 md:space-y-8 px-2 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <header className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Your Businesses</h2>
-            <p className="text-[10px] md:text-sm font-bold text-slate-400 uppercase tracking-widest mt-0.5 md:mt-1 leading-tight">
-              Select or create an entity
-            </p>
+          <div className="flex items-center gap-4">
+            <img 
+              src="/logo.jpg" 
+              className="w-12 h-12 rounded-2xl shadow-lg shadow-blue-100" 
+              alt="Logo" 
+            />
+            <div>
+              <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Your Businesses</h2>
+              <p className="text-[10px] md:text-sm font-bold text-slate-400 uppercase tracking-widest mt-0.5 md:mt-1 leading-tight">
+                Select or create an entity
+              </p>
+            </div>
           </div>
           <button 
             onClick={() => setShowCreateModal(true)}

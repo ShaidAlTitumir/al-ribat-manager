@@ -168,7 +168,9 @@ ALTER TABLE public.purchase_transactions ADD COLUMN IF NOT EXISTS quantity INT N
 ALTER TABLE public.purchase_transactions ADD COLUMN IF NOT EXISTS buying_cost_per_unit_rmb_cents BIGINT NOT NULL;
 ALTER TABLE public.purchase_transactions ADD COLUMN IF NOT EXISTS exchange_rate_used DECIMAL NOT NULL;
 ALTER TABLE public.purchase_transactions ADD COLUMN IF NOT EXISTS shipping_rate_bdt_per_kg_cents BIGINT DEFAULT 0;
+ALTER TABLE public.purchase_transactions ADD COLUMN IF NOT EXISTS shipping_method TEXT;
 ALTER TABLE public.purchase_transactions ADD COLUMN IF NOT EXISTS additional_cost_bdt_cents BIGINT DEFAULT 0;
+ALTER TABLE public.purchase_transactions ADD COLUMN IF NOT EXISTS additional_cost_currency TEXT DEFAULT 'BDT';
 ALTER TABLE public.purchase_transactions ADD COLUMN IF NOT EXISTS landed_cost_per_unit_bdt_cents BIGINT NOT NULL;
 ALTER TABLE public.purchase_transactions ADD COLUMN IF NOT EXISTS total_landed_cost_bdt_cents BIGINT NOT NULL;
 ALTER TABLE public.purchase_transactions ADD COLUMN IF NOT EXISTS paid BOOLEAN DEFAULT false;

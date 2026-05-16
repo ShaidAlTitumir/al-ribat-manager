@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Briefcase, Lock, Mail, ArrowRight, AlertCircle, RefreshCw } from 'lucide-react';
+import { Briefcase, Lock, Mail, ArrowRight, AlertCircle, RefreshCw, LogOut } from 'lucide-react';
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
@@ -213,14 +213,19 @@ export default function Login() {
         className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-100 p-8"
       >
         <div className="flex flex-col items-center mb-8">
-          <img 
-            src="/logo.svg" 
-            className="w-16 h-16 rounded-2xl shadow-lg shadow-blue-100 object-contain" 
-            alt="Logo" 
-            referrerPolicy="no-referrer"
-          />
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight mt-4">Al-Ribat Manager</h1>
-          <p className="text-slate-400 text-sm mt-1 uppercase tracking-widest font-semibold text-[10px]">Business & Partnership Hub</p>
+          <div className="relative">
+            <img 
+              src="/logo.jpg" 
+              className="w-24 h-24 rounded-3xl shadow-2xl shadow-blue-100 object-contain bg-white p-2 border border-slate-50" 
+              alt="Logo" 
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-white">
+              <LogOut className="w-4 h-4 rotate-180" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight mt-6">Al-Ribat Manager</h1>
+          <p className="text-slate-400 text-sm mt-1 uppercase tracking-widest font-bold text-[10px]">Business & Partnership Hub</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
