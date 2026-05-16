@@ -34,13 +34,32 @@ export default function Inventory() {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['inventory', business?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('inventory_items')
-        .select('*')
-        .eq('business_id', business?.id)
-        .order('name');
-      if (error) throw error;
-      return data as InventoryItem[];
+      if (!business?.id) return [];
+      
+      const [itemsRes, salesRes] = await Promise.all([
+        supabase
+          .from('inventory_items')
+          .select('*')
+          .eq('business_id', business.id)
+          .order('name'),
+        supabase
+          .from('sales')
+          .select('item_id, expected_profit_cents')
+          .eq('business_id', business.id)
+      ]);
+
+      if (itemsRes.error) throw itemsRes.error;
+      if (salesRes.error) throw salesRes.error;
+
+      const salesMap = (salesRes.data || []).reduce((acc: any, sale: any) => {
+        acc[sale.item_id] = (acc[sale.item_id] || 0) + (sale.expected_profit_cents || 0);
+        return acc;
+      }, {});
+
+      return (itemsRes.data || []).map((item: any) => ({
+        ...item,
+        realized_profit_cents: salesMap[item.id] || 0
+      })) as (InventoryItem & { realized_profit_cents: number })[];
     },
     enabled: !!business?.id,
   });
@@ -185,8 +204,10 @@ function StatCard({ title, value, icon: Icon, color }: any) {
   );
 }
 
-function ItemCard({ item, onAddStock, onEdit, onDelete }: { item: InventoryItem, onAddStock: () => void, onEdit: () => void, onDelete: () => void }) {
+function ItemCard({ item, onAddStock, onEdit, onDelete }: { item: InventoryItem & { realized_profit_cents?: number }, onAddStock: () => void, onEdit: () => void, onDelete: () => void }) {
   const isLow = item.current_stock <= item.low_stock_threshold;
+  const realizedProfitCents = item.realized_profit_cents || 0;
+  
   return (
     <motion.div 
       layout
@@ -220,9 +241,19 @@ function ItemCard({ item, onAddStock, onEdit, onDelete }: { item: InventoryItem,
           <p className="text-xs font-bold text-slate-900">{formatBDT(item.last_landed_cost_cents || 0)}</p>
         </div>
         <div className="flex flex-col border-l border-slate-200 pl-3">
-          <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-1">Sell Price</span>
+          <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mb-1">Avg Sell Price</span>
           <p className="text-xs font-bold text-emerald-600">{formatBDT(item.default_selling_price_cents || 0)}</p>
         </div>
+      </div>
+
+      <div className="px-3 py-2 bg-emerald-50/30 rounded-xl mb-2 flex items-center justify-between border border-emerald-50/50">
+        <div className="flex items-center gap-1.5">
+          <TrendingUp className="w-3 h-3 text-emerald-500" />
+          <span className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Realized Profit</span>
+        </div>
+        <p className={`text-xs font-black ${realizedProfitCents >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+          {formatBDT(realizedProfitCents)}
+        </p>
       </div>
 
       <div className="mt-auto pt-2 border-t border-slate-50 flex items-center justify-between">
