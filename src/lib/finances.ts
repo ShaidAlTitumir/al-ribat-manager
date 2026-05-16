@@ -53,8 +53,6 @@ export async function fetchFinancialMetrics(businessId: string, exchangeRate: nu
     else rmbCents += amt;
   });
 
-  distribution?.forEach(d => bdtCents -= (d.amount_cents || 0));
-
   expenses?.forEach(e => {
     if (e.currency === 'BDT') bdtCents -= (e.amount_cents || 0);
     else rmbCents -= (e.amount_cents || 0); // User didn't specify converting RMB expense to BDT for the wallet balance, usually wallet is currency specific

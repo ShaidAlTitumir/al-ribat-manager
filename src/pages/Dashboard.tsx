@@ -138,7 +138,6 @@ export default function Dashboard() {
         if (c.currency === 'BDT') bdt += amtCents;
         else rmb += amtCents;
       });
-      distribution?.forEach(d => bdt -= (d.amount_cents || 0));
       expenses?.forEach(e => {
         if (e.currency === 'BDT') bdt -= (e.amount_cents || 0);
         else rmb -= (e.amount_cents || 0);
@@ -372,7 +371,7 @@ export default function Dashboard() {
                 <div className="space-y-4">
                   {recentActivities.map((activity, idx) => (
                     <ActivityItem 
-                      key={activity.id}
+                      key={`${activity.id}-${idx}`}
                       title={activity.title}
                       sub={activity.sub}
                       amount={activity.amount}

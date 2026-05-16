@@ -191,12 +191,10 @@ export default function Sales() {
         await supabase.from('customers').update({ total_due_cents: newDue }).eq('id', selectedCustomerId);
       }
 
-      // 4. Partner Profit Distribution (Realized Profit)
-      if (estProfit > 0 && paid > 0) {
-        // Calculate portion of profit realized by this payment:
-        // Profit % = Total Profit / Total Sale Value
-        // Realized Profit = Profit % * Cash Collected
-        const realizedProfit = Math.floor((Math.round(paid * 100) / Math.round(total * 100)) * estProfit);
+      // 4. Partner Profit Distribution (Accrual Basis - Full Profit Realized upon Sale)
+      if (estProfit > 0) {
+        // Distribute the entire estimated profit immediately as it is "earned" upon selling
+        const realizedProfit = estProfit;
         
         if (realizedProfit > 0) {
           // Fetch current partners and their capital contributions to determine share ratio
@@ -210,7 +208,6 @@ export default function Sales() {
 
           if (currentPartners && currentPartners.length > 0) {
             // Calculate actual capital for each partner in BDT
-            // (Assuming business exchange rate for RMB contributions)
             const partnerCapitalMap: Record<string, number> = {};
             let totalBusinessCapital = 0;
 

@@ -183,9 +183,6 @@ export default function Wallet() {
         else rmb += amtCents;
       });
 
-      // Total profits distributed (Withdrawals by partners)
-      distribution?.forEach(d => bdt -= (d.amount_cents || 0));
-
       // Expenses
       expenses?.forEach(e => {
         if (e.currency === 'BDT') bdt -= (e.amount_cents || 0);

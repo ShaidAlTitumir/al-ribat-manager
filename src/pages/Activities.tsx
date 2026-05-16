@@ -120,42 +120,33 @@ export default function Activities() {
                    </div>
                 </div>
                 <div>
-                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Action Type</label>
-                   <div className="grid grid-cols-1 gap-1 mt-1.5">
-                      {activityTypes.map(type => (
-                        <button 
-                          key={type.id}
-                          onClick={() => setSelectedType(type.id)}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all ${selectedType === type.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'text-slate-400 hover:bg-slate-50'}`}
-                        >
-                          <type.icon className="w-3.5 h-3.5" />
-                          {type.label}
-                        </button>
-                      ))}
+                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 underline decoration-slate-100 decoration-2 underline-offset-4">Filter By Type</label>
+                   <div className="mt-2 relative">
+                      <select 
+                        value={selectedType}
+                        onChange={(e) => setSelectedType(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-100 h-10 px-3 pr-10 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none appearance-none transition-all text-[11px] font-bold uppercase tracking-widest text-slate-700 cursor-pointer"
+                      >
+                        {activityTypes.map(type => (
+                          <option key={type.id} value={type.id}>
+                            {type.label}
+                          </option>
+                        ))}
+                      </select>
+                      <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                    </div>
                 </div>
              </div>
           </div>
 
           <div className="lg:col-span-3">
-             <div className="bg-white rounded-3xl sm:rounded-[40px] border border-slate-100 shadow-sm overflow-hidden min-h-[600px]">
-                <div className="px-4 py-5 sm:p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
-                   <h3 className="text-[10px] sm:text-xs font-black text-slate-900 uppercase tracking-widest">Chronological Feed</h3>
-                   <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase">{filteredActivities.length} Operations</span>
+             <div className="bg-white rounded-[32px] sm:rounded-[40px] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
+                <div className="px-5 py-6 sm:p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between shrink-0">
+                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">Chronological Feed</h3>
+                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{filteredActivities.length} Operations</span>
                 </div>
 
-                <div className="divide-y divide-slate-50">
-                   {filteredActivities.map((activity) => (
-                     <ActivityRow key={activity.id} activity={activity} />
-                   ))}
-
-                   {filteredActivities.length === 0 && !isLoading && (
-                     <div className="py-40 flex flex-col items-center justify-center text-slate-200">
-                        <HistoryIcon className="w-16 h-16 mb-4 opacity-5" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest">No matching activities found</p>
-                     </div>
-                   )}
-
+                <div className="divide-y divide-slate-50 overflow-y-auto flex-1">
                    {isLoading && (
                      <div className="p-8 space-y-6">
                         {[1,2,3,4,5].map(i => (
@@ -165,6 +156,38 @@ export default function Activities() {
                                 <div className="h-4 bg-slate-50 rounded w-1/4" />
                                 <div className="h-3 bg-slate-50 rounded w-1/2" />
                              </div>
+                          </div>
+                        ))}
+                     </div>
+                   )}
+
+                   {!isLoading && filteredActivities.length === 0 && (
+                     <div className="py-40 flex flex-col items-center justify-center text-slate-200">
+                        <HistoryIcon className="w-16 h-16 mb-4 opacity-5" />
+                        <p className="text-[10px] font-bold uppercase tracking-widest">No matching activities found</p>
+                     </div>
+                   )}
+
+                   {!isLoading && filteredActivities.length > 0 && (
+                     <div className="divide-y divide-slate-50">
+                        {Object.entries(
+                          filteredActivities.reduce((groups: any, activity) => {
+                            const date = activity.time.split(', ')[0];
+                            if (!groups[date]) groups[date] = [];
+                            groups[date].push(activity);
+                            return groups;
+                          }, {})
+                        ).map(([date, items]: [string, any]) => (
+                          <div key={date} className="relative">
+                            <div className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm px-6 py-2 border-y border-slate-100 flex items-center justify-between">
+                              <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{date}</span>
+                              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{items.length} Activities</span>
+                            </div>
+                            <div className="divide-y divide-slate-50 border-b border-slate-50 pb-20">
+                              {items.map((activity: any, idx: number) => (
+                                <ActivityRow key={`${activity.id}-${idx}-${date}`} activity={activity} />
+                              ))}
+                            </div>
                           </div>
                         ))}
                      </div>
@@ -244,7 +267,6 @@ function ActivityRow({ activity }: { activity: any }) {
        </div>
        <div className="text-right shrink-0">
           <p className="text-[10px] sm:text-xs font-bold text-slate-900 font-mono tracking-tighter sm:tracking-tight leading-none">{activity.time.split(', ')[1]}</p>
-          <p className="text-[9px] font-bold text-slate-400 mt-0.5">{activity.time.split(', ')[0]}</p>
        </div>
     </div>
   );
