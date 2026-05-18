@@ -30,7 +30,7 @@ export default function Activities() {
         .from('activity_log')
         .select(`
           *,
-          profiles:user_id (
+          profiles (
             full_name,
             username
           )

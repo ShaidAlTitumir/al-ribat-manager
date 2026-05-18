@@ -26,11 +26,14 @@ export const ProtectedRoute = () => {
 };
 
 // src/components/auth/NoBusinessGuard.tsx
+import { useBusiness } from '../../context/BusinessContext';
+
 export const NoBusinessGuard = () => {
   const { profile, loading, user } = useAuth();
+  const { business, loading: businessLoading } = useBusiness();
 
-  // If we have a user but are still loading profile, show a minimal loading state instead of blocking
-  if (loading && user && !profile) {
+  // If we have a user but are still loading profile or business, show a minimal loading state instead of blocking
+  if ((loading || businessLoading) && user && !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
@@ -41,7 +44,7 @@ export const NoBusinessGuard = () => {
     );
   }
 
-  if (!profile?.business_id && !loading) {
+  if (!business && !loading && !businessLoading) {
     return <Navigate to="/businesses" replace />;
   }
 

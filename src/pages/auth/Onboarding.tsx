@@ -6,8 +6,11 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Users, ArrowRight, Building2, Ticket, RefreshCw } from 'lucide-react';
 
+import { useBusiness } from '../../context/BusinessContext';
+
 export default function Onboarding() {
   const { user, profile, refreshProfile } = useAuth();
+  const { business } = useBusiness();
   const [mode, setMode] = useState<'selection' | 'create'>('selection');
   const [businessName, setBusinessName] = useState('');
   const [currency, setCurrency] = useState('BDT');
@@ -22,10 +25,10 @@ export default function Onboarding() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (profile?.business_id) {
+    if (business) {
       navigate('/');
     }
-  }, [profile?.business_id]);
+  }, [business]);
 
   useEffect(() => {
     async function checkPending() {

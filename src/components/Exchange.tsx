@@ -68,7 +68,7 @@ export default function Exchange() {
     <div className="space-y-4 pt-2 pb-10">
       {/* Header */}
       <div className="flex justify-between items-center px-1">
-        <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Wallet</h1>
+        <h1 className="text-base font-bold text-slate-900 uppercase tracking-tight">Wallet</h1>
         <div className="bg-slate-100 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-slate-200">
           <RefreshCw className="w-3 h-3 text-slate-500" />
           <span className="font-mono text-[11px] font-bold text-slate-700">¥1 = ৳{exchangeRate.toFixed(3)}</span>
@@ -83,10 +83,10 @@ export default function Exchange() {
             <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
               <Landmark className="w-6 h-6" />
             </div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">BDT WALLET</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">BDT WALLET</span>
           </div>
           <p className="text-xs font-bold text-slate-500 mb-1">BDT Balance</p>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">
             ৳-{(bdtBalance / 100).toFixed(3)}
           </h2>
         </div>
@@ -97,10 +97,10 @@ export default function Exchange() {
             <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-600">
               <RefreshCw className="w-6 h-6" />
             </div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">RMB WALLET</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">RMB WALLET</span>
           </div>
           <p className="text-xs font-bold text-slate-500 mb-1">RMB Balance</p>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">
             ¥{(rmbBalance / 100).toFixed(3)}
           </h2>
         </div>
@@ -109,9 +109,9 @@ export default function Exchange() {
       {/* Currency Exchange Section */}
       <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-5 flex items-center justify-between">
-          <h2 className="text-lg font-black text-slate-900 tracking-tight">Currency Exchange</h2>
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Currency Exchange</h2>
           <div className="bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100">
-            <span className="text-[10px] font-black text-blue-600 uppercase">1 RMB = {exchangeRate.toFixed(3)} BDT</span>
+            <span className="text-[10px] font-bold text-blue-600 uppercase">1 RMB = {exchangeRate.toFixed(3)} BDT</span>
           </div>
         </div>
 
@@ -144,7 +144,7 @@ export default function Exchange() {
               animate={{ opacity: 1, height: 'auto' }}
               className="space-y-1.5 overflow-hidden"
             >
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Custom Exchange Rate</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Custom Exchange Rate</label>
               <input 
                 type="number"
                 className="w-full bg-slate-50 border border-slate-100 h-12 px-4 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold text-sm"
@@ -157,20 +157,20 @@ export default function Exchange() {
           {/* FROM Block */}
           <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FROM</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">FROM</span>
               <span className="text-[10px] font-bold text-slate-400">
                 Balance: {fromCurrency === 'BDT' ? `৳-${(bdtBalance/100).toFixed(3)}` : `¥${(rmbBalance/100).toFixed(3)}`}
               </span>
             </div>
             <div className="flex items-center gap-4">
               <div className="bg-white border border-slate-100 rounded-2xl px-3 py-2 flex items-center gap-2 shadow-sm">
-                <span className="text-xs font-black text-slate-900">{fromCurrency}</span>
+                <span className="text-xs font-bold text-slate-900">{fromCurrency}</span>
                 <ChevronDown className="w-3 h-3 text-slate-400" />
               </div>
               <input 
                 type="number"
                 placeholder="0.00"
-                className="flex-1 bg-transparent border-none focus:ring-0 text-3xl font-black text-slate-900 placeholder:text-slate-200 p-0"
+                className="flex-1 bg-transparent border-none focus:ring-0 text-3xl font-bold text-slate-900 placeholder:text-slate-200 p-0"
                 value={amount || ''}
                 onChange={(e) => setAmount(Number(e.target.value))}
               />
@@ -190,13 +190,13 @@ export default function Exchange() {
           {/* TO Block */}
           <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 space-y-3 pt-8">
             <div className="flex justify-between items-center">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">TO (ESTIMATED)</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">TO (ESTIMATED)</span>
             </div>
             <div className="flex items-center gap-4">
               <div className="bg-white border border-slate-100 rounded-2xl px-4 py-2 flex items-center gap-2 shadow-sm">
-                <span className="text-xs font-black text-slate-900">{toCurrency}</span>
+                <span className="text-xs font-bold text-slate-900">{toCurrency}</span>
               </div>
-              <div className="flex-1 text-3xl font-black text-slate-900">
+              <div className="flex-1 text-3xl font-bold text-slate-900">
                 {estimatedToAmount > 0 ? (estimatedToAmount / 100).toFixed(3) : '0.000'}
               </div>
             </div>
@@ -205,7 +205,7 @@ export default function Exchange() {
           <button 
             onClick={handleExchange}
             disabled={loading}
-            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-blue-100 active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
+            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold text-sm uppercase tracking-[0.15em] shadow-xl shadow-blue-100 active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-4"
           >
             <RefreshCw className={cn("w-5 h-5", loading && "animate-spin")} />
             {loading ? 'Processing...' : 'Exchange Assets'}
@@ -216,13 +216,13 @@ export default function Exchange() {
       {/* Recent Exchanges */}
       <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-50">
-          <h2 className="text-lg font-black text-slate-900 tracking-tight">Recent Exchanges</h2>
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Recent Exchanges</h2>
         </div>
         <div className="p-4 space-y-3">
           {recentExchanges.map(ex => (
             <div key={ex.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
               <div className="flex justify-between items-center">
-                <h3 className="text-sm font-black text-slate-900">{ex.from} → {ex.to}</h3>
+                <h3 className="text-sm font-bold text-slate-900">{ex.from} → {ex.to}</h3>
                 <span className="text-[10px] font-bold text-slate-400">{ex.date}</span>
               </div>
               <div className="flex justify-between items-end">

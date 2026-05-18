@@ -70,7 +70,7 @@ export default function Expenses() {
     <div className="space-y-5 pt-2 pb-10">
       {/* Header */}
       <div className="flex justify-between items-center px-1">
-        <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Expenses</h1>
+        <h1 className="text-base font-bold text-slate-900 uppercase tracking-tight">Expenses</h1>
         <div className="bg-slate-100 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-slate-200">
           <RefreshCw className="w-3 h-3 text-slate-500" />
           <span className="font-mono text-[11px] font-bold text-slate-700">¥1 = ৳{exchangeRate.toFixed(3)}</span>
@@ -81,7 +81,7 @@ export default function Expenses() {
       <div className="relative overflow-hidden bg-blue-600 rounded-3xl p-6 text-white shadow-lg shadow-blue-100">
         <div className="relative z-10">
           <p className="text-blue-100 text-sm font-medium mb-1">Total Spent This Month</p>
-          <h2 className="text-4xl font-black tracking-tight">৳{Math.round(totalSpent / 100).toLocaleString()}</h2>
+          <h2 className="text-4xl font-bold tracking-tight">৳{Math.round(totalSpent / 100).toLocaleString()}</h2>
         </div>
         <Wallet className="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 rotate-12" />
       </div>
@@ -92,11 +92,11 @@ export default function Expenses() {
           <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
             <Plus className="w-5 h-5" />
           </div>
-          <h2 className="text-lg font-black text-slate-900 tracking-tight">Add New Expense</h2>
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Add New Expense</h2>
         </div>
         <div className="p-5 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Title</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Title</label>
             <input 
               type="text"
               placeholder="e.g. Customs Duty"
@@ -108,7 +108,7 @@ export default function Expenses() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Amount</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Amount</label>
               <input 
                 type="number"
                 placeholder="0.00"
@@ -118,12 +118,12 @@ export default function Expenses() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Currency</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Currency</label>
               <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-100 h-12">
                 <button 
                   onClick={() => setCurrency('BDT')}
                   className={cn(
-                    "flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                    "flex-1 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
                     currency === 'BDT' ? "bg-white text-blue-600 shadow-sm" : "text-slate-400"
                   )}
                 >
@@ -132,7 +132,7 @@ export default function Expenses() {
                 <button 
                   onClick={() => setCurrency('RMB')}
                   className={cn(
-                    "flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                    "flex-1 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
                     currency === 'RMB' ? "bg-white text-blue-600 shadow-sm" : "text-slate-400"
                   )}
                 >
@@ -143,7 +143,7 @@ export default function Expenses() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Category</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Category</label>
             <div className="relative">
               <select 
                 className="w-full bg-slate-50 border border-slate-100 h-12 px-4 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none appearance-none font-bold text-sm text-slate-900"
@@ -159,7 +159,7 @@ export default function Expenses() {
           <button 
             onClick={handleSaveExpense}
             disabled={loading}
-            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-blue-100 active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-2"
+            className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold text-sm uppercase tracking-[0.15em] shadow-xl shadow-blue-100 active:scale-[0.98] transition-all flex items-center justify-center gap-3 mt-2"
           >
             <Save className={cn("w-5 h-5", loading && "animate-spin")} />
             {loading ? 'Saving...' : 'Save Expense'}
@@ -170,7 +170,7 @@ export default function Expenses() {
       {/* Expense History Section */}
       <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-50 flex items-center justify-between">
-          <h2 className="text-lg font-black text-slate-900 tracking-tight">Expense History</h2>
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Expense History</h2>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{expenses.length} records</span>
         </div>
         <div className="p-8">
@@ -180,7 +180,7 @@ export default function Expenses() {
                 <Receipt className="w-8 h-8 text-slate-200" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-black text-slate-900 tracking-tight">No expenses yet</h3>
+                <h3 className="text-base font-bold text-slate-900 tracking-tight">No expenses yet</h3>
                 <p className="text-xs font-medium text-slate-400">Add your first expense to see it here.</p>
               </div>
             </div>

@@ -18,7 +18,7 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const { profile, signOut } = useAuth();
-  const { business, updateExchangeRate } = useBusiness();
+  const { business, userRole, updateExchangeRate } = useBusiness();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isRateEditing, setIsRateEditing] = useState(false);
   const [tempRate, setTempRate] = useState(business?.exchange_rate?.toString() || '');
@@ -91,7 +91,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                       {business?.name || 'Personal Account'}
                     </h2>
                     <p className="text-[10px] text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                      {business ? profile?.role : 'No Business'}
+                      {business ? userRole : 'No Business'}
                       <ChevronRight className="w-2 h-2" />
                     </p>
                   </div>

@@ -104,13 +104,13 @@ export default function Dashboard({ setActiveTab }: DashboardProps) {
             </div>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Live Audit</span>
+              <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">Live Audit</span>
             </div>
           </div>
           
           <div className="flex flex-col gap-1 mb-6">
             <h1 className={cn(
-              "text-2xl lg:text-4xl font-black tabular-nums tracking-tighter",
+              "text-2xl lg:text-4xl font-bold tabular-nums tracking-tighter",
               (metrics?.businessValue || 0) < 0 ? "text-red-400" : "text-white"
             )}>
               {formatBDT((metrics?.businessValue || 0) * 100)}
@@ -125,7 +125,7 @@ export default function Dashboard({ setActiveTab }: DashboardProps) {
           <div className="grid grid-cols-2 gap-3 pt-5 border-t border-white/5">
             <div className="space-y-1">
                <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Per Partner Share</p>
-               <p className="text-sm font-black text-indigo-400 font-mono tracking-tight">৳{((metrics?.partnerShare || 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+               <p className="text-sm font-bold text-indigo-400 font-mono tracking-tight">৳{((metrics?.partnerShare || 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
             </div>
             <div className="text-right flex flex-col justify-end">
                <p className="text-[8px] font-medium text-white/20 italic">Based on 3 equal partners</p>

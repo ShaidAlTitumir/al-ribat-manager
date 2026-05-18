@@ -448,10 +448,10 @@ function CustomerDetailDrawer({ customer, onClose, onEdit, onDelete }: { custome
              {activeTab === 'report' && (
                <div className="space-y-6">
                   <div className="p-6 rounded-[32px] bg-slate-50 border border-slate-100">
-                     <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-4">Statement Period</h3>
+                     <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tight mb-4">Statement Period</h3>
                      <div className="grid grid-cols-2 gap-4 mb-6">
                         <div className="space-y-1">
-                           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">From</label>
+                           <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">From</label>
                            <input 
                               type="date" 
                               className="w-full bg-white border border-slate-200 h-10 px-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
@@ -460,7 +460,7 @@ function CustomerDetailDrawer({ customer, onClose, onEdit, onDelete }: { custome
                            />
                         </div>
                         <div className="space-y-1">
-                           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">To</label>
+                           <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">To</label>
                            <input 
                               type="date" 
                               className="w-full bg-white border border-slate-200 h-10 px-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
@@ -520,7 +520,7 @@ function CustomerDetailDrawer({ customer, onClose, onEdit, onDelete }: { custome
                             );
                           });
                         }}
-                        className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-100 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                        className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-blue-100 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                      >
                         <Download className="w-4 h-4" /> Download Statement
                      </button>
@@ -531,7 +531,7 @@ function CustomerDetailDrawer({ customer, onClose, onEdit, onDelete }: { custome
                         <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
                            <Info className="w-4 h-4 text-blue-400" />
                         </div>
-                        <h4 className="text-[11px] font-black uppercase tracking-widest">Helpful Tip</h4>
+                        <h4 className="text-[11px] font-bold uppercase tracking-widest">Helpful Tip</h4>
                      </div>
                      <p className="text-[10px] font-medium text-white/60 leading-relaxed uppercase tracking-widest">
                         Generating a statement helps reconcile payments and due amounts with your partners. Use it for monthly settlements.
@@ -623,13 +623,13 @@ function CustomerDetailDrawer({ customer, onClose, onEdit, onDelete }: { custome
                              <FileText className="w-4 h-4" />
                           </div>
                           <div>
-                             <p className="text-xs font-black text-slate-900 uppercase">{sale.invoice_no}</p>
+                             <p className="text-xs font-bold text-slate-900 uppercase">{sale.invoice_no}</p>
                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{formatDate(sale.created_at)}</p>
                           </div>
                        </div>
                        <div className="flex items-center gap-4">
                           <div className="text-right">
-                             <p className="text-sm font-black text-slate-900">{formatBDT(sale.total_cents)}</p>
+                             <p className="text-sm font-bold text-slate-900">{formatBDT(sale.total_cents)}</p>
                           </div>
                           <button 
                             onClick={() => {
@@ -991,7 +991,7 @@ function DeleteCustomerModal({ customer, onClose, onSuccess }: { customer: Custo
               onClick={() => mutation.mutate()}
               disabled={mutation.isPending}
               className={`
-                w-full h-14 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 disabled:opacity-50
+                w-full h-14 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg transition-all active:scale-95 disabled:opacity-50
                 ${forceDelete ? 'bg-red-600 shadow-red-200' : 'bg-red-500 shadow-red-100'}
               `}
             >
@@ -1167,7 +1167,7 @@ function RecordPaymentModal({ customer, onClose }: { customer: Customer, onClose
             <Input label="Amount to Collect (৳)" type="number" value={amount} onChange={setAmount} />
             
             <div className="space-y-1">
-               <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Payment Method</label>
+               <label className="text-[9px] font-bold uppercase tracking-widest text-slate-400 ml-1">Payment Method</label>
                <select 
                  className="w-full bg-slate-50 border border-slate-100 h-9 px-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
                  value={method}
@@ -1185,7 +1185,7 @@ function RecordPaymentModal({ customer, onClose }: { customer: Customer, onClose
             <button 
               onClick={() => mutation.mutate()}
               disabled={mutation.isPending}
-              className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-50"
+              className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-50"
             >
               {mutation.isPending ? 'Processing...' : 'Confirm Collection'}
             </button>
@@ -1297,7 +1297,7 @@ function DeleteLedgerEntryModal({ entry, customer, onClose, onSuccess }: any) {
              <button 
                onClick={handleDelete}
                disabled={isPending}
-               className="w-full h-14 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-100 transition-all active:scale-95 disabled:opacity-50"
+               className="w-full h-14 bg-red-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-red-100 transition-all active:scale-95 disabled:opacity-50"
              >
                {isPending ? 'Processing...' : 'Delete Now'}
              </button>
@@ -1467,7 +1467,7 @@ function EditLedgerEntryModal({ entry, customer, onClose, onSuccess }: any) {
              <button 
                onClick={handleUpdate}
                disabled={isPending}
-               className="w-full h-14 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-100 transition-all active:scale-95 disabled:opacity-50"
+               className="w-full h-14 bg-blue-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-100 transition-all active:scale-95 disabled:opacity-50"
              >
                {isPending ? 'Updating...' : 'Save Changes'}
              </button>
@@ -1481,12 +1481,23 @@ function EditLedgerEntryModal({ entry, customer, onClose, onSuccess }: any) {
 function Input({ label, value, onChange, type = "text", placeholder, required }: any) {
   return (
     <div className="space-y-1 flex-1 text-left">
-      <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">{label}</label>
+      <label className="text-[9px] font-bold uppercase tracking-widest text-slate-400 ml-1">{label}</label>
       <input 
         type={type}
         className="w-full bg-slate-50 border border-slate-100 h-9 px-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs font-bold"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onFocus={(e) => {
+          onChange('');
+        }}
+        onBlur={(e) => {
+          if (type === 'number' && value) {
+            const num = parseFloat(value);
+            if (!isNaN(num)) {
+              onChange(num.toFixed(2));
+            }
+          }
+        }}
         placeholder={placeholder}
         required={required}
       />

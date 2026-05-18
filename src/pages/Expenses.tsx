@@ -390,7 +390,7 @@ function DeleteConfirmModal({ title, desc, onCancel, onConfirm, isPending }: any
   );
 }
 
-function Input({ label, value, onChange, type = "text", placeholder }: any) {
+function Input({ label, value, onChange, type = "text", placeholder, required }: any) {
   return (
     <div className="space-y-1.5 flex-1">
       <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">{label}</label>
@@ -399,6 +399,17 @@ function Input({ label, value, onChange, type = "text", placeholder }: any) {
         className="w-full bg-slate-50 border border-slate-100 h-14 px-4 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-base md:text-sm font-medium"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onFocus={(e) => {
+          onChange('');
+        }}
+        onBlur={(e) => {
+          if (type === 'number' && value) {
+            const num = parseFloat(value);
+            if (!isNaN(num)) {
+              onChange(num.toFixed(2));
+            }
+          }
+        }}
         placeholder={placeholder}
       />
     </div>

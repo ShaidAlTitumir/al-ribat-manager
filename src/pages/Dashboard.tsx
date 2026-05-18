@@ -49,8 +49,8 @@ export default function Dashboard() {
     return new Intl.NumberFormat('en-BD', { 
       style: 'currency', 
       currency: 'BDT', 
-      minimumFractionDigits: 3,
-      maximumFractionDigits: 3 
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2 
     }).format(val / 100);
   };
 
@@ -190,7 +190,7 @@ export default function Dashboard() {
         .from('activity_log')
         .select(`
           *,
-          profiles:user_id (
+          profiles (
             full_name,
             username
           )
@@ -262,7 +262,7 @@ export default function Dashboard() {
               </div>
               <button 
                 onClick={() => navigate('/onboarding')}
-                className="px-8 py-4 sm:px-10 sm:py-5 bg-white text-blue-700 rounded-2xl sm:rounded-3xl font-black text-[10px] sm:text-xs uppercase tracking-[0.25em] shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:bg-blue-50 active:scale-95 transition-all flex items-center justify-center gap-4 group/btn"
+                className="px-8 py-4 sm:px-10 sm:py-5 bg-white text-blue-700 rounded-2xl sm:rounded-3xl font-bold text-[10px] sm:text-xs uppercase tracking-[0.25em] shadow-[0_20px_50px_rgba(0,0,0,0.2)] hover:bg-blue-50 active:scale-95 transition-all flex items-center justify-center gap-4 group/btn"
               >
                 Launch Now <ArrowUpRight className="w-5 h-5 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
               </button>
@@ -358,6 +358,7 @@ export default function Dashboard() {
                         tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
                       />
                       <Tooltip 
+                        formatter={(value: number) => [value.toFixed(2), undefined]}
                         contentStyle={{ 
                           borderRadius: '20px', 
                           border: 'none', 
@@ -372,7 +373,7 @@ export default function Dashboard() {
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
                     <PieChart className="w-10 h-10 text-slate-200 mb-3" />
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No activity found yet</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No activity found yet</p>
                   </div>
                 )}
               </div>
@@ -396,7 +397,7 @@ export default function Dashboard() {
                   History
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide space-y-5 min-h-[300px] lg:max-h-[380px]">
+              <div className="flex-1 overflow-y-auto pr-2 space-y-4 lg:max-h-[420px]">
                 {recentActivities.map((activity, idx) => (
                   <ActivityItem 
                     key={`${activity.id}-${idx}`}
@@ -412,13 +413,13 @@ export default function Dashboard() {
                 {recentActivities.length === 0 && !activityLoading && (
                   <div className="flex flex-col items-center justify-center py-12 opacity-30">
                     <HistoryIcon className="w-12 h-12 text-slate-200 mb-4" />
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Awaiting records...</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Awaiting records...</p>
                   </div>
                 )}
                 
                 {activityLoading && (
-                  <div className="space-y-5 animate-pulse">
-                    {[1, 2, 3, 4].map(i => (
+                  <div className="space-y-4 animate-pulse">
+                    {[1, 2, 3, 4, 5, 6].map(i => (
                       <div key={i} className="flex gap-4">
                         <div className="w-10 h-10 bg-slate-50 rounded-2xl" />
                         <div className="flex-1 space-y-2">
@@ -433,7 +434,7 @@ export default function Dashboard() {
               <div className="mt-6 pt-4 border-t border-slate-50 shrink-0">
                 <button 
                   onClick={() => navigate('/activities')}
-                  className="w-full py-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 group/btn"
+                  className="w-full py-3 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 group/btn"
                 >
                   Full Audit Log <ArrowUpRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
                 </button>

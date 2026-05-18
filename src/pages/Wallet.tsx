@@ -257,10 +257,10 @@ export default function Wallet() {
               <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">Market Rate</span>
               <div>
                  <div className="flex items-baseline gap-1.5 mb-1 flex-wrap">
-                    <span className="text-2xl md:text-3xl font-black tabular-nums">1.00</span>
+                    <span className="text-2xl md:text-3xl font-bold tabular-nums">1.00</span>
                     <span className="text-[10px] font-bold text-white/40">RMB</span>
                     <span className="text-indigo-400 mx-0.5">=</span>
-                    <span className="text-2xl md:text-3xl font-black tabular-nums text-indigo-400">{business?.exchange_rate || '18.0'}</span>
+                    <span className="text-2xl md:text-3xl font-bold tabular-nums text-indigo-400">{business?.exchange_rate || '18.0'}</span>
                     <span className="text-[10px] font-bold text-white/40">BDT</span>
                  </div>
                  <p className="text-[9px] text-white/50 font-medium">Auto calculation based on settings.</p>
@@ -296,8 +296,8 @@ export default function Wallet() {
                              isPrimary
                           />
                           <div className="px-4 flex justify-between items-center">
-                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Available</span>
-                             <span className={`text-[10px] font-black tabular-nums ${
+                             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Available</span>
+                             <span className={`text-[10px] font-bold tabular-nums ${
                                 parseFloat(amountFrom || '0') > (fromCurrency === 'BDT' ? (balances?.bdt || 0) : (balances?.rmb || 0))
                                 ? 'text-red-500 underline decoration-wavy'
                                 : 'text-slate-500'
@@ -309,7 +309,7 @@ export default function Wallet() {
                        <CurrencyInput 
                           label="Receiving" 
                           currency={toCurrency} 
-                          value={isNaN(amountTo) ? '0.000' : amountTo.toFixed(3)} 
+                          value={isNaN(amountTo) ? '0.00' : amountTo.toFixed(2)} 
                           readOnly 
                        />
                     </div>
@@ -334,12 +334,12 @@ export default function Wallet() {
                           <TrendingUp className="w-5 h-5" />
                        </div>
                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Locked Rate</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Locked Rate</p>
                           <p className="text-sm font-bold text-slate-900">1 {fromCurrency} = {fromCurrency === 'BDT' ? (1/parseFloat(rate)).toFixed(4) : rate} {toCurrency}</p>
                        </div>
                     </div>
                     <div className="flex flex-col items-end gap-1.5">
-                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-1 text-right">Adjustment</label>
+                       <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mr-1 text-right">Adjustment</label>
                        <input 
                          type="number" 
                          value={rate} 
@@ -352,7 +352,7 @@ export default function Wallet() {
                  <button 
                    onClick={() => exchangeMutation.mutate()}
                    disabled={exchangeMutation.isPending || !amountFrom}
-                   className="w-full h-16 bg-indigo-600 text-white rounded-[24px] font-black text-sm uppercase tracking-[0.25em] shadow-lg shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-4"
+                   className="w-full h-16 bg-indigo-600 text-white rounded-[24px] font-bold text-sm uppercase tracking-[0.2em] shadow-lg shadow-indigo-100 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-4"
                  >
                     {exchangeMutation.isPending ? (
                       <RefreshCw className="w-5 h-5 animate-spin" />
@@ -393,7 +393,7 @@ export default function Wallet() {
                                </div>
                             </div>
                             <div>
-                               <p className="text-sm font-black text-slate-900">{ex.from_currency} to {ex.to_currency}</p>
+                               <p className="text-sm font-bold text-slate-900">{ex.from_currency} to {ex.to_currency}</p>
                                <div className="flex items-center gap-3">
                                  <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5 tracking-tight flex items-center gap-1.5">
                                    {formatDate(ex.created_at)} • Rate: {ex.rate}
@@ -435,7 +435,7 @@ export default function Wallet() {
                  {exchanges.length === 0 && (
                     <div className="py-24 bg-slate-50/50 rounded-[40px] border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300">
                        <RefreshCw className="w-12 h-12 mb-4 opacity-10" />
-                       <p className="text-[10px] font-black uppercase tracking-widest">No transaction data</p>
+                       <p className="text-[10px] font-bold uppercase tracking-widest">No transaction data</p>
                     </div>
                  )}
               </div>
@@ -489,7 +489,7 @@ function DeleteConfirmationModal({ exchange, isDeleting, onClose, onConfirm }: a
            <Trash2 className="w-10 h-10" />
         </div>
         
-        <h2 className="text-2xl font-black text-slate-900 mb-2">Delete Activity?</h2>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">Delete Activity?</h2>
         <p className="text-slate-500 text-sm font-medium mb-8">
           This will revert the exchange of <span className="font-bold text-slate-900">{exchange.amount_from_cents/100} {exchange.from_currency}</span>. 
           Money will be returned to your original wallets.
@@ -498,14 +498,14 @@ function DeleteConfirmationModal({ exchange, isDeleting, onClose, onConfirm }: a
         <div className="grid grid-cols-2 gap-3">
           <button 
             onClick={onClose}
-            className="h-14 rounded-2xl bg-slate-50 text-slate-600 text-xs font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
+            className="h-14 rounded-2xl bg-slate-50 text-slate-600 text-xs font-bold uppercase tracking-widest hover:bg-slate-100 transition-all"
           >
             Cancel
           </button>
           <button 
             onClick={onConfirm}
             disabled={isDeleting}
-            className="h-14 rounded-2xl bg-red-600 text-white text-xs font-black uppercase tracking-widest hover:bg-red-700 shadow-lg shadow-red-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="h-14 rounded-2xl bg-red-600 text-white text-xs font-bold uppercase tracking-widest hover:bg-red-700 shadow-lg shadow-red-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {isDeleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Delete Now'}
           </button>
@@ -595,7 +595,7 @@ function EditExchangeModal({ exchange, onClose }: { exchange: any, onClose: () =
       >
         <div className="flex items-center justify-between mb-8">
            <div>
-              <h2 className="text-xl font-black text-slate-900">Edit Exchange</h2>
+              <h2 className="text-xl font-bold text-slate-900">Edit Exchange</h2>
               <p className="text-xs text-slate-500 font-medium">Update conversion details for this activity.</p>
            </div>
            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
@@ -605,13 +605,13 @@ function EditExchangeModal({ exchange, onClose }: { exchange: any, onClose: () =
 
         <div className="space-y-6">
            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Direction</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Direction</p>
               <p className="text-sm font-bold text-slate-900">{exchange.from_currency} → {exchange.to_currency}</p>
            </div>
 
            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">From Amount</label>
+                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">From Amount</label>
                  <input 
                    type="number" 
                    value={amountFrom} 
@@ -620,7 +620,7 @@ function EditExchangeModal({ exchange, onClose }: { exchange: any, onClose: () =
                  />
               </div>
               <div className="space-y-1.5">
-                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Exchange Rate</label>
+                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Exchange Rate</label>
                  <input 
                    type="number" 
                    value={rate} 
@@ -631,16 +631,16 @@ function EditExchangeModal({ exchange, onClose }: { exchange: any, onClose: () =
            </div>
 
            <div className="p-6 bg-slate-900 rounded-3xl text-white">
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Resulting Amount</p>
-              <p className="text-2xl font-black text-indigo-400 tabular-nums">
-                {amountTo.toFixed(3)} <span className="text-xs text-white/40 ml-1">{exchange.to_currency}</span>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">Resulting Amount</p>
+              <p className="text-2xl font-bold text-indigo-400 tabular-nums">
+                {amountTo.toFixed(2)} <span className="text-xs text-white/40 ml-1">{exchange.to_currency}</span>
               </p>
            </div>
 
            <button 
              onClick={() => updateMutation.mutate()}
              disabled={updateMutation.isPending}
-             className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50"
+             className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-bold text-sm uppercase tracking-[0.15em] shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 disabled:opacity-50"
            >
               {updateMutation.isPending ? 'Updating...' : 'Save Changes'}
            </button>
@@ -664,12 +664,12 @@ function BalanceCard({ label, amount, currency, icon, color }: any) {
        <div className={`absolute top-0 right-0 p-4 md:p-6 opacity-20 ${color === 'emerald' ? 'text-emerald-200' : 'text-white'}`}>
           {icon}
        </div>
-       <p className={`text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] mb-2 md:mb-4 ${color === 'indigo' ? 'text-white/50' : 'text-slate-400'}`}>{label}</p>
+       <p className={`text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] mb-2 md:mb-4 ${color === 'indigo' ? 'text-white/50' : 'text-slate-400'}`}>{label}</p>
        <div className="flex items-baseline gap-1 md:gap-2">
-          <span className="text-xl md:text-3xl font-black tabular-nums tracking-tighter">
-             {amount.toLocaleString(undefined, { minimumFractionDigits: 3 })}
+          <span className="text-xl md:text-3xl font-bold tabular-nums tracking-tighter">
+             {amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </span>
-          <span className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest ${color === 'indigo' ? 'text-white/50' : 'text-slate-300'}`}>{currency}</span>
+          <span className={`text-[8px] md:text-[10px] font-bold uppercase tracking-widest ${color === 'indigo' ? 'text-white/50' : 'text-slate-300'}`}>{currency}</span>
        </div>
        <div className="mt-4 md:mt-6 flex items-center gap-1 md:gap-1.5 border border-white/10 w-fit px-2 py-0.5 md:py-1 rounded-lg">
           <div className={`w-1 h-1 rounded-full animate-pulse ${color === 'indigo' ? 'bg-white' : 'bg-emerald-500'}`} />
@@ -683,7 +683,7 @@ function CurrencyInput({ label, currency, value, onChange, readOnly, isPrimary }
   return (
     <div className={`p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all ${isPrimary ? 'bg-indigo-50/20 border-indigo-100' : 'bg-slate-50 border-slate-50'}`}>
        <div className="flex justify-between items-center mb-2 md:mb-4">
-          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
+          <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</span>
           <div className="flex items-center gap-1 bg-white px-2 py-0.5 md:py-1 rounded-lg md:rounded-xl shadow-sm border border-slate-100">
              <div className={`w-1.5 md:w-2 h-1.5 md:h-2 rounded-full ${currency === 'BDT' ? 'bg-indigo-500' : 'bg-red-500'}`} />
              <span className="text-[9px] md:text-[10px] font-bold text-slate-600">{currency}</span>
@@ -694,9 +694,16 @@ function CurrencyInput({ label, currency, value, onChange, readOnly, isPrimary }
             type="number" 
             value={value}
             onChange={(e) => onChange?.(e.target.value)}
+            onFocus={(e) => {
+              if (value === '0' || value === '0.00' || value === '') {
+                onChange?.('');
+              } else {
+                e.target.select();
+              }
+            }}
             readOnly={readOnly}
             placeholder="0.00"
-            className="bg-transparent border-none outline-none w-full text-2xl md:text-3xl font-black tabular-nums text-slate-900 placeholder:text-slate-200"
+            className="bg-transparent border-none outline-none w-full text-2xl md:text-3xl font-bold tabular-nums text-slate-900 placeholder:text-slate-200"
           />
        </div>
     </div>

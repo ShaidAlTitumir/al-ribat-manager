@@ -1,5 +1,6 @@
 // src/pages/Partners.tsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
 import { useBusiness } from '../context/BusinessContext';
 import { useAuth } from '../context/AuthContext';
@@ -9,7 +10,7 @@ import {
   Users, Plus, ArrowUpRight, DollarSign, Wallet, 
   UserPlus, UserMinus, Vote, ShieldCheck, CreditCard,
   Copy, Check, Trash2, X, ChevronRight, Edit, MoreVertical,
-  AlertCircle, Search
+  AlertCircle, Search, ArrowLeftRight
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatBDT, formatDate } from '../lib/utils';
@@ -21,6 +22,7 @@ export default function Partners() {
   const { business } = useBusiness();
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // States for Modals
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
@@ -85,6 +87,31 @@ export default function Partners() {
         .eq('business_id', business?.id)
         .order('created_at', { ascending: false });
       if (error) throw error;
+      return data;
+    },
+    enabled: !!business?.id,
+  });
+
+  // Fetch Transfers (Add this)
+  const { data: transfers = [], isLoading: isLoadingTransfers } = useQuery({
+    queryKey: ['partner_transfers', business?.id],
+    queryFn: async () => {
+      if (!business?.id) return [];
+      const { data, error } = await supabase
+        .from('partner_transfers')
+        .select(`
+          *,
+          from_partner:partners!from_partner_id(name),
+          to_partner:partners!to_partner_id(name)
+        `)
+        .eq('business_id', business?.id)
+        .order('transfer_date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) {
+        console.error('Partner Transfers Fetch Error:', error);
+        throw error;
+      }
       return data;
     },
     enabled: !!business?.id,
@@ -172,12 +199,61 @@ export default function Partners() {
     }
   });
 
-  const deleteCapitalMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('capital_contributions').delete().eq('id', id);
+  const deleteTransferMutation = useMutation({
+    mutationFn: async (transfer: any) => {
+      // 1. Reverse balance changes
+      await supabase.rpc('increment_partner_balance', { 
+        p_id: transfer.from_partner_id, 
+        amount_cents: transfer.amount_cents 
+      });
+      await supabase.rpc('increment_partner_balance', { 
+        p_id: transfer.to_partner_id, 
+        amount_cents: -transfer.amount_cents 
+      });
+
+      // 2. Delete the record
+      const { error } = await supabase.from('partner_transfers').delete().eq('id', transfer.id);
       if (error) throw error;
 
-      // Log Activity
+      // 3. Log Activity
+      await logActivity({
+        business_id: business?.id || '',
+        user_id: user?.id,
+        action: 'DELETE_TRANSFER',
+        details: {
+          title: `Voided Partner Transfer`,
+          sub: 'Internal Capital Flow Reversed',
+          amount: `${transfer.currency === 'RMB' ? '¥' : '৳'} ${transfer.amount_cents/100}`,
+          type: 'transfer'
+        }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['partner_transfers'] });
+      queryClient.invalidateQueries({ queryKey: ['partners'] });
+    },
+    onError: (err: any) => {
+      alert(err.message || "Failed to delete transfer");
+    }
+  });
+
+  const deleteCapitalMutation = useMutation({
+    mutationFn: async (contribution: any) => {
+      // 1. Deduct from balance
+      const amountCents = Math.round(parseFloat(contribution.amount) * 100);
+      const rate = business?.exchange_rate || 18.0;
+      const bdtAmountCents = contribution.currency === 'RMB' ? Math.round(amountCents * rate) : amountCents;
+
+      await supabase.rpc('increment_partner_balance', { 
+        p_id: contribution.partner_id, 
+        amount_cents: -bdtAmountCents 
+      });
+
+      // 2. Delete Record
+      const { error } = await supabase.from('capital_contributions').delete().eq('id', contribution.id);
+      if (error) throw error;
+
+      // 3. Log Activity
       await logActivity({
         business_id: business?.id || '',
         user_id: user?.id,
@@ -385,6 +461,72 @@ export default function Partners() {
                  </div>
               </section>
            </div>
+
+           {/* Section 3: Recent Logs (Newly added for transfers) */}
+           <section className="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[32px] border border-slate-100 shadow-sm col-span-1">
+              <div className="flex items-center justify-between mb-6">
+                 <h3 className="text-xs lg:text-sm font-bold text-slate-900 uppercase tracking-widest">Recent Logs</h3>
+                 <button 
+                   onClick={() => navigate('/transactions')}
+                   className="px-3 py-1.5 bg-slate-50 text-[9px] font-bold text-slate-400 uppercase tracking-widest rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors flex items-center gap-2"
+                 >
+                   View All <ArrowUpRight className="w-3 h-3" />
+                 </button>
+              </div>
+              <div className="space-y-4">
+                 {isLoadingTransfers ? (
+                   <div className="space-y-3">
+                     {[1, 2, 3].map(i => (
+                       <div key={i} className="h-14 bg-slate-50 animate-pulse rounded-xl" />
+                     ))}
+                   </div>
+                 ) : (
+                   <>
+                     {transfers.map((t: any) => (
+                       <div key={t.id} className="flex items-center justify-between group p-2 hover:bg-slate-50 rounded-xl transition-all">
+                         <div className="flex items-center gap-3">
+                           <div className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shrink-0">
+                             <ArrowLeftRight className="w-4 h-4" />
+                           </div>
+                           <div className="min-w-0">
+                             <p className="text-xs lg:text-sm font-bold text-slate-900 truncate">
+                               {t.from_partner?.name || 'Unknown'} <span className="text-slate-300 mx-1">→</span> {t.to_partner?.name || 'Unknown'}
+                             </p>
+                             <p className="text-[10px] lg:text-xs font-normal text-slate-400 uppercase tracking-tight">
+                               {formatDate(t.transfer_date || t.created_at)} • {t.method}
+                             </p>
+                           </div>
+                         </div>
+                         <div className="flex items-center gap-4">
+                           <div className="text-right">
+                             <p className="text-xs lg:text-sm font-mono font-bold text-slate-900">
+                               {t.currency === 'RMB' ? '¥' : '৳'}{(t.amount_cents / 100).toLocaleString()}
+                             </p>
+                           </div>
+                           <button 
+                             onClick={() => {
+                               if (window.confirm('Delete this transfer log? This will revert partner balances.')) {
+                                 deleteTransferMutation.mutate(t);
+                               }
+                             }}
+                             className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                             title="Delete Transfer"
+                           >
+                              <Trash2 className="w-3.5 h-3.5" />
+                           </button>
+                         </div>
+                       </div>
+                     ))}
+                     {transfers.length === 0 && (
+                       <div className="py-12 flex flex-col items-center justify-center text-slate-200">
+                          <ArrowLeftRight className="w-12 h-12 mb-3 opacity-10" />
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300">No transfers logged yet</p>
+                       </div>
+                     )}
+                   </>
+                 )}
+              </div>
+           </section>
         </div>
       </div>
       <AnimatePresence>
@@ -416,9 +558,9 @@ export default function Partners() {
         {capitalToDelete && (
           <DeleteConfirmModal 
             title="Delete Contribution?"
-            desc={`Delete contribution of ${capitalToDelete.currency} ${capitalToDelete.amount}?`}
+            desc={`Delete contribution of ${capitalToDelete.currency} ${capitalToDelete.amount}? This will decrease partner balance.`}
             onCancel={() => setCapitalToDelete(null)}
-            onConfirm={() => deleteCapitalMutation.mutate(capitalToDelete.id)}
+            onConfirm={() => deleteCapitalMutation.mutate(capitalToDelete)}
             isPending={deleteCapitalMutation.isPending}
           />
         )}
@@ -487,7 +629,7 @@ function PartnerCard({ partner, onEdit, onDelete, showOptions, setShowOptions, i
       </div>
 
       <div className="relative z-10 flex items-center justify-between pt-2 md:pt-3 border-t border-slate-50">
-         <button className="text-xs font-black text-blue-600 uppercase tracking-widest flex items-center gap-1 hover:gap-2 transition-all">
+         <button className="text-xs font-bold text-blue-600 uppercase tracking-widest flex items-center gap-1 hover:gap-2 transition-all">
            Details <ChevronRight className="w-2.5 h-2.5" />
          </button>
          <div className="flex -space-x-1">
@@ -751,6 +893,7 @@ function PartnerModal({ partner, partners, onClose }: any) {
                    placeholder="Partner's Display Name"
                    value={formData.name} 
                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                   onFocus={(e) => e.target.select()}
                    className="w-full h-12 px-4 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 transition-all text-sm font-medium"
                  />
               </div>
@@ -762,6 +905,7 @@ function PartnerModal({ partner, partners, onClose }: any) {
                      placeholder="email@example.com"
                      value={formData.email} 
                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                     onFocus={(e) => e.target.select()}
                      className="w-full h-12 px-4 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 transition-all text-sm font-medium"
                    />
                 </div>
@@ -772,6 +916,7 @@ function PartnerModal({ partner, partners, onClose }: any) {
                      placeholder="+880..."
                      value={formData.phone} 
                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                     onFocus={(e) => e.target.select()}
                      className="w-full h-12 px-4 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 transition-all text-sm font-medium"
                    />
                 </div>
@@ -783,6 +928,7 @@ function PartnerModal({ partner, partners, onClose }: any) {
                    placeholder="@username"
                    value={formData.username} 
                    onChange={(e) => setFormData({...formData, username: e.target.value})}
+                   onFocus={(e) => e.target.select()}
                    className="w-full h-12 px-4 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 transition-all text-sm font-medium"
                  />
               </div>
@@ -831,10 +977,23 @@ function CapitalModal({ contribution, partners, onClose }: any) {
       if (!formData.partner_id) throw new Error('Please select a partner');
       if (!formData.amount) throw new Error('Please enter an amount');
 
+      const amount = parseFloat(formData.amount);
+      const amountCents = Math.round(amount * 100);
+      const rate = business?.exchange_rate || 18.0;
+      const bdtAmountCents = formData.currency === 'RMB' ? Math.round(amountCents * rate) : amountCents;
+
       if (contribution) {
+        // 1. Revert Old
+        const oldAmountCents = Math.round(parseFloat(contribution.amount) * 100);
+        const oldBdtAmountCents = contribution.currency === 'RMB' ? Math.round(oldAmountCents * rate) : oldAmountCents;
+        await supabase.rpc('increment_partner_balance', { p_id: contribution.partner_id, amount_cents: -oldBdtAmountCents });
+
+        // 2. Apply New
+        await supabase.rpc('increment_partner_balance', { p_id: formData.partner_id, amount_cents: bdtAmountCents });
+
         const { error } = await supabase.from('capital_contributions').update({
           partner_id: formData.partner_id,
-          amount: parseFloat(formData.amount),
+          amount: amount,
           currency: formData.currency,
           notes: formData.notes
         }).eq('id', contribution.id);
@@ -852,10 +1011,13 @@ function CapitalModal({ contribution, partners, onClose }: any) {
           }
         });
       } else {
+        // Apply New Balance
+        await supabase.rpc('increment_partner_balance', { p_id: formData.partner_id, amount_cents: bdtAmountCents });
+
         const { error } = await supabase.from('capital_contributions').insert({
           business_id: business?.id,
           partner_id: formData.partner_id,
-          amount: parseFloat(formData.amount),
+          amount: amount,
           currency: formData.currency,
           notes: formData.notes
         });
@@ -924,6 +1086,7 @@ function CapitalModal({ contribution, partners, onClose }: any) {
                   type="number" 
                   value={formData.amount} 
                   onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                  onFocus={(e) => e.target.select()}
                   className="w-full h-12 px-4 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 transition-all text-sm font-medium"
                 />
               </div>
@@ -1012,7 +1175,7 @@ function DeletePartnerModal({ partner, isSelfRemoving, isCreatorRemovingSelf, on
               onClick={() => onConfirm(forceDelete)}
               disabled={isPending}
               className={`
-                w-full h-14 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95 disabled:opacity-50
+                w-full h-14 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl transition-all active:scale-95 disabled:opacity-50
                 ${isSelfRemoving 
                    ? 'bg-orange-500 shadow-orange-100' 
                    : (forceDelete ? 'bg-red-600 shadow-red-200' : 'bg-red-500 shadow-red-100')}
@@ -1046,7 +1209,7 @@ function DeleteConfirmModal({ title, desc, onCancel, onConfirm, isPending }: any
             <button 
               onClick={onConfirm}
               disabled={isPending}
-              className="w-full h-14 bg-red-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-200 transition-all active:scale-95 disabled:opacity-50"
+              className="w-full h-14 bg-red-500 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-red-200 transition-all active:scale-95 disabled:opacity-50"
             >
               {isPending ? 'Deleting...' : 'Yes, Delete'}
             </button>

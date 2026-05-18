@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS public.business_members (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ALTER TABLE public.business_members ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES public.businesses(id) ON DELETE CASCADE;
-ALTER TABLE public.business_members ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.business_members ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 ALTER TABLE public.business_members ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
 -- Add unique constraint if not exists
 DO $$ BEGIN
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS public.partners (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ALTER TABLE public.partners ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES public.businesses(id) ON DELETE CASCADE;
-ALTER TABLE public.partners ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id);
+ALTER TABLE public.partners ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id);
 ALTER TABLE public.partners ADD COLUMN IF NOT EXISTS email TEXT;
 ALTER TABLE public.partners ADD COLUMN IF NOT EXISTS phone TEXT;
 ALTER TABLE public.partners ADD COLUMN IF NOT EXISTS username TEXT;
@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS public.customers (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES public.businesses(id) ON DELETE CASCADE;
-ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id);
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id);
 ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS name TEXT NOT NULL;
 ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS shop_name TEXT;
 ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS phone TEXT;
@@ -180,7 +180,7 @@ CREATE TABLE IF NOT EXISTS public.sales (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
-ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id);
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id);
 ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES public.businesses(id) ON DELETE CASCADE;
 ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS invoice_no TEXT NOT NULL;
 ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES public.customers(id);
@@ -202,7 +202,7 @@ CREATE TABLE IF NOT EXISTS public.customer_ledger (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ALTER TABLE public.customer_ledger ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES public.businesses(id) ON DELETE CASCADE;
-ALTER TABLE public.customer_ledger ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id);
+ALTER TABLE public.customer_ledger ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id);
 ALTER TABLE public.customer_ledger ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES public.customers(id) ON DELETE CASCADE;
 ALTER TABLE public.customer_ledger ADD COLUMN IF NOT EXISTS transaction_type TEXT NOT NULL CHECK (transaction_type IN ('sale', 'payment', 'return'));
 ALTER TABLE public.customer_ledger ADD COLUMN IF NOT EXISTS amount_cents BIGINT NOT NULL;
@@ -225,7 +225,7 @@ CREATE TABLE IF NOT EXISTS public.join_requests (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ALTER TABLE public.join_requests ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES public.businesses(id) ON DELETE CASCADE;
-ALTER TABLE public.join_requests ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.join_requests ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 ALTER TABLE public.join_requests ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected'));
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'join_requests_business_id_user_id_key') THEN
@@ -239,7 +239,7 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES public.businesses(id) ON DELETE CASCADE;
-ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE;
 ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS title TEXT NOT NULL;
 ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS message TEXT NOT NULL;
 ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS type TEXT;
@@ -251,7 +251,7 @@ CREATE TABLE IF NOT EXISTS public.activity_log (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 ALTER TABLE public.activity_log ADD COLUMN IF NOT EXISTS business_id UUID REFERENCES public.businesses(id) ON DELETE CASCADE;
-ALTER TABLE public.activity_log ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id);
+ALTER TABLE public.activity_log ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES public.profiles(id);
 ALTER TABLE public.activity_log ADD COLUMN IF NOT EXISTS action TEXT NOT NULL;
 ALTER TABLE public.activity_log ADD COLUMN IF NOT EXISTS details JSONB;
 
@@ -277,8 +277,32 @@ CREATE TABLE IF NOT EXISTS public.partner_transfers (
   amount_cents BIGINT NOT NULL,
   currency TEXT NOT NULL CHECK (currency IN ('BDT', 'RMB')),
   method TEXT DEFAULT 'cash',
-  notes TEXT
+  notes TEXT,
+  transfer_date DATE DEFAULT CURRENT_DATE,
+  user_id UUID REFERENCES public.profiles(id)
 );
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'partner_transfers' AND column_name = 'transfer_date') THEN
+    ALTER TABLE public.partner_transfers ADD COLUMN transfer_date DATE DEFAULT CURRENT_DATE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'partner_transfers' AND column_name = 'business_id') THEN
+    ALTER TABLE public.partner_transfers ADD COLUMN business_id UUID REFERENCES public.businesses(id) ON DELETE CASCADE;
+  END IF;
+  
+  -- Ensure all records have a business_id (Backfill any orphans)
+  UPDATE public.partner_transfers SET business_id = (SELECT id FROM public.businesses LIMIT 1) WHERE business_id IS NULL AND EXISTS (SELECT 1 FROM public.businesses);
+
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'partner_transfers' AND column_name = 'method') THEN
+    ALTER TABLE public.partner_transfers ADD COLUMN method TEXT DEFAULT 'cash';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'partner_transfers' AND column_name = 'notes') THEN
+    ALTER TABLE public.partner_transfers ADD COLUMN notes TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'partner_transfers' AND column_name = 'user_id') THEN
+    ALTER TABLE public.partner_transfers ADD COLUMN user_id UUID REFERENCES public.profiles(id);
+  END IF;
+END $$;
 
 -- SECURITY HELPERS
 
@@ -377,6 +401,9 @@ ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.join_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.activity_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.partner_transfers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.exchanges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.partner_profit_distributions ENABLE ROW LEVEL SECURITY;
 
 -- SPECIFIC POLICIES
 DROP POLICY IF EXISTS "Users can create businesses" ON public.businesses;

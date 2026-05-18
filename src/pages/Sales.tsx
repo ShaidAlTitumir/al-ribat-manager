@@ -46,14 +46,14 @@ export default function Sales() {
   useEffect(() => {
     const q = parseFloat(quantity) || 0;
     const p = parseFloat(unitPrice) || 0;
-    setTotalPrice((q * p).toString());
+    setTotalPrice((q * p).toFixed(2));
   }, [quantity, unitPrice]);
 
   const handleTotalPriceChange = (val: string) => {
     setTotalPrice(val);
     const q = parseFloat(quantity) || 1;
     const tp = parseFloat(val) || 0;
-    setUnitPrice((tp / q).toString());
+    setUnitPrice((tp / q).toFixed(2));
   };
 
   // Edit/Delete State
@@ -228,7 +228,7 @@ export default function Sales() {
                 partner_id: p.id,
                 sale_id: sale.id,
                 amount_cents: Math.floor(share),
-                notes: `Profit from Sale ${invoiceNo} (Cap share: ${(shareRatio * 100).toFixed(3)}%)`
+                notes: `Profit from Sale ${invoiceNo} (Cap share: ${(shareRatio * 100).toFixed(2)}%)`
               };
             }).filter(d => d.amount_cents > 0);
 
@@ -480,7 +480,7 @@ export default function Sales() {
               {/* Summary Sticky Section */}
               <div className="space-y-4">
                  <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-5 sticky top-16">
-                    <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest border-b border-slate-50 pb-3">Checkout</h3>
+                    <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest border-b border-slate-50 pb-3">Checkout</h3>
                     
                     <div className="space-y-2.5">
                        <SummaryRow label="Subtotal" value={formatBDT(subtotal * 100)} />
@@ -508,15 +508,15 @@ export default function Sales() {
                     <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
                        <div className="flex items-center gap-2">
                           <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
-                          <span className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Profit</span>
+                          <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-widest">Profit</span>
                        </div>
-                       <span className={`font-mono font-black text-xs ${estProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                       <span className={`font-mono font-bold text-xs ${estProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                          ৳{(estProfit / 100).toLocaleString()}
                        </span>
                     </div>
 
                     {error && (
-                      <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2 text-red-600 text-[10px] font-black uppercase">
+                      <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2 text-red-600 text-[10px] font-bold uppercase">
                         <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                         {error}
                       </div>
@@ -525,7 +525,7 @@ export default function Sales() {
                     <button 
                       onClick={() => business ? mutation.mutate() : navigate('/onboarding')}
                       disabled={mutation.isPending}
-                      className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-[0.15em] shadow-lg shadow-blue-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                      className="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-[0.15em] shadow-lg shadow-blue-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                     >
                       <CheckCircle2 className="w-4 h-4" />
                       {mutation.isPending ? 'Working...' : (business ? 'Finish Sale' : 'Setup Business')}
@@ -733,7 +733,7 @@ export default function Sales() {
                     <button 
                       onClick={() => deleteMutation.mutate(saleToDelete)}
                       disabled={deleteMutation.isPending}
-                      className="w-full h-14 bg-red-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-200 transition-all active:scale-95 disabled:opacity-50"
+                      className="w-full h-14 bg-red-500 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-red-200 transition-all active:scale-95 disabled:opacity-50"
                     >
                       {deleteMutation.isPending ? 'Deleting...' : 'Yes, Delete Sale'}
                     </button>
@@ -901,7 +901,7 @@ function EditSaleModal({ sale, customers, items, onClose }: any) {
   useEffect(() => {
     const q = parseFloat(formData.quantity) || 0;
     const p = parseFloat(formData.unit_price) || 0;
-    setFormData(prev => ({ ...prev, total_price: (q * p).toString() }));
+    setFormData(prev => ({ ...prev, total_price: (q * p).toFixed(2) }));
   }, [formData.quantity, formData.unit_price]);
 
   const handleEditTotalPriceChange = (val: string) => {
@@ -910,7 +910,7 @@ function EditSaleModal({ sale, customers, items, onClose }: any) {
     setFormData(prev => ({ 
       ...prev, 
       total_price: val,
-      unit_price: (tp / q).toString()
+      unit_price: (tp / q).toFixed(2)
     }));
   };
 
@@ -1074,6 +1074,17 @@ function Input({ label, value, onChange, type = "text", placeholder }: any) {
         className="w-full bg-slate-50 border border-slate-100 h-10 px-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-base md:text-sm font-medium"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onFocus={(e) => {
+          onChange('');
+        }}
+        onBlur={(e) => {
+          if (type === 'number' && value) {
+            const num = parseFloat(value);
+            if (!isNaN(num)) {
+              onChange(num.toFixed(2));
+            }
+          }
+        }}
         placeholder={placeholder}
       />
     </div>
@@ -1103,7 +1114,7 @@ function SelectInput({ label, value, onChange, options, placeholder }: any) {
 
 function SummaryRow({ label, value, total, color }: any) {
   return (
-    <div className={`flex justify-between items-center ${total ? 'text-[13px] font-black uppercase tracking-tight' : 'text-[11px] font-bold text-slate-500'}`}>
+    <div className={`flex justify-between items-center ${total ? 'text-[13px] font-bold uppercase tracking-tight' : 'text-[11px] font-bold text-slate-500'}`}>
       <span className={total ? 'text-slate-900' : ''}>{label}</span>
       <span className={color || (total ? 'text-slate-900 font-mono' : 'text-slate-900 font-bold')}>{value}</span>
     </div>

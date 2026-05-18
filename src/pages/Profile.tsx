@@ -9,7 +9,7 @@ import MainLayout from '../components/layout/MainLayout';
 
 export default function Profile() {
   const { user, profile, refreshProfile, signOut } = useAuth();
-  const { business, refreshBusiness } = useBusiness();
+  const { business, userRole, refreshBusiness } = useBusiness();
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [username, setUsername] = useState(profile?.username || '');
   const [isUsernameValid, setIsUsernameValid] = useState(true);
@@ -204,7 +204,7 @@ export default function Profile() {
                 </p>
                 <div className="mt-2 inline-flex items-center px-2 py-0.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest">
                   <Shield className="w-2 h-2 mr-1.5" />
-                  {profile?.role || 'User'}
+                  {userRole || 'User'}
                 </div>
               </div>
 
@@ -326,7 +326,7 @@ export default function Profile() {
             </form>
             
             {/* Business Settings Section */}
-            {(profile?.role === 'owner' || profile?.role === 'admin') && (
+            {(userRole === 'owner' || userRole === 'admin') && (
               <form onSubmit={handleUpdateBusiness} className="bg-white rounded-[28px] border border-slate-100 shadow-sm overflow-hidden text-left font-sans">
                 <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/20">
                   <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-2">
