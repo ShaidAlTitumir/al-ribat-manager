@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Package, Search, Plus, Filter, ArrowUpRight, 
   Warehouse, AlertCircle, Trash2, Edit2, History,
-  ChevronRight, Box, Tag, Truck, LucideIcon, X, TrendingUp
+  ChevronRight, Box, Tag, Truck, LucideIcon, X, TrendingUp, ArrowLeft
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatBDT } from '../lib/utils';
@@ -526,10 +526,12 @@ function EditItemModal({ item, onClose }: { item: InventoryItem, onClose: () => 
               <FormRow label="Batch Weight (kg)" type="number" step="0.01" value={formData.totalWeight} onChange={handleTotalWeightChange} />
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+            <div className="space-y-4 text-left pb-2 border-b border-slate-50/50">
               <FormRow label="Buying Cost (RMB Total)" type="number" value={formData.totalBuyingRmb} onChange={handleTotalBuyingRmbChange} />
-              <FormRow label="Unit Cost (RMB)" type="number" value={formData.unitBuyingRmb} onChange={handleUnitBuyingRmbChange} />
-              <FormRow label="Daily RMB Rate" type="number" value={formData.exchangeRate} onChange={(v: string) => setFormData({...formData, exchangeRate: v})} />
+              <div className="grid grid-cols-2 gap-4">
+                <FormRow label="Unit Cost (RMB)" type="number" value={formData.unitBuyingRmb} onChange={handleUnitBuyingRmbChange} />
+                <FormRow label="Daily RMB Rate" type="number" value={formData.exchangeRate} onChange={(v: string) => setFormData({...formData, exchangeRate: v})} />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
@@ -719,7 +721,7 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
         { data: ledger },
         { data: purchases }
       ] = await Promise.all([
-        supabase.from('sales').select('received_now_bdt_cents').eq('business_id', business.id),
+        supabase.from('sales').select('item_id, total_cents, due_cents, cost_rate_cents, received_now_bdt_cents').eq('business_id', business.id),
         supabase.from('expenses').select('amount_cents, currency').eq('business_id', business.id),
         supabase.from('capital_contributions').select('amount, currency').eq('business_id', business.id),
         supabase.from('partner_profit_distributions').select('amount_cents').eq('business_id', business.id),
@@ -732,7 +734,14 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
       let rmb = 0;
 
       // Income
-      sales?.forEach(s => bdt += (s.received_now_bdt_cents || 0));
+      sales?.forEach(s => {
+        bdt += (s.received_now_bdt_cents || 0);
+        if (!s.item_id) {
+          const collectedCents = (s.total_cents || 0) - (s.due_cents || 0);
+          const withheldCostCents = Math.min(collectedCents, s.cost_rate_cents || 0);
+          bdt -= withheldCostCents;
+        }
+      });
       ledger?.forEach(l => {
         if (l.transaction_type === 'payment') bdt += (l.amount_cents || 0);
         else if (l.transaction_type === 'return') bdt -= (l.amount_cents || 0);
@@ -883,9 +892,9 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
             className="group flex items-center gap-3 text-slate-400 hover:text-slate-900 transition-colors"
           >
             <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-slate-100 transition-colors">
-              <X className="w-4 h-4 rotate-45" />
+              <ArrowLeft className="w-4 h-4" />
             </div>
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em]">Exit</span>
+            <span className="text-[9px] font-bold uppercase tracking-[0.2em]">Back</span>
           </button>
           <div className="text-right">
              <h2 className="text-lg font-bold text-slate-900 tracking-tight">ADD NEW ITEM</h2>
@@ -972,10 +981,12 @@ function AddItemView({ onBack, items }: { onBack: () => void, items: InventoryIt
                    <h3 className="text-xs lg:text-sm font-bold uppercase tracking-widest text-slate-900">Costing & Logistics</h3>
                 </div>
                 <div className="p-4 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pb-2 border-b border-slate-50/50">
+                  <div className="space-y-3 pb-2 border-b border-slate-50/50">
                     <FormRow label="Buying Cost (RMB Total)" type="number" value={formData.totalBuyingRmb} onChange={handleTotalBuyingRmbChange} />
-                    <FormRow label="Unit Cost (RMB)" type="number" value={formData.unitBuyingRmb} onChange={handleUnitBuyingRmbChange} />
-                    <FormRow label="Daily RMB Rate" type="number" step="0.01" value={formData.rmbRate} onChange={(v:any) => setFormData({...formData, rmbRate: v})} />
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormRow label="Unit Cost (RMB)" type="number" value={formData.unitBuyingRmb} onChange={handleUnitBuyingRmbChange} />
+                      <FormRow label="Daily RMB Rate" type="number" step="0.01" value={formData.rmbRate} onChange={(v:any) => setFormData({...formData, rmbRate: v})} />
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1153,7 +1164,7 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
         { data: ledger },
         { data: purchases }
       ] = await Promise.all([
-        supabase.from('sales').select('received_now_bdt_cents').eq('business_id', business.id),
+        supabase.from('sales').select('item_id, total_cents, due_cents, cost_rate_cents, received_now_bdt_cents').eq('business_id', business.id),
         supabase.from('expenses').select('amount_cents, currency').eq('business_id', business.id),
         supabase.from('capital_contributions').select('amount, currency').eq('business_id', business.id),
         supabase.from('partner_profit_distributions').select('amount_cents').eq('business_id', business.id),
@@ -1165,7 +1176,14 @@ function AddPurchaseModal({ item, onClose }: { item: InventoryItem, onClose: () 
       let bdt = 0;
       let rmb = 0;
 
-      sales?.forEach(s => bdt += (s.received_now_bdt_cents || 0));
+      sales?.forEach(s => {
+        bdt += (s.received_now_bdt_cents || 0);
+        if (!s.item_id) {
+          const collectedCents = (s.total_cents || 0) - (s.due_cents || 0);
+          const withheldCostCents = Math.min(collectedCents, s.cost_rate_cents || 0);
+          bdt -= withheldCostCents;
+        }
+      });
       ledger?.forEach(l => {
         if (l.transaction_type === 'payment') bdt += (l.amount_cents || 0);
         else if (l.transaction_type === 'return') bdt -= (l.amount_cents || 0);
@@ -1597,6 +1615,135 @@ function DeleteConfirmModal({ item, onClose }: { item: InventoryItem, onClose: (
           >
             Cancel
           </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function QuickAddCustomerModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: (id: string) => void }) {
+  const { business } = useBusiness();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState({ name: '', phone: '', address: '' });
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async (data: { name: string, phone: string, address: string }) => {
+      if (!business?.id) throw new Error("Business context not found");
+      if (!data.name.trim()) throw new Error("Name is required");
+      if (data.phone && data.phone.replace(/\D/g, '').length < 11) {
+        throw new Error("Phone number must be at least 11 digits");
+      }
+
+      const { data: newCustomer, error } = await supabase
+        .from('customers')
+        .insert({
+          business_id: business.id,
+          user_id: user?.id,
+          name: data.name,
+          phone: data.phone,
+          address: data.address,
+          total_due_cents: 0
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await logActivity({
+        business_id: business.id,
+        user_id: user?.id,
+        action: 'ADD_CUSTOMER',
+        details: {
+          title: `New Customer: ${data.name}`,
+          sub: `Quick added from service`,
+          amount: 'JOINED',
+          type: 'customer'
+        }
+      });
+
+      return newCustomer;
+    },
+    onSuccess: (newCustomer) => {
+      queryClient.invalidateQueries({ queryKey: ['customers-srv'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
+      onSuccess(newCustomer.id);
+    },
+    onError: (err: any) => setError(err.message)
+  });
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 text-left">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/60 backdrop-blur-md" />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl relative overflow-hidden z-10 p-6"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Quick Add Customer</h2>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 text-red-600 text-[10px] font-bold uppercase rounded-xl border border-red-100 flex items-center gap-2">
+              <AlertCircle className="w-3.5 h-3.5" /> {error}
+            </div>
+          )}
+          
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Full Name *</label>
+            <input 
+              type="text" 
+              placeholder="Customer name" 
+              value={formData.name} 
+              onChange={e => setFormData({...formData, name: e.target.value})}
+              className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Phone Number</label>
+            <input 
+              type="text" 
+              placeholder="01XXXXXXXXX" 
+              value={formData.phone} 
+              onChange={e => setFormData({...formData, phone: e.target.value})}
+              className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Address</label>
+            <input 
+              type="text" 
+              placeholder="Customer address" 
+              value={formData.address} 
+              onChange={e => setFormData({...formData, address: e.target.value})}
+              className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button 
+              onClick={onClose}
+              className="flex-1 py-3 bg-slate-50 text-slate-500 rounded-xl font-bold text-[10px] uppercase tracking-widest animate-none"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={() => mutation.mutate(formData)}
+              disabled={mutation.isPending}
+              className="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-blue-100 animate-none"
+            >
+              {mutation.isPending ? 'Saving...' : 'Save & Select'}
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>

@@ -13,7 +13,9 @@ import {
   ShoppingBag,
   TrendingUp,
   Download,
-  History as HistoryIcon
+  History as HistoryIcon,
+  ArrowLeft,
+  Box
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatBDT, formatDate } from '../lib/utils';
@@ -26,7 +28,7 @@ export default function Sales() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'new' | 'history'>('new');
+  const [activeTab, setActiveTab] = useState<'new' | 'service' | 'history'>('new');
   
   // New Sale Form State
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
@@ -291,7 +293,9 @@ export default function Sales() {
   const deleteMutation = useMutation({
     mutationFn: async (sale: any) => {
       // 1. Restore inventory
-      await supabase.rpc('increment_inventory_stock', { item_id: sale.item_id, amount: sale.quantity });
+      if (sale.item_id) {
+        await supabase.rpc('increment_inventory_stock', { item_id: sale.item_id, amount: sale.quantity });
+      }
       
       // 2. Remove ledger entry
       await supabase.from('customer_ledger').delete().eq('reference_id', sale.id);
@@ -355,14 +359,21 @@ export default function Sales() {
         <div className="flex border-b border-slate-100 mb-4">
           <button 
             onClick={() => setActiveTab('new')}
-            className={`flex-1 py-3 text-sm font-semibold uppercase tracking-widest transition-all relative ${activeTab === 'new' ? 'text-blue-600' : 'text-slate-400'}`}
+            className={`flex-1 py-3 text-xs md:text-sm font-semibold uppercase tracking-widest transition-all relative ${activeTab === 'new' ? 'text-blue-600' : 'text-slate-400'}`}
           >
             New Sale
             {activeTab === 'new' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />}
           </button>
           <button 
+            onClick={() => setActiveTab('service')}
+            className={`flex-1 py-3 text-xs md:text-sm font-semibold uppercase tracking-widest transition-all relative ${activeTab === 'service' ? 'text-blue-600' : 'text-slate-400'}`}
+          >
+            Service / Custom Sale
+            {activeTab === 'service' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />}
+          </button>
+          <button 
             onClick={() => setActiveTab('history')}
-            className={`flex-1 py-3 text-sm font-semibold uppercase tracking-widest transition-all relative ${activeTab === 'history' ? 'text-blue-600' : 'text-slate-400'}`}
+            className={`flex-1 py-3 text-xs md:text-sm font-semibold uppercase tracking-widest transition-all relative ${activeTab === 'history' ? 'text-blue-600' : 'text-slate-400'}`}
           >
             Order History
             {activeTab === 'history' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />}
@@ -535,6 +546,8 @@ export default function Sales() {
                  </section>
               </div>
             </motion.div>
+          ) : activeTab === 'service' ? (
+            <AddServiceView onBack={() => setActiveTab('history')} customers={customers} />
           ) : (
             <motion.div 
               key="history"
@@ -588,7 +601,13 @@ export default function Sales() {
                              date: sale.created_at, // Pass ISO string
                              items: [
                                {
-                                 name: sale.inventory_items?.name || 'Product',
+                                 name: sale.inventory_items?.name || (
+                                   sale.notes ? (
+                                     sale.notes.startsWith('[Service]') 
+                                       ? sale.notes.replace('[Service]', '').split(' - ')[0].trim() 
+                                       : sale.notes
+                                   ) : 'Custom Sale'
+                                 ),
                                  quantity: sale.quantity,
                                  unitPrice: sale.unit_price_bdt_cents / 100,
                                  total: (sale.unit_price_bdt_cents * sale.quantity) / 100
@@ -643,7 +662,13 @@ export default function Sales() {
                                      date: sale.created_at, // Pass raw ISO
                                      items: [
                                        {
-                                         name: sale.inventory_items?.name || 'Product',
+                                         name: sale.inventory_items?.name || (
+                                  sale.notes ? (
+                                    sale.notes.startsWith('[Service]') 
+                                      ? sale.notes.replace('[Service]', '').split(' - ')[0].trim() 
+                                      : sale.notes
+                                  ) : 'Custom Sale'
+                                ),
                                          quantity: sale.quantity,
                                          unitPrice: sale.unit_price_bdt_cents / 100,
                                          total: (sale.unit_price_bdt_cents * sale.quantity) / 100
@@ -764,6 +789,411 @@ export default function Sales() {
         </AnimatePresence>
       </div>
     </MainLayout>
+  );
+}
+
+function AddServiceView({ onBack, customers = [] }: { onBack: () => void, customers?: any[] }) {
+  const { business } = useBusiness();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [serviceName, setServiceName] = useState('');
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [totalCost, setTotalCost] = useState('');
+  const [sellingPrice, setSellingPrice] = useState('');
+  const [discount, setDiscount] = useState('');
+  const [receivedNow, setReceivedNow] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [notes, setNotes] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
+
+  const parsedCost = parseFloat(totalCost) || 0;
+  const parsedSelling = parseFloat(sellingPrice) || 0;
+  const parsedDiscount = parseFloat(discount) || 0;
+  const parsedReceived = parseFloat(receivedNow) || 0;
+
+  const calculatedTotal = Math.max(0, parsedSelling - parsedDiscount);
+  const calculatedDue = Math.max(0, calculatedTotal - parsedReceived);
+  const calculatedProfit = calculatedTotal - parsedCost;
+  const profitMargin = calculatedTotal <= 0 ? 0 : (calculatedProfit / calculatedTotal) * 100;
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      setError(null);
+      setSuccess(null);
+      
+      if (!serviceName.trim()) throw new Error('Please enter a service or custom sale name');
+      if (parsedSelling <= 0) throw new Error('Selling price must be greater than zero');
+      if (!business?.id) throw new Error('Business context not found');
+
+      const invoiceNo = `SRV-${Date.now()}`;
+
+      // 1. Create Sale (item_id is null for custom service/sale)
+      const { data: sale, error: sError } = await supabase.from('sales').insert({
+        business_id: business.id,
+        user_id: user?.id,
+        invoice_no: invoiceNo,
+        customer_id: selectedCustomerId || null,
+        item_id: null,
+        quantity: 1,
+        unit_price_bdt_cents: Math.round(parsedSelling * 100),
+        discount_cents: Math.round(parsedDiscount * 100),
+        total_cents: Math.round(calculatedTotal * 100),
+        received_now_bdt_cents: Math.round(parsedReceived * 100),
+        due_cents: Math.round(calculatedDue * 100),
+        cost_rate_cents: Math.round(parsedCost * 100),
+        expected_profit_cents: Math.round(calculatedProfit * 100),
+        payment_method: paymentMethod,
+        notes: `[Service] ${serviceName}${notes ? ' - ' + notes : ''}`
+      }).select().single();
+
+      if (sError) throw sError;
+
+      // 2. Update Customer Ledger if needed
+      if (calculatedDue > 0 && selectedCustomerId) {
+        const { error: ledgerError } = await supabase.from('customer_ledger').insert({
+          business_id: business.id,
+          user_id: user?.id,
+          customer_id: selectedCustomerId,
+          transaction_type: 'sale',
+          amount_cents: Math.round(calculatedDue * 100),
+          reference_id: sale.id
+        });
+        if (ledgerError) throw ledgerError;
+
+        // Update Customer Total Due
+        const currentCustomer = customers.find((c: any) => c.id === selectedCustomerId);
+        if (currentCustomer) {
+          const newDue = (currentCustomer.total_due_cents || 0) + Math.round(calculatedDue * 100);
+          await supabase.from('customers').update({ total_due_cents: newDue }).eq('id', selectedCustomerId);
+        }
+      }
+
+      // 3. Distribution
+      if (calculatedProfit > 0) {
+        const profitCents = Math.round(calculatedProfit * 100);
+        const [
+          { data: currentPartners },
+          { data: capitalContributions }
+        ] = await Promise.all([
+          supabase.from('partners').select('*').eq('business_id', business.id).eq('status', 'active'),
+          supabase.from('capital_contributions').select('*').eq('business_id', business.id)
+        ]);
+
+        if (currentPartners && currentPartners.length > 0) {
+          const partnerCapitalMap: Record<string, number> = {};
+          let totalBusinessCapital = 0;
+
+          capitalContributions?.forEach(cap => {
+            const amount = parseFloat(cap.amount || '0');
+            const amountBDT = cap.currency === 'RMB' ? amount * (business.exchange_rate || 1) : amount;
+            partnerCapitalMap[cap.partner_id] = (partnerCapitalMap[cap.partner_id] || 0) + amountBDT;
+            totalBusinessCapital += amountBDT;
+          });
+
+          const distributions = currentPartners.map(p => {
+            const partnerCapital = partnerCapitalMap[p.id] || 0;
+            const shareRatio = totalBusinessCapital > 0 ? partnerCapital / totalBusinessCapital : 0;
+            const share = shareRatio * profitCents;
+            
+            return {
+              business_id: business.id,
+              partner_id: p.id,
+              sale_id: sale.id,
+              amount_cents: Math.floor(share),
+              notes: `Profit from Service ${invoiceNo} (Cap share: ${(shareRatio * 100).toFixed(2)}%)`
+            };
+          }).filter(d => d.amount_cents > 0);
+
+          if (distributions.length > 0) {
+            await supabase.from('partner_profit_distributions').insert(distributions);
+            for (const dist of distributions) {
+              await supabase.rpc('increment_partner_balance', { 
+                p_id: dist.partner_id, 
+                amount_cents: dist.amount_cents 
+              });
+            }
+
+            await supabase.from('sales').update({
+              distributed_profit_cents: profitCents
+            }).eq('id', sale.id);
+          }
+        }
+      }
+
+      // 4. Log text
+      await logActivity({
+        business_id: business.id,
+        user_id: user?.id,
+        action: 'NEW_SALE',
+        details: {
+          title: `Service/Custom Sale: ${serviceName}`,
+          sub: `Invoice #${invoiceNo}`,
+          amount: `+৳${calculatedTotal.toLocaleString()}`,
+          type: 'sale'
+        }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
+      setSuccess('Service/Custom sale added successfully!');
+      setTimeout(() => {
+        onBack();
+      }, 1500);
+    },
+    onError: (err: any) => {
+      setError(err.message || 'Failed to add service');
+    }
+  });
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -15 }}
+      className="space-y-4 text-slate-800"
+    >
+
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left Form Column */}
+        <div className="lg:col-span-2 space-y-3">
+          {success && (
+            <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3 text-emerald-800 text-sm font-semibold shadow-sm">
+              <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center animate-bounce">✓</div>
+              {success}
+            </div>
+          )}
+
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-50 flex items-center gap-2">
+              <div className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
+                <Box className="w-3.5 h-3.5" />
+              </div>
+              <h2 className="text-xs lg:text-sm font-bold uppercase tracking-widest text-slate-900">Service / Sale Details</h2>
+            </div>
+            
+            <div className="p-4 space-y-4 text-left">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Service / Custom Item Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Jewelry delivery & packaging cargo" 
+                    value={serviceName} 
+                    onChange={e => setServiceName(e.target.value)}
+                    onFocus={() => { if (serviceName === 'e.g. Jewelry delivery & packaging cargo') setServiceName(''); }}
+                    className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Customer (Optional)</label>
+                  <div className="flex gap-2">
+                    <select 
+                      value={selectedCustomerId} 
+                      onChange={e => setSelectedCustomerId(e.target.value)}
+                      className="flex-1 bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+                    >
+                      <option value="">Walk-in Customer</option>
+                      {customers.map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.name} {c.shop_name ? `(${c.shop_name})` : ''}</option>
+                      ))}
+                    </select>
+                    <button 
+                      type="button"
+                      onClick={() => setIsAddCustomerModalOpen(true)}
+                      className="h-10 px-3 bg-blue-50 text-blue-600 rounded-xl border border-slate-100 hover:bg-blue-100 transition-all flex items-center justify-center shrink-0 mb-[1px]"
+                      title="Add New Customer"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Total Cost (৳ BDT)</label>
+                  <input 
+                    type="number" 
+                    placeholder="0.00"
+                    value={totalCost} 
+                    onChange={e => setTotalCost(e.target.value)}
+                    onFocus={() => { if (totalCost === '0.00' || totalCost === '0') setTotalCost(''); }}
+                    onBlur={() => { if (!totalCost) setTotalCost(''); else { const num = parseFloat(totalCost); if (!isNaN(num)) setTotalCost(num.toFixed(2)); } }}
+                    className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Selling Price (৳ BDT)</label>
+                  <input 
+                    type="number" 
+                    placeholder="0.00"
+                    value={sellingPrice} 
+                    onChange={e => setSellingPrice(e.target.value)}
+                    onFocus={() => { if (sellingPrice === '0.00' || sellingPrice === '0') setSellingPrice(''); }}
+                    onBlur={() => { if (!sellingPrice) setSellingPrice(''); else { const num = parseFloat(sellingPrice); if (!isNaN(num)) setSellingPrice(num.toFixed(2)); } }}
+                    className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Discount (৳ BDT)</label>
+                  <input 
+                    type="number" 
+                    placeholder="0.00"
+                    value={discount} 
+                    onChange={e => setDiscount(e.target.value)}
+                    onFocus={() => { if (discount === '0.00' || discount === '0') setDiscount(''); }}
+                    onBlur={() => { if (!discount) setDiscount(''); else { const num = parseFloat(discount); if (!isNaN(num)) setDiscount(num.toFixed(2)); } }}
+                    className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Received Now (৳ BDT)</label>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      placeholder="0.00"
+                      value={receivedNow} 
+                      onChange={e => setReceivedNow(e.target.value)}
+                      onFocus={() => { if (receivedNow === '0.00' || receivedNow === '0') setReceivedNow(''); }}
+                      onBlur={() => { if (!receivedNow) setReceivedNow(''); else { const num = parseFloat(receivedNow); if (!isNaN(num)) setReceivedNow(num.toFixed(2)); } }}
+                      className="w-full bg-slate-50 border border-slate-100 h-10 pl-4 pr-12 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setReceivedNow(calculatedTotal.toString())}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 px-2 py-1 bg-slate-200 text-slate-700 hover:bg-slate-300 text-[9px] font-bold uppercase rounded font-sans"
+                    >
+                      Full
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Payment Method</label>
+                  <select 
+                    value={paymentMethod} 
+                    onChange={e => setPaymentMethod(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="bkash">bKash</option>
+                    <option value="nagad">Nagad</option>
+                    <option value="bank">Bank</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Notes / Description</label>
+                  <input 
+                    type="text" 
+                    placeholder="Enter additional transaction notes..." 
+                    value={notes} 
+                    onChange={e => setNotes(e.target.value)}
+                    onFocus={() => { if (notes === 'Enter additional transaction notes...') setNotes(''); }}
+                    className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Right Sticky Summary Bar */}
+        <div className="space-y-4 text-left">
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-5 sticky top-16">
+            <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest border-b border-slate-50 pb-3">Checkout Analysis</h3>
+
+            <div className="space-y-2.5">
+              <div className="flex justify-between items-center text-xs font-bold text-slate-500">
+                <span>Subtotal</span>
+                <span className="text-slate-900">৳{parsedSelling.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs font-bold text-red-500">
+                <span>Discount</span>
+                <span>- ৳{parsedDiscount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="h-px bg-slate-100 my-1.5" />
+              <div className="flex justify-between items-center text-sm font-black uppercase tracking-tight text-slate-900">
+                <span>Total Charge</span>
+                <span className="font-mono">৳{calculatedTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs font-bold text-emerald-600">
+                <span>Paid Now</span>
+                <span>৳{parsedReceived.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs font-bold text-red-400">
+                <span>Due Balance</span>
+                <span>৳{calculatedDue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="h-px bg-slate-150 my-1" />
+              <div className="flex justify-between items-center text-xs font-bold text-slate-500">
+                <span>Total Cost</span>
+                <span className="text-slate-900">৳{parsedCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+
+            <div className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-1 ${calculatedProfit > 0 ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+              <div className="flex items-center gap-2">
+                <TrendingUp className={`w-3.5 h-3.5 ${calculatedProfit > 0 ? 'text-emerald-600' : 'text-red-500'}`} />
+                <span className={`text-[9px] font-bold uppercase tracking-widest ${calculatedProfit > 0 ? 'text-emerald-700' : 'text-red-700'}`}>Net Profit</span>
+              </div>
+              <p className={`text-xl font-bold tracking-tight ${calculatedProfit > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                ৳{calculatedProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </p>
+              <span className={`text-[8px] font-bold uppercase px-2 py-0.5 rounded-full ${calculatedProfit > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                {profitMargin.toFixed(2)}% Margin
+              </span>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2 text-red-600 text-[10px] font-bold uppercase">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {error}
+              </div>
+            )}
+
+            <button 
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending}
+              className="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-teal-100 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              {mutation.isPending ? 'Working...' : 'Save Service Sale'}
+            </button>
+
+            <button 
+              onClick={onBack}
+              className="w-full py-3 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all"
+            >
+              Cancel
+            </button>
+          </section>
+        </div>
+      </div>
+
+      {isAddCustomerModalOpen && (
+        <QuickAddCustomerModal 
+          onClose={() => setIsAddCustomerModalOpen(false)}
+          onSuccess={(customerId: string) => {
+            setSelectedCustomerId(customerId);
+            setIsAddCustomerModalOpen(false);
+          }}
+        />
+      )}
+    </motion.div>
   );
 }
 
@@ -924,11 +1354,15 @@ function EditSaleModal({ sale, customers, items, onClose }: any) {
       const gDue = Math.max(0, gTotal - gPaid);
 
       // 1. Reverse previous stock
-      await supabase.rpc('increment_inventory_stock', { item_id: sale.item_id, amount: sale.quantity });
+      if (sale.item_id) {
+        await supabase.rpc('increment_inventory_stock', { item_id: sale.item_id, amount: sale.quantity });
+      }
       
       // 2. Apply new stock
-      const { error: rpcError } = await supabase.rpc('decrement_inventory_stock', { item_id: sale.item_id, amount: gQty });
-      if (rpcError) throw rpcError;
+      if (sale.item_id) {
+        const { error: rpcError } = await supabase.rpc('decrement_inventory_stock', { item_id: sale.item_id, amount: gQty });
+        if (rpcError) throw rpcError;
+      }
 
       // 3. Update Sale
       const { error: sError } = await supabase.from('sales').update({

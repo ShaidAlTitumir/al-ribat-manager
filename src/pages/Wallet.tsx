@@ -151,7 +151,7 @@ export default function Wallet() {
         { data: ledger, error: lErr },
         { data: purchases, error: pErr }
       ] = await Promise.all([
-        supabase.from('sales').select('received_now_bdt_cents').eq('business_id', business.id),
+        supabase.from('sales').select('item_id, total_cents, due_cents, cost_rate_cents, received_now_bdt_cents').eq('business_id', business.id),
         supabase.from('expenses').select('amount_cents, currency').eq('business_id', business.id),
         supabase.from('capital_contributions').select('amount, currency').eq('business_id', business.id),
         supabase.from('partner_profit_distributions').select('amount_cents').eq('business_id', business.id),
@@ -168,7 +168,14 @@ export default function Wallet() {
       let rmb = 0;
 
       // Income from Sales (Cash received at point of sale)
-      sales?.forEach(s => bdt += (s.received_now_bdt_cents || 0));
+      sales?.forEach(s => {
+        bdt += (s.received_now_bdt_cents || 0);
+        if (!s.item_id) {
+          const collectedCents = (s.total_cents || 0) - (s.due_cents || 0);
+          const withheldCostCents = Math.min(collectedCents, s.cost_rate_cents || 0);
+          bdt -= withheldCostCents;
+        }
+      });
 
       // Income from Customer Payments (Dues collected later)
       ledger?.forEach(l => {

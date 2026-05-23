@@ -639,7 +639,13 @@ function CustomerDetailDrawer({ customer, onClose, onEdit, onDelete }: { custome
                                   date: sale.created_at,
                                   items: [
                                     {
-                                      name: sale.inventory_items?.name || 'Product',
+                                      name: sale.inventory_items?.name || (
+                                  sale.notes ? (
+                                    sale.notes.startsWith('[Service]') 
+                                      ? sale.notes.replace('[Service]', '').split(' - ')[0].trim() 
+                                      : sale.notes
+                                  ) : 'Custom Sale'
+                                ),
                                       quantity: sale.quantity,
                                       unitPrice: sale.unit_price_bdt_cents / 100,
                                       total: (sale.unit_price_bdt_cents * sale.quantity) / 100

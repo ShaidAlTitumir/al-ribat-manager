@@ -118,7 +118,7 @@ export default function Dashboard() {
         { data: ledger, error: lErr },
         { data: purchases, error: pErr }
       ] = await Promise.all([
-        supabase.from('sales').select('received_now_bdt_cents').eq('business_id', business.id),
+        supabase.from('sales').select('item_id, total_cents, due_cents, cost_rate_cents, received_now_bdt_cents').eq('business_id', business.id),
         supabase.from('expenses').select('amount_cents, currency').eq('business_id', business.id),
         supabase.from('capital_contributions').select('amount, currency').eq('business_id', business.id),
         supabase.from('partner_profit_distributions').select('amount_cents').eq('business_id', business.id),
@@ -134,7 +134,14 @@ export default function Dashboard() {
       let bdt = 0;
       let rmb = 0;
 
-      sales?.forEach(s => bdt += (s.received_now_bdt_cents || 0));
+      sales?.forEach(s => {
+        bdt += (s.received_now_bdt_cents || 0);
+        if (!s.item_id) {
+          const collectedCents = (s.total_cents || 0) - (s.due_cents || 0);
+          const withheldCostCents = Math.min(collectedCents, s.cost_rate_cents || 0);
+          bdt -= withheldCostCents;
+        }
+      });
       ledger?.forEach(l => {
         if (l.transaction_type === 'payment') bdt += (l.amount_cents || 0);
         else if (l.transaction_type === 'return') bdt -= (l.amount_cents || 0);
@@ -397,7 +404,7 @@ export default function Dashboard() {
                   History
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto pr-2 space-y-4 lg:max-h-[420px]">
+              <div className="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[330px] sm:max-h-[352px] scrollbar-thin scrollbar-thumb-slate-100 scrollbar-track-transparent">
                 {recentActivities.map((activity, idx) => (
                   <ActivityItem 
                     key={`${activity.id}-${idx}`}

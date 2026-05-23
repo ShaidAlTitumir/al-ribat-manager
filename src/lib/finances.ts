@@ -25,7 +25,7 @@ export async function fetchFinancialMetrics(businessId: string, exchangeRate: nu
     { data: shipments },
     { data: purchases }
   ] = await Promise.all([
-    supabase.from('sales').select('received_now_bdt_cents').eq('business_id', businessId),
+    supabase.from('sales').select('item_id, total_cents, due_cents, cost_rate_cents, received_now_bdt_cents').eq('business_id', businessId),
     supabase.from('expenses').select('amount_cents, currency, exchange_rate_used').eq('business_id', businessId),
     supabase.from('capital_contributions').select('amount, currency').eq('business_id', businessId),
     supabase.from('partner_profit_distributions').select('amount_cents').eq('business_id', businessId),
@@ -40,7 +40,14 @@ export async function fetchFinancialMetrics(businessId: string, exchangeRate: nu
   let rmbCents = 0;
 
   // 1. Calculate Balances (Wallet logic)
-  sales?.forEach(s => bdtCents += (s.received_now_bdt_cents || 0));
+  sales?.forEach(s => {
+    bdtCents += (s.received_now_bdt_cents || 0);
+    if (!s.item_id) {
+      const collectedCents = (s.total_cents || 0) - (s.due_cents || 0);
+      const withheldCostCents = Math.min(collectedCents, s.cost_rate_cents || 0);
+      bdtCents -= withheldCostCents;
+    }
+  });
   
   ledger?.forEach(l => {
     if (l.transaction_type === 'payment') bdtCents += (l.amount_cents || 0);

@@ -117,6 +117,29 @@ export default function Partners() {
     enabled: !!business?.id,
   });
 
+  // Fetch Profit Distributions
+  const { data: profitDistributions = [], isLoading: isLoadingProfit } = useQuery({
+    queryKey: ['partner_profit_distributions', business?.id],
+    queryFn: async () => {
+      if (!business?.id) return [];
+      const { data, error } = await supabase
+        .from('partner_profit_distributions')
+        .select(`
+          *,
+          partners(name)
+        `)
+        .eq('business_id', business?.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) {
+        console.error('Profit Distributions Fetch Error:', error);
+        throw error;
+      }
+      return data;
+    },
+    enabled: !!business?.id,
+  });
+
   const isOwner = business?.owner_id === user?.id;
 
   const deletePartnerMutation = useMutation({
@@ -201,28 +224,18 @@ export default function Partners() {
 
   const deleteTransferMutation = useMutation({
     mutationFn: async (transfer: any) => {
-      // 1. Reverse balance changes
-      await supabase.rpc('increment_partner_balance', { 
-        p_id: transfer.from_partner_id, 
-        amount_cents: transfer.amount_cents 
-      });
-      await supabase.rpc('increment_partner_balance', { 
-        p_id: transfer.to_partner_id, 
-        amount_cents: -transfer.amount_cents 
-      });
-
-      // 2. Delete the record
+      // 1. Delete the record
       const { error } = await supabase.from('partner_transfers').delete().eq('id', transfer.id);
       if (error) throw error;
 
-      // 3. Log Activity
+      // 2. Log Activity
       await logActivity({
         business_id: business?.id || '',
         user_id: user?.id,
         action: 'DELETE_TRANSFER',
         details: {
           title: `Voided Partner Transfer`,
-          sub: 'Internal Capital Flow Reversed',
+          sub: 'Internal Partner Transfer Deleted',
           amount: `${transfer.currency === 'RMB' ? '¥' : '৳'} ${transfer.amount_cents/100}`,
           type: 'transfer'
         }
@@ -231,6 +244,9 @@ export default function Partners() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partner_transfers'] });
       queryClient.invalidateQueries({ queryKey: ['partners'] });
+      queryClient.invalidateQueries({ queryKey: ['contributions'] });
+      queryClient.invalidateQueries({ queryKey: ['partner_profit_distributions'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
     },
     onError: (err: any) => {
       alert(err.message || "Failed to delete transfer");
@@ -273,6 +289,59 @@ export default function Partners() {
       setCapitalToDelete(null);
     }
   });
+
+  const unifiedLogs = React.useMemo(() => {
+    const logs: any[] = [];
+
+    // 1. Capital Contributions
+    contributions.forEach((c: any) => {
+      logs.push({
+        id: `contribution-${c.id}`,
+        type: 'contribution',
+        title: 'Capital Added',
+        partnerName: c.partners?.name || 'Unknown Partner',
+        description: c.notes ? `"${c.notes}"` : 'Capital Contribution',
+        amount: parseFloat(c.amount) || 0,
+        currency: c.currency || 'BDT',
+        created_at: c.created_at,
+        raw: c
+      });
+    });
+
+    // 2. Profit Distributions
+    profitDistributions.forEach((p: any) => {
+      logs.push({
+        id: `profit-${p.id}`,
+        type: 'profit',
+        title: 'Profit Allocated',
+        partnerName: p.partners?.name || 'Unknown Partner',
+        description: p.notes || 'Recent Sell Profit Distribution',
+        amount: p.amount_cents / 100,
+        currency: 'BDT',
+        created_at: p.created_at,
+        raw: p
+      });
+    });
+
+    // 3. Partner Transfers
+    transfers.forEach((t: any) => {
+      logs.push({
+        id: `transfer-${t.id}`,
+        type: 'transfer',
+        title: 'Partner Transfer',
+        partnerName: t.from_partner?.name || 'Unknown Partner',
+        recipientName: t.to_partner?.name || 'Unknown Partner',
+        description: t.notes ? `"${t.notes}"` : 'Internal Business Transfer',
+        amount: t.amount_cents / 100,
+        currency: t.currency || 'BDT',
+        created_at: t.created_at,
+        raw: t
+      });
+    });
+
+    // Sort by created_at descending
+    return logs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 15);
+  }, [contributions, profitDistributions, transfers]);
 
   return (
     <MainLayout>
@@ -323,9 +392,9 @@ export default function Partners() {
         </div>
 
         {/* Section 2: Dashboard/Requests Grid */}
-        <div className="grid grid-cols-1 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
            {/* Equity & Transactions */}
-           <div className="space-y-8">
+           <div className="space-y-8 lg:col-span-2">
               <section className="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[32px] border border-slate-100 shadow-sm">
                  <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xs lg:text-sm font-bold text-slate-900 uppercase tracking-widest">Capital Contributions</h3>
@@ -462,7 +531,7 @@ export default function Partners() {
               </section>
            </div>
 
-           {/* Section 3: Recent Logs (Newly added for transfers) */}
+           {/* Section 3: Recent Logs (Newly unified for transfers, capital, and profit) */}
            <section className="bg-white p-5 md:p-8 rounded-[28px] md:rounded-[32px] border border-slate-100 shadow-sm col-span-1">
               <div className="flex items-center justify-between mb-6">
                  <h3 className="text-xs lg:text-sm font-bold text-slate-900 uppercase tracking-widest">Recent Logs</h3>
@@ -474,53 +543,93 @@ export default function Partners() {
                  </button>
               </div>
               <div className="space-y-4">
-                 {isLoadingTransfers ? (
+                 {isLoadingTransfers || isLoadingProfit ? (
                    <div className="space-y-3">
                      {[1, 2, 3].map(i => (
                        <div key={i} className="h-14 bg-slate-50 animate-pulse rounded-xl" />
                      ))}
                    </div>
                  ) : (
-                   <>
-                     {transfers.map((t: any) => (
-                       <div key={t.id} className="flex items-center justify-between group p-2 hover:bg-slate-50 rounded-xl transition-all">
-                         <div className="flex items-center gap-3">
-                           <div className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shrink-0">
-                             <ArrowLeftRight className="w-4 h-4" />
+                                   <>
+                      {unifiedLogs.map((log: any) => {
+                       const isContribution = log.type === 'contribution';
+                       const isProfit = log.type === 'profit';
+                       const isTransfer = log.type === 'transfer';
+
+                       return (
+                         <div key={log.id} className="flex items-center justify-between group p-2 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-100/50">
+                           <div className="flex items-center gap-3 min-w-0">
+                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                               isContribution ? 'bg-blue-50 text-blue-600' :
+                               isProfit ? 'bg-emerald-50 text-emerald-600' :
+                               'bg-purple-50 text-purple-600'
+                             }`}>
+                               {isContribution && <Wallet className="w-4 h-4" />}
+                               {isProfit && <DollarSign className="w-4 h-4" />}
+                               {isTransfer && <ArrowLeftRight className="w-4 h-4" />}
+                             </div>
+                             <div className="min-w-0">
+                               <div className="flex items-center gap-1.5 flex-wrap">
+                                 <span className={`text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                   isContribution ? 'bg-blue-50 text-blue-700' :
+                                   isProfit ? 'bg-emerald-50 text-emerald-700' :
+                                   'bg-purple-50 text-purple-700'
+                                 }`}>
+                                   {log.title}
+                                 </span>
+                                 <span className="text-[10px] text-slate-400 font-mono tracking-wide">
+                                   {formatDate(log.created_at)}
+                                 </span>
+                               </div>
+                               <p className="text-xs lg:text-sm font-bold text-slate-900 mt-1 truncate">
+                                 {isTransfer ? (
+                                   <>
+                                     {log.partnerName} <span className="text-slate-300 mx-1">→</span> {log.recipientName}
+                                   </>
+                                 ) : (
+                                   log.partnerName
+                                 )}
+                               </p>
+                               {log.description && (
+                                 <p className="text-[10px] lg:text-xs text-slate-400 font-normal truncate mt-0.5 font-sans">
+                                   {log.description}
+                                 </p>
+                               )}
+                             </div>
                            </div>
-                           <div className="min-w-0">
-                             <p className="text-xs lg:text-sm font-bold text-slate-900 truncate">
-                               {t.from_partner?.name || 'Unknown'} <span className="text-slate-300 mx-1">→</span> {t.to_partner?.name || 'Unknown'}
-                             </p>
-                             <p className="text-[10px] lg:text-xs font-normal text-slate-400 uppercase tracking-tight">
-                               {formatDate(t.transfer_date || t.created_at)} • {t.method}
-                             </p>
+                           <div className="flex items-center gap-3 shrink-0 ml-2">
+                             <div className="text-right">
+                               <p className={`text-xs lg:text-sm font-mono font-bold ${
+                                 isContribution ? 'text-blue-600' :
+                                 isProfit ? 'text-emerald-600' :
+                                 'text-purple-600'
+                               }`}>
+                                 {isContribution || isTransfer ? '' : '+'}
+                                 {log.currency === 'RMB' ? '¥' : '৳'}
+                                 {log.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                               </p>
+                             </div>
+                             {isTransfer && (
+                               <button 
+                                 onClick={() => {
+                                   if (window.confirm('Delete this transfer log?')) {
+                                     deleteTransferMutation.mutate(log.raw);
+                                   }
+                                 }}
+                                 className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                                 title="Delete Transfer"
+                               >
+                                 <Trash2 className="w-3.5 h-3.5" />
+                               </button>
+                             )}
                            </div>
                          </div>
-                         <div className="flex items-center gap-4">
-                           <div className="text-right">
-                             <p className="text-xs lg:text-sm font-mono font-bold text-slate-900">
-                               {t.currency === 'RMB' ? '¥' : '৳'}{(t.amount_cents / 100).toLocaleString()}
-                             </p>
-                           </div>
-                           <button 
-                             onClick={() => {
-                               if (window.confirm('Delete this transfer log? This will revert partner balances.')) {
-                                 deleteTransferMutation.mutate(t);
-                               }
-                             }}
-                             className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                             title="Delete Transfer"
-                           >
-                              <Trash2 className="w-3.5 h-3.5" />
-                           </button>
-                         </div>
-                       </div>
-                     ))}
-                     {transfers.length === 0 && (
+                       );
+                     })}
+                     {unifiedLogs.length === 0 && (
                        <div className="py-12 flex flex-col items-center justify-center text-slate-200">
-                          <ArrowLeftRight className="w-12 h-12 mb-3 opacity-10" />
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300">No transfers logged yet</p>
+                          <AlertCircle className="w-12 h-12 mb-3 opacity-10" />
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300">No logs recorded yet</p>
                        </div>
                      )}
                    </>

@@ -53,29 +53,18 @@ export default function Transactions() {
 
   const deleteMutation = useMutation({
     mutationFn: async (transfer: any) => {
-      // 1. Reverse balance changes if they were applied
-      // Note: We'll assume for now we want to keep balances in sync with transfers
-      await supabase.rpc('increment_partner_balance', { 
-        p_id: transfer.from_partner_id, 
-        amount_cents: transfer.amount_cents 
-      });
-      await supabase.rpc('increment_partner_balance', { 
-        p_id: transfer.to_partner_id, 
-        amount_cents: -transfer.amount_cents 
-      });
-
-      // 2. Delete the record
+      // 1. Delete the record
       const { error } = await supabase.from('partner_transfers').delete().eq('id', transfer.id);
       if (error) throw error;
 
-      // 3. Log Activity
+      // 2. Log Activity
       await logActivity({
         business_id: business?.id || '',
         user_id: user?.id,
         action: 'DELETE_TRANSFER',
         details: {
           title: `Voided Partner Transfer`,
-          sub: 'Internal Capital Flow Reversed',
+          sub: 'Internal Partner Transfer Deleted',
           amount: `${transfer.currency === 'RMB' ? '¥' : '৳'} ${transfer.amount_cents/100}`,
           type: 'transfer'
         }
@@ -84,6 +73,11 @@ export default function Transactions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['partner_transfers'] });
       queryClient.invalidateQueries({ queryKey: ['partners'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
+    },
+    onError: (err: any) => {
+      console.error("Failed to delete transfer:", err);
+      alert(err.message || "Failed to delete transfer");
     }
   });
 
@@ -250,10 +244,6 @@ function AddTransferModal({ onClose, partners }: { onClose: () => void, partners
       const { error } = await supabase.from('partner_transfers').insert(payload);
       if (error) throw error;
 
-      // Update Balances
-      await supabase.rpc('increment_partner_balance', { p_id: data.from_partner_id, amount_cents: -amountCents });
-      await supabase.rpc('increment_partner_balance', { p_id: data.to_partner_id, amount_cents: amountCents });
-
       await logActivity({
         business_id: business?.id || '',
         user_id: user?.id,
@@ -387,26 +377,6 @@ function EditTransferModal({ onClose, partners, transfer }: { onClose: () => voi
       const fromPartner = partners.find(p => p.id === data.from_partner_id);
       const toPartner = partners.find(p => p.id === data.to_partner_id);
       const newAmountCents = Math.round(parseFloat(data.amount) * 100);
-
-      // 1. Revert OLD balance changes
-      await supabase.rpc('increment_partner_balance', { 
-        p_id: transfer.from_partner_id, 
-        amount_cents: transfer.amount_cents 
-      });
-      await supabase.rpc('increment_partner_balance', { 
-        p_id: transfer.to_partner_id, 
-        amount_cents: -transfer.amount_cents 
-      });
-
-      // 2. Apply NEW balance changes
-      await supabase.rpc('increment_partner_balance', { 
-        p_id: data.from_partner_id, 
-        amount_cents: -newAmountCents 
-      });
-      await supabase.rpc('increment_partner_balance', { 
-        p_id: data.to_partner_id, 
-        amount_cents: newAmountCents 
-      });
 
       const payload = {
         from_partner_id: data.from_partner_id,
