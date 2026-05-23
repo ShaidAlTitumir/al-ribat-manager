@@ -304,7 +304,7 @@ export default function Sales() {
                   value={selectedCustomer?.id || ''}
                   onChange={(e) => setSelectedCustomer(customers.find(c => c.id === e.target.value))}
                 >
-                  <option value="">Walk-in customer</option>
+                  <option value="">Select Customer</option>
                   {customers.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}

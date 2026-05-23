@@ -489,6 +489,13 @@ BEGIN
   SELECT COALESCE(SUM(received_now_bdt_cents), 0) INTO v_cash_bdt 
   FROM sales 
   WHERE business_id = p_business_id;
+
+  -- Subtract total cost of service/custom sales (where item_id is NULL) as they do not have inventory reductions.
+  v_cash_bdt := v_cash_bdt - COALESCE((
+    SELECT SUM(cost_rate_cents * quantity) 
+    FROM sales 
+    WHERE business_id = p_business_id AND item_id IS NULL
+  ), 0);
   
   -- 2. Add payments from customers
   v_cash_bdt := v_cash_bdt + COALESCE((SELECT SUM(amount_cents) FROM customer_ledger WHERE business_id = p_business_id AND transaction_type = 'payment'), 0);

@@ -139,9 +139,54 @@ export default function Reports() {
   const { data: valuation } = useQuery({
     queryKey: ['business-valuation', business?.id],
     queryFn: async () => {
-       const { data, error } = await supabase.rpc('get_business_valuation', { p_business_id: business?.id });
-       if (error) throw error;
-       return data;
+       const [valRes, salesRes, expensesRes, capitalRes, exchangesRes, purchasesRes] = await Promise.all([
+         supabase.rpc('get_business_valuation', { p_business_id: business?.id }),
+         supabase.from('sales').select('quantity, cost_rate_cents').eq('business_id', business?.id).is('item_id', null),
+         supabase.from('expenses').select('amount_cents, currency').eq('business_id', business?.id),
+         supabase.from('capital_contributions').select('amount, currency').eq('business_id', business?.id),
+         supabase.from('exchanges').select('*').eq('business_id', business?.id),
+         supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, buying_cost_per_unit_rmb_cents, quantity, exchange_rate_used, paid, additional_cost_bdt_cents, additional_cost_currency').eq('business_id', business?.id).eq('paid', true)
+       ]);
+       if (valRes.error) throw valRes.error;
+       const rawVal = valRes.data as any;
+       if (!rawVal) return null;
+
+       const totalServiceCostCents = salesRes.data?.reduce((sum, s) => sum + ((s.cost_rate_cents || 0) * (s.quantity || 1)), 0) || 0;
+
+       // Calculate RMB balance
+       let rmbCents = 0;
+       capitalRes.data?.forEach(c => {
+         const amtCents = Math.round(parseFloat(c.amount || '0') * 100);
+         if (c.currency === 'RMB') rmbCents += amtCents;
+       });
+       expensesRes.data?.forEach(e => {
+         if (e.currency === 'RMB') rmbCents -= (e.amount_cents || 0);
+       });
+       purchasesRes.data?.forEach(p => {
+         const productCostRmbCents = (p.buying_cost_per_unit_rmb_cents || 0) * (p.quantity || 0);
+         rmbCents -= productCostRmbCents;
+         if (p.additional_cost_currency === 'RMB') {
+           rmbCents -= Math.round((p.additional_cost_bdt_cents || 0) / (p.exchange_rate_used || 1));
+         }
+       });
+       exchangesRes.data?.forEach(ex => {
+         if (ex.from_currency === 'BDT') {
+           rmbCents += ex.amount_to_cents;
+         } else {
+           rmbCents -= ex.amount_from_cents;
+         }
+       });
+
+       const rmbRate = business?.exchange_rate || 18.15;
+       const rmbInBdtCents = Math.round(rmbCents * rmbRate);
+
+       return {
+         ...rawVal,
+         cash_bdt: rawVal.cash_bdt - totalServiceCostCents,
+         cash_rmb: rmbCents,
+         total_assets: rawVal.total_assets - totalServiceCostCents + rmbInBdtCents,
+         business_value: rawVal.business_value - totalServiceCostCents + rmbInBdtCents,
+       };
     },
     enabled: !!business?.id
   });

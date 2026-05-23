@@ -511,6 +511,10 @@ export default function Partners() {
                              </div>
                              <div className="flex items-center gap-6">
                                 <div className="text-right">
+                                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Profit Share</p>
+                                   <p className="text-sm font-bold text-slate-900 tabular-nums">{(parseFloat(p.profit_share?.toString() || '0') || 0)}%</p>
+                                </div>
+                                <div className="text-right">
                                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-0.5">Portfolio Share</p>
                                    <p className="text-lg lg:text-2xl font-bold text-slate-900 tabular-nums">{Math.round(equityShare)}%</p>
                                 </div>
@@ -726,14 +730,18 @@ function PartnerCard({ partner, onEdit, onDelete, showOptions, setShowOptions, i
          </div>
       </div>
 
-      <div className="relative z-10 grid grid-cols-2 gap-2 md:gap-3 mb-3 md:mb-4">
-         <div className="p-2 md:p-3 rounded-xl md:rounded-2xl bg-slate-50/50">
-            <span className="text-[10px] lg:text-xs font-medium text-slate-400 uppercase tracking-widest block">Capital</span>
-            <p className="text-sm lg:text-base font-bold text-slate-900 mt-0.5 tabular-nums">৳{Math.round(partner.total_capital).toLocaleString()}</p>
+      <div className="relative z-10 grid grid-cols-3 gap-1.5 md:gap-2 mb-3 md:mb-4 pb-0.5">
+         <div className="p-2 rounded-xl bg-slate-50/50 text-center">
+            <span className="text-[9px] lg:text-[10px] font-medium text-slate-400 uppercase tracking-widest block">Capital</span>
+            <p className="text-xs lg:text-sm font-bold text-slate-900 mt-0.5 tabular-nums">৳{Math.round(partner.total_capital || 0).toLocaleString()}</p>
          </div>
-         <div className="p-2 md:p-3 rounded-xl md:rounded-2xl bg-slate-50/50">
-            <span className="text-[10px] lg:text-xs font-medium text-slate-400 uppercase tracking-widest block">Profit</span>
-            <p className="text-sm lg:text-base font-bold text-emerald-600 mt-0.5 tabular-nums">৳{(partner.balance_cents / 100).toLocaleString()}</p>
+         <div className="p-2 rounded-xl bg-slate-50/50 text-center">
+            <span className="text-[9px] lg:text-[10px] font-medium text-slate-400 uppercase tracking-widest block">Profit</span>
+            <p className="text-xs lg:text-sm font-bold text-emerald-600 mt-0.5 tabular-nums">৳{((partner.balance_cents || 0) / 100).toLocaleString()}</p>
+         </div>
+         <div className="p-2 rounded-xl bg-slate-50/50 text-center">
+            <span className="text-[9px] lg:text-[10px] font-medium text-slate-400 uppercase tracking-widest block">Share %</span>
+            <p className="text-xs lg:text-sm font-bold text-blue-600 mt-0.5 tabular-nums">{(parseFloat(partner.profit_share?.toString() || '0') || 0)}%</p>
          </div>
       </div>
 
@@ -760,7 +768,8 @@ function PartnerModal({ partner, partners, onClose }: any) {
     phone: partner?.phone || '',
     username: partner?.username || '',
     status: partner?.status || 'active',
-    user_id: partner?.user_id || null
+    user_id: partner?.user_id || null,
+    profit_share: partner?.profit_share || '0'
   });
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -839,7 +848,8 @@ function PartnerModal({ partner, partners, onClose }: any) {
         phone: formData.phone || null,
         username: formData.username || null,
         status: formData.status,
-        user_id: formData.user_id || null
+        user_id: formData.user_id || null,
+        profit_share: parseFloat(formData.profit_share) || 0
       };
 
       if (partner) {
@@ -1041,17 +1051,30 @@ function PartnerModal({ partner, partners, onClose }: any) {
                    className="w-full h-12 px-4 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 transition-all text-sm font-medium"
                  />
               </div>
-              <div>
-                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">Status</label>
-                 <select 
-                   value={formData.status} 
-                   onChange={(e) => setFormData({...formData, status: e.target.value})}
-                   className="w-full h-12 px-4 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 transition-all text-sm font-medium appearance-none"
-                 >
-                   <option value="active">Active</option>
-                   <option value="inactive">Inactive</option>
-                   <option value="archived">Archived</option>
-                 </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">Status</label>
+                   <select 
+                     value={formData.status} 
+                     onChange={(e) => setFormData({...formData, status: e.target.value})}
+                     className="w-full h-12 px-4 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 transition-all text-sm font-medium appearance-none"
+                   >
+                     <option value="active">Active</option>
+                     <option value="inactive">Inactive</option>
+                     <option value="archived">Archived</option>
+                   </select>
+                </div>
+                <div>
+                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1.5 block">Profit Share %</label>
+                   <input 
+                     type="number" 
+                     step="0.01"
+                     placeholder="e.g. 25"
+                     value={formData.profit_share} 
+                     onChange={(e) => setFormData({...formData, profit_share: e.target.value})}
+                     className="w-full h-12 px-4 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:border-blue-500 transition-all text-sm font-medium"
+                   />
+                </div>
               </div>
            </div>
         </div>

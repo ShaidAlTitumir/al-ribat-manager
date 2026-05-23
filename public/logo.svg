@@ -1,0 +1,33 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="128" fill="white"/>
+  <!-- Hexagon background (Dark Blue) -->
+  <path d="M256 60L429.21 160V352L256 452L82.79 352V160L256 60Z" fill="#003580"/>
+  <!-- White Inner Background (to contain elements) -->
+  <path d="M256 90L395.42 170V342L256 422L116.58 342V170L256 90Z" fill="white"/>
+  
+  <!-- Bar Charts (Green) -->
+  <rect x="150" y="240" width="45" height="55" rx="2" fill="#01A368"/>
+  <rect x="210" y="190" width="45" height="105" rx="2" fill="#01A368"/>
+  <rect x="270" y="140" width="45" height="155" rx="2" fill="#01A368"/>
+  <rect x="330" y="90" width="45" height="205" rx="2" fill="#01A368"/>
+  
+  <!-- Arrow (Green) -->
+  <path d="M140 330C140 330 200 310 400 170" stroke="#01A368" stroke-width="15" stroke-linecap="round"/>
+  <path d="M400 170L360 175M400 170L395 210" stroke="#01A368" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Four Squares (Dark Blue / White depending on context, in original it's white dots in a dark area) -->
+  <!-- In the attachment, they are small white squares at the bottom of the hexagon. -->
+  <rect x="245" y="380" width="12" height="12" fill="#003580"/>
+  <rect x="262" y="380" width="12" height="12" fill="#003580"/>
+  <rect x="245" y="397" width="12" height="12" fill="#003580"/>
+  <rect x="262" y="397" width="12" height="12" fill="#003580"/>
+  
+  <!-- Shield and Lock (Green) -->
+  <path d="M320 280C320 280 320 260 375 260C430 260 430 280 430 280V340C430 390 375 420 375 420C375 420 320 390 320 340V280Z" fill="white" stroke="#01A368" stroke-width="30"/>
+  <path d="M320 280C320 280 320 260 375 260C430 260 430 280 430 280V340C430 390 375 420 375 420C375 420 320 390 320 340V280Z" fill="#01A368"/>
+  
+  <!-- Lock Icon (White) -->
+  <rect x="355" y="330" width="40" height="30" rx="4" fill="white"/>
+  <path d="M363 330V320C363 313.373 368.373 308 375 308C381.627 308 387 313.373 387 320V330" stroke="white" stroke-width="6" fill="none"/>
+  <circle cx="375" cy="342" r="3" fill="#01A368"/>
+</svg>

@@ -176,7 +176,7 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
         </div>
 
         <div className="flex items-center gap-3">
-          <img src="/logo.svg?v=4" className="w-8 h-8 rounded-lg" alt="Logo" referrerPolicy="no-referrer" />
+          <img src="/logo.jpg" className="w-8 h-8 rounded-lg object-contain" alt="Logo" referrerPolicy="no-referrer" />
           <div>
             <h1 className="text-[14px] font-semibold text-slate-900 leading-tight tracking-tight">Al-Ribat Manager</h1>
             <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest">Test 1</p>

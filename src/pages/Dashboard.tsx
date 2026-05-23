@@ -277,51 +277,66 @@ export default function Dashboard() {
           </div>
         ) : null}
         {/* Top KPI Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
-          <KpiCard 
-            title="Business Value" 
-            value={metrics ? formatCurrency(metrics.business_value) : null} 
-            color="bg-blue-600 text-white" 
-            subtext="Net Worth"
-            loading={isLoading}
-            icon={<DollarSign className="w-3.5 h-3.5" />}
-          />
-          <KpiCard 
-            title="BDT Balance" 
-            value={balances ? `৳${Math.round(balances.bdt).toLocaleString()}` : null} 
-            subtext="Cash in Hand"
-            loading={isLoading}
-            icon={<Wallet className="w-3.5 h-3.5 text-blue-500" />}
-          />
-          <KpiCard 
-            title="RMB Balance" 
-            value={balances ? `¥${Math.round(balances.rmb).toLocaleString()}` : null} 
-            subtext="China Wallet"
-            loading={isLoading}
-            icon={<RefreshCw className="w-3.5 h-3.5 text-emerald-500" />}
-          />
-          <KpiCard 
-            title="Inventory" 
-            value={metrics ? formatCurrency(metrics.inventory_value) : null} 
-            subtext="Asset Value"
-            loading={isLoading}
-            icon={<Package className="w-3.5 h-3.5 text-amber-500" />}
-          />
-          <KpiCard 
-            title="Total Assets" 
-            value={metrics ? formatCurrency(metrics.total_assets) : null} 
-            subtext="Gross Value"
-            loading={isLoading}
-            icon={<ArrowUpRight className="w-3.5 h-3.5 text-indigo-500" />}
-          />
-          <KpiCard 
-            title="Total Due" 
-            value={metrics ? formatCurrency(metrics.receivables) : null} 
-            subtext="Receivables"
-            loading={isLoading}
-            icon={<Users className="w-3.5 h-3.5 text-rose-500" />}
-          />
-        </div>
+        {(() => {
+          const rmbRate = business?.exchange_rate || 18.15;
+          const rmbInBdtCents = balances ? Math.round(balances.rmb * 100 * rmbRate) : 0;
+
+          const computedTotalAssetsCents = metrics && balances
+            ? Math.round(balances.bdt * 100) + rmbInBdtCents + (metrics.inventory_value || 0) + (metrics.receivables || 0)
+            : null;
+
+          const computedBusinessValueCents = computedTotalAssetsCents !== null && metrics
+            ? computedTotalAssetsCents - (metrics.payables || 0)
+            : null;
+
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-4">
+              <KpiCard 
+                title="Business Value" 
+                value={computedBusinessValueCents !== null ? formatCurrency(computedBusinessValueCents) : (metrics ? formatCurrency(metrics.business_value) : null)} 
+                color="bg-blue-600 text-white" 
+                subtext="Net Worth"
+                loading={isLoading}
+                icon={<DollarSign className="w-3.5 h-3.5" />}
+              />
+              <KpiCard 
+                title="BDT Balance" 
+                value={balances ? `৳${Math.round(balances.bdt).toLocaleString()}` : null} 
+                subtext="Cash in Hand"
+                loading={isLoading}
+                icon={<Wallet className="w-3.5 h-3.5 text-blue-500" />}
+              />
+              <KpiCard 
+                title="RMB Balance" 
+                value={balances ? `¥${Math.round(balances.rmb).toLocaleString()}` : null} 
+                subtext="China Wallet"
+                loading={isLoading}
+                icon={<RefreshCw className="w-3.5 h-3.5 text-emerald-500" />}
+              />
+              <KpiCard 
+                title="Inventory" 
+                value={metrics ? formatCurrency(metrics.inventory_value) : null} 
+                subtext="Asset Value"
+                loading={isLoading}
+                icon={<Package className="w-3.5 h-3.5 text-amber-500" />}
+              />
+              <KpiCard 
+                title="Total Assets" 
+                value={computedTotalAssetsCents !== null ? formatCurrency(computedTotalAssetsCents) : (metrics ? formatCurrency(metrics.total_assets) : null)} 
+                subtext="Gross Value"
+                loading={isLoading}
+                icon={<ArrowUpRight className="w-3.5 h-3.5 text-indigo-500" />}
+              />
+              <KpiCard 
+                title="Total Due" 
+                value={metrics ? formatCurrency(metrics.receivables) : null} 
+                subtext="Receivables"
+                loading={isLoading}
+                icon={<Users className="w-3.5 h-3.5 text-rose-500" />}
+              />
+            </div>
+          );
+        })()}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
           {/* Charts */}

@@ -430,7 +430,7 @@ export default function Sales() {
                                value={selectedCustomerId} 
                                onChange={setSelectedCustomerId} 
                                options={customers.map(c => ({ value: c.id, label: `${c.name} - Due: ${formatBDT(c.total_due_cents || 0)}` }))}
-                               placeholder="Walk-in Customer"
+                               placeholder="Select Customer"
                              />
                              <button 
                                type="button"
@@ -892,9 +892,22 @@ function AddServiceView({ onBack, customers = [] }: { onBack: () => void, custom
             totalBusinessCapital += amountBDT;
           });
 
+          const totalShare = currentPartners.reduce((acc, p) => acc + (parseFloat(p.profit_share?.toString() || '0')), 0);
+
           const distributions = currentPartners.map(p => {
-            const partnerCapital = partnerCapitalMap[p.id] || 0;
-            const shareRatio = totalBusinessCapital > 0 ? partnerCapital / totalBusinessCapital : 0;
+            let shareRatio = 0;
+            let notes = '';
+
+            if (totalShare > 0) {
+              const pShare = parseFloat(p.profit_share?.toString() || '0');
+              shareRatio = pShare / totalShare;
+              notes = `Profit from Service ${invoiceNo} (Custom share: ${pShare.toFixed(2)}%)`;
+            } else {
+              const partnerCapital = partnerCapitalMap[p.id] || 0;
+              shareRatio = totalBusinessCapital > 0 ? partnerCapital / totalBusinessCapital : 0;
+              notes = `Profit from Service ${invoiceNo} (Cap share: ${(shareRatio * 100).toFixed(2)}%)`;
+            }
+
             const share = shareRatio * profitCents;
             
             return {
@@ -902,7 +915,7 @@ function AddServiceView({ onBack, customers = [] }: { onBack: () => void, custom
               partner_id: p.id,
               sale_id: sale.id,
               amount_cents: Math.floor(share),
-              notes: `Profit from Service ${invoiceNo} (Cap share: ${(shareRatio * 100).toFixed(2)}%)`
+              notes: notes
             };
           }).filter(d => d.amount_cents > 0);
 
@@ -1000,7 +1013,7 @@ function AddServiceView({ onBack, customers = [] }: { onBack: () => void, custom
                       onChange={e => setSelectedCustomerId(e.target.value)}
                       className="flex-1 bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
                     >
-                      <option value="">Walk-in Customer</option>
+                      <option value="">Select Customer</option>
                       {customers.map((c: any) => (
                         <option key={c.id} value={c.id}>{c.name} {c.shop_name ? `(${c.shop_name})` : ''}</option>
                       ))}
