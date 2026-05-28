@@ -58,12 +58,13 @@ export default function Sales() {
     setUnitPrice((tp / q).toFixed(2));
   };
 
-  // Edit/Delete State
+  // Edit/Delete/Detail State
   const [saleToEdit, setSaleToEdit] = useState<any>(null);
   const [saleToDelete, setSaleToDelete] = useState<any>(null);
+  const [saleToShowDetails, setSaleToShowDetails] = useState<any>(null);
   const [showOptionsId, setShowOptionsId] = useState<string | null>(null);
 
-  useScrollLock(!!saleToEdit || !!saleToDelete);
+  useScrollLock(!!saleToEdit || !!saleToDelete || !!saleToShowDetails);
 
   // Fetch Data
   const { data: items = [] } = useQuery({
@@ -573,12 +574,21 @@ export default function Sales() {
               <div className="space-y-3">
                 {filteredSales.map((sale: any) => (
                   <div key={sale.id} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-blue-100 transition-all">
-                  <div className="flex items-center gap-3">
+                  <div 
+                    className="flex items-center gap-3 cursor-pointer flex-1"
+                    onClick={() => setSaleToShowDetails(sale)}
+                    title="Click to view full sale details"
+                  >
                      <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
                        <Receipt className="w-4 h-4" />
                      </div>
                      <div className="text-left">
-                        <h4 className="text-sm lg:text-base font-semibold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{sale.invoice_no}</h4>
+                        <div className="flex items-center gap-2">
+                           <h4 className="text-sm lg:text-base font-semibold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{sale.invoice_no}</h4>
+                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${sale.item_id ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}`}>
+                             {sale.item_id ? 'Product' : 'Service'}
+                           </span>
+                        </div>
                         <p className="text-xs lg:text-sm font-medium text-slate-400 uppercase tracking-widest mt-0.5">
                           {sale.customers?.name || 'Walk-in'} • {formatDate(sale.created_at)}
                         </p>
@@ -654,6 +664,12 @@ export default function Sales() {
                         
                         {showOptionsId === sale.id && (
                           <div className="absolute right-0 mt-2 w-36 bg-white rounded-2xl border border-slate-100 shadow-xl z-20 py-2 overflow-hidden animate-in fade-in zoom-in duration-200">
+                             <button 
+                               onClick={() => { setSaleToShowDetails(sale); setShowOptionsId(null); }}
+                               className="w-full px-4 py-2 text-left text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 border-b border-slate-50 pb-2 mb-1"
+                             >
+                                <Info className="w-3.5 h-3.5 text-blue-500" /> Details
+                             </button>
                              <button 
                                onClick={() => {
                                  if (business) {
@@ -774,6 +790,13 @@ export default function Sales() {
               customers={customers}
               items={items}
               onClose={() => setSaleToEdit(null)}
+            />
+          )}
+
+          {saleToShowDetails && (
+            <SaleDetailsModal 
+              sale={saleToShowDetails}
+              onClose={() => setSaleToShowDetails(null)}
             />
           )}
 
@@ -1506,6 +1529,327 @@ function EditSaleModal({ sale, customers, items, onClose }: any) {
            >
              {mutation.isPending ? 'Updating...' : 'Update Sale'}
            </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function SaleDetailsModal({ sale, onClose }: { sale: any; onClose: () => void }) {
+  const { business } = useBusiness();
+  const [distributions, setDistributions] = useState<any[]>([]);
+  const [loadingDistributions, setLoadingDistributions] = useState(false);
+
+  useEffect(() => {
+    async function loadDistributions() {
+      if (!business?.id) return;
+      setLoadingDistributions(true);
+      try {
+        const { data, error } = await supabase
+          .from('partner_profit_distributions')
+          .select('*, partners(name)')
+          .eq('sale_id', sale.id);
+        if (!error && data) {
+          setDistributions(data);
+        }
+      } catch (err) {
+        console.error('Failed to load partner distributions:', err);
+      } finally {
+        setLoadingDistributions(false);
+      }
+    }
+    loadDistributions();
+  }, [sale.id, business?.id]);
+
+  const isService = !sale.item_id;
+  const saleItemName = sale.inventory_items?.name || (
+    sale.notes ? (
+      sale.notes.startsWith('[Service]') 
+        ? sale.notes.replace('[Service]', '').split(' - ')[0].trim() 
+        : sale.notes
+    ) : 'Custom Sale'
+  );
+
+  const cleanNotes = sale.notes ? (
+    sale.notes.startsWith('[Service]') 
+      ? sale.notes.replace('[Service]', '').split(' - ').slice(1).join(' - ').trim()
+      : sale.notes
+  ) : '';
+
+  const handleDownloadInvoice = () => {
+    if (business) {
+      const saleData = {
+        invoiceNo: sale.invoice_no,
+        date: sale.created_at,
+        items: [
+          {
+            name: saleItemName,
+            quantity: sale.quantity,
+            unitPrice: sale.unit_price_bdt_cents / 100,
+            total: (sale.unit_price_bdt_cents * sale.quantity) / 100
+          }
+        ],
+        subtotal: (sale.unit_price_bdt_cents * sale.quantity) / 100,
+        discount: sale.discount_cents / 100,
+        total: sale.total_cents / 100,
+        received: (sale.total_cents - sale.due_cents) / 100,
+        due: sale.due_cents / 100
+      };
+
+      const customerInfo = {
+        name: sale.customers?.name || 'Walk-in Customer',
+        phone: sale.customers?.phone || '',
+        address: sale.customers?.address || '',
+        shopName: sale.customers?.shop_name || ''
+      };
+
+      const businessInfo = {
+        name: business.name,
+        phone: business.phone || '',
+        address: business.address || '',
+        email: business.email || ''
+      };
+
+      import('../lib/pdfGenerator').then(module => {
+        module.generateSaleInvoice(businessInfo, customerInfo, saleData);
+      });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        exit={{ opacity: 0 }} 
+        onClick={onClose} 
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl relative overflow-hidden z-10 flex flex-col max-h-[90vh]"
+      >
+        {/* Banner/Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-5 text-white flex items-center justify-between shrink-0">
+          <div className="text-left">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-white/20 uppercase tracking-widest rounded-full">
+                {isService ? 'Service / Custom Sale' : 'New Product Sale'}
+              </span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 uppercase tracking-widest rounded-full ${sale.due_cents > 0 ? 'bg-red-500/35 text-red-100' : 'bg-emerald-500/35 text-emerald-100'}`}>
+                {sale.due_cents > 0 ? 'Has Due' : 'Paid'}
+              </span>
+            </div>
+            <h2 className="text-xl font-bold tracking-tight mt-1">{sale.invoice_no}</h2>
+            <p className="text-xs text-blue-100 font-medium mt-0.5">{formatDate(sale.created_at)}</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-white/85 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl transition-all">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 text-left">
+          {/* Main 2-column info layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Customer Details block */}
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex flex-col justify-between">
+              <div>
+                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-blue-500" /> Customer Profile
+                </h3>
+                {sale.customers ? (
+                  <div className="space-y-2">
+                    <p className="text-base font-bold text-slate-800">{sale.customers.name}</p>
+                    {sale.customers.shop_name && (
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-tight">Shop: {sale.customers.shop_name}</p>
+                    )}
+                    {sale.customers.phone && (
+                      <p className="text-xs font-mono font-medium text-slate-600">Phone: {sale.customers.phone}</p>
+                    )}
+                    {sale.customers.address && (
+                      <p className="text-xs text-slate-500">Address: {sale.customers.address}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-base font-bold text-slate-800">Walk-in Customer</p>
+                    <p className="text-xs text-slate-400">No profile attached to this transaction.</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="border-t border-slate-200/50 pt-3 mt-4">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Method</span>
+                  <span className="font-bold text-slate-700 capitalize">{sale.payment_method}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Financial Summary panel */}
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-3">
+              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-blue-500" /> Payment Overview
+              </h3>
+              
+              <div className="space-y-2.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Subtotal</span>
+                  <span className="font-semibold text-slate-800 font-mono">{formatBDT(sale.unit_price_bdt_cents * sale.quantity)}</span>
+                </div>
+                
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Discount</span>
+                  <span className="font-semibold text-red-500 font-mono">- {formatBDT(sale.discount_cents)}</span>
+                </div>
+                
+                <div className="h-px bg-slate-200/50" />
+                
+                <div className="flex justify-between text-sm font-bold">
+                  <span className="text-slate-800 uppercase tracking-tight text-xs">Grand Total</span>
+                  <span className="text-slate-900 font-mono">{formatBDT(sale.total_cents)}</span>
+                </div>
+
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-500 font-medium">Amount Received</span>
+                  <span className="font-semibold text-emerald-600 font-mono">{formatBDT(sale.total_cents - sale.due_cents)}</span>
+                </div>
+
+                <div className="flex justify-between text-xs p-1.5 rounded-lg bg-white/70">
+                  <span className="text-slate-500 font-medium">Remaining Due</span>
+                  <span className={`font-bold font-mono ${sale.due_cents > 0 ? 'text-red-500' : 'text-slate-400'}`}>
+                    {formatBDT(sale.due_cents)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Itemized list / sold record */}
+          <div className="border border-slate-100 rounded-2xl overflow-hidden">
+            <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-100">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Box className="w-3.5 h-3.5 text-blue-500" /> Itemized Breakdown
+              </span>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="font-semibold text-slate-800 text-sm md:text-base">{saleItemName}</h4>
+                  <p className="text-xs text-slate-400 font-medium mt-1 uppercase tracking-wider">
+                    {sale.quantity} Unit{sale.quantity > 1 ? 's' : ''} × {formatBDT(sale.unit_price_bdt_cents)} Unit Rate
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono font-bold text-slate-800 text-sm md:text-base">
+                    {formatBDT(sale.unit_price_bdt_cents * sale.quantity)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Business Insights Block (Cost vs Profit) */}
+          {business && (
+            <div className="bg-blue-50/40 rounded-2xl p-5 border border-blue-100/50 space-y-4">
+              <div className="flex items-center justify-between border-b border-blue-100/40 pb-2">
+                <span className="text-[10px] font-bold text-blue-700 uppercase tracking-widest flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-blue-500 block" /> Financial Balance & Profit Insights
+                </span>
+                <span className="text-[9px] font-mono font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded uppercase">
+                  Accrual Profit Basis
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-3 rounded-xl border border-blue-100/30">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Cost rate ({isService ? 'Service cost' : 'Landed cost'})</span>
+                  <span className="font-mono font-bold text-sm text-slate-700 mt-1 block">
+                    {formatBDT(sale.cost_rate_cents)}
+                  </span>
+                </div>
+                
+                <div className="bg-white p-3 rounded-xl border border-blue-100/30">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Total Cost Rate</span>
+                  <span className="font-mono font-bold text-sm text-slate-700 mt-1 block">
+                    {formatBDT(sale.cost_rate_cents * sale.quantity)}
+                  </span>
+                </div>
+
+                <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100/30">
+                  <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-widest block">Sale Gain / Profit</span>
+                  <span className={`font-mono font-bold text-sm mt-1 block ${sale.expected_profit_cents >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {formatBDT(sale.expected_profit_cents)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Partner distribution analysis */}
+          {business?.business_type === 'partnership' && (
+            <div className="border border-slate-100 rounded-2xl overflow-hidden">
+              <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-blue-500" /> Active Partner Profit Splits
+                </span>
+                {loadingDistributions && (
+                  <span className="text-[9px] font-bold uppercase tracking-tight text-blue-500 animate-pulse">Syncing splits...</span>
+                )}
+              </div>
+              
+              <div className="p-4 space-y-3">
+                {distributions.length > 0 ? (
+                  distributions.map((dist) => (
+                    <div key={dist.id} className="flex justify-between items-center text-xs">
+                      <div>
+                        <p className="font-semibold text-slate-800">{dist.partners?.name || 'Partner'}</p>
+                        <p className="text-[9px] text-slate-400 uppercase tracking-tight mt-0.5">{dist.notes || 'Profit split'}</p>
+                      </div>
+                      <span className="font-mono font-bold text-emerald-600">
+                        + {formatBDT(dist.amount_cents)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400 py-1 font-medium">
+                    {loadingDistributions ? 'Loading share rates...' : 'No partner profit split was recorded for this transaction.'}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Transaction notes */}
+          {cleanNotes && (
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Remarks / Notes</span>
+              <p className="text-sm text-slate-700 font-medium leading-relaxed italic">"{cleanNotes}"</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-4 shrink-0">
+          <button 
+            onClick={onClose} 
+            className="flex-1 py-3.5 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-100 shadow-sm active:scale-95 transition-all"
+          >
+            Close Details
+          </button>
+          
+          {business && (
+            <button 
+              onClick={handleDownloadInvoice}
+              className="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 shadow-lg shadow-blue-100 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <Printer className="w-4 h-4" /> Download invoice
+            </button>
+          )}
         </div>
       </motion.div>
     </div>
