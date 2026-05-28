@@ -140,24 +140,86 @@ export default function Inventory() {
                 </button>
               </div>
 
-              {/* Items List */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {filteredItems.map(item => (
-                  <ItemCard 
-                    key={item.id} 
-                    item={item} 
-                    onAddStock={() => { setSelectedItem(item); setIsPurchaseModalOpen(true); }}
-                    onEdit={() => { setSelectedItem(item); setIsEditModalOpen(true); }}
-                    onDelete={() => setItemToDelete(item)}
-                  />
-                ))}
-                {filteredItems.length === 0 && !isLoading && (
-                    <div className="py-20 bg-white rounded-3xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300">
-                    <Package className="w-16 h-16 mb-4 opacity-10" />
-                    <p className="text-xs font-bold uppercase tracking-widest">No items found</p>
-                  </div>
-                )}
-              </div>
+              {/* Items List Split into In Stock vs Out of Stock */}
+              {isLoading ? (
+                <div className="py-20 bg-white rounded-3xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4" />
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Loading products...</p>
+                </div>
+              ) : filteredItems.length === 0 ? (
+                <div className="py-20 bg-white rounded-3xl border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-300">
+                  <Package className="w-16 h-16 mb-4 opacity-10" />
+                  <p className="text-xs font-bold uppercase tracking-widest">No items found</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* In Stock Section */}
+                  {(() => {
+                    const inStockItems = filteredItems.filter(item => item.current_stock > 0);
+                    return (
+                      <div className="space-y-3 text-left">
+                        <div className="flex items-center gap-2 px-1">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
+                          <h2 className="text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <span>In Stock</span>
+                            <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-md text-[10px] font-extrabold font-mono">{inStockItems.length}</span>
+                          </h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {inStockItems.map(item => (
+                            <ItemCard 
+                              key={item.id} 
+                              item={item} 
+                              onAddStock={() => { setSelectedItem(item); setIsPurchaseModalOpen(true); }}
+                              onEdit={() => { setSelectedItem(item); setIsEditModalOpen(true); }}
+                              onDelete={() => setItemToDelete(item)}
+                            />
+                          ))}
+                          {inStockItems.length === 0 && (
+                            <div className="py-12 bg-white rounded-3xl border border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-300 md:col-span-2">
+                              <Package className="w-10 h-10 mb-2 opacity-20 text-slate-400" />
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">No items currently in stock</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Out of Stock Section */}
+                  {(() => {
+                    const outOfStockItems = filteredItems.filter(item => item.current_stock <= 0);
+                    return (
+                      <div className="space-y-3 text-left pt-2">
+                        <div className="flex items-center gap-2 px-1">
+                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shadow-sm" />
+                          <h2 className="text-xs lg:text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <span>Out of Stock</span>
+                            <span className="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded-md text-[10px] font-extrabold font-mono">{outOfStockItems.length}</span>
+                          </h2>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {outOfStockItems.map(item => (
+                            <ItemCard 
+                              key={item.id} 
+                              item={item} 
+                              onAddStock={() => { setSelectedItem(item); setIsPurchaseModalOpen(true); }}
+                              onEdit={() => { setSelectedItem(item); setIsEditModalOpen(true); }}
+                              onDelete={() => setItemToDelete(item)}
+                            />
+                          ))}
+                          {outOfStockItems.length === 0 && (
+                            <div className="py-12 bg-white rounded-3xl border border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-300 md:col-span-2">
+                              <Package className="w-10 h-10 mb-2 opacity-20 text-slate-400" />
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">No out-of-stock items</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </motion.div>
           ) : (
             <AddItemView onBack={() => setView('list')} items={items} />
