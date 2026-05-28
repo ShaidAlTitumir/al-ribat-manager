@@ -31,6 +31,14 @@ export default function Sales() {
   const [activeTab, setActiveTab] = useState<'new' | 'service' | 'history'>('new');
   
   // New Sale Form State
+  const getTodayString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string>('');
@@ -41,6 +49,7 @@ export default function Sales() {
   const [receivedNow, setReceivedNow] = useState('0');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [notes, setNotes] = useState('');
+  const [customDate, setCustomDate] = useState<string>(getTodayString());
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -151,6 +160,17 @@ export default function Sales() {
       
       const invoiceNo = `INV-${Date.now()}`;
       
+      let saleCreatedAt: string | undefined = undefined;
+      if (customDate) {
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        try {
+          saleCreatedAt = new Date(`${customDate}T${timeStr}`).toISOString();
+        } catch (e) {
+          saleCreatedAt = new Date(customDate).toISOString();
+        }
+      }
+
       // 1. Create Sale
       const { data: sale, error: sError } = await supabase.from('sales').insert({
         business_id: business.id,
@@ -167,7 +187,8 @@ export default function Sales() {
         cost_rate_cents: landedCost,
         expected_profit_cents: estProfit,
         payment_method: paymentMethod,
-        notes: notes
+        notes: notes,
+        created_at: saleCreatedAt
       }).select().single();
 
       if (sError) throw sError;
@@ -285,6 +306,7 @@ export default function Sales() {
       setReceivedNow('0');
       setDiscount('0');
       setNotes('');
+      setCustomDate(getTodayString());
     },
     onError: (err: any) => {
       setError(err.message || 'Failed to process sale');
@@ -360,23 +382,25 @@ export default function Sales() {
         <div className="flex border-b border-slate-100 mb-4">
           <button 
             onClick={() => setActiveTab('new')}
-            className={`flex-1 py-3 text-xs md:text-sm font-semibold uppercase tracking-widest transition-all relative ${activeTab === 'new' ? 'text-blue-600' : 'text-slate-400'}`}
+            className={`flex-1 py-3 text-xs md:text-sm font-semibold uppercase tracking-wider transition-all relative ${activeTab === 'new' ? 'text-blue-600' : 'text-slate-400'}`}
           >
             New Sale
             {activeTab === 'new' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />}
           </button>
           <button 
             onClick={() => setActiveTab('service')}
-            className={`flex-1 py-3 text-xs md:text-sm font-semibold uppercase tracking-widest transition-all relative ${activeTab === 'service' ? 'text-blue-600' : 'text-slate-400'}`}
+            className={`flex-1 py-3 text-xs md:text-sm font-semibold uppercase tracking-wider transition-all relative ${activeTab === 'service' ? 'text-blue-600' : 'text-slate-400'}`}
           >
-            Service / Custom Sale
+            <span className="hidden sm:inline">Service / Custom Sale</span>
+            <span className="sm:hidden">Service / Custom</span>
             {activeTab === 'service' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />}
           </button>
           <button 
             onClick={() => setActiveTab('history')}
-            className={`flex-1 py-3 text-xs md:text-sm font-semibold uppercase tracking-widest transition-all relative ${activeTab === 'history' ? 'text-blue-600' : 'text-slate-400'}`}
+            className={`flex-1 py-3 text-xs md:text-sm font-semibold uppercase tracking-wider transition-all relative ${activeTab === 'history' ? 'text-blue-600' : 'text-slate-400'}`}
           >
-            Order History
+            <span className="hidden sm:inline">Order History</span>
+            <span className="sm:hidden">History</span>
             {activeTab === 'history' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />}
           </button>
         </div>
@@ -424,7 +448,7 @@ export default function Sales() {
                        <h2 className="text-xs lg:text-sm font-bold uppercase tracking-widest text-slate-900">Sale Details</h2>
                     </div>
                     <div className="p-4 space-y-4 text-left">
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           <div className="flex items-end gap-2">
                              <SelectInput 
                                label="Customer" 
@@ -449,6 +473,15 @@ export default function Sales() {
                             options={items.map(i => ({ value: i.id, label: `${i.name} (Stk: ${i.current_stock})` }))}
                             placeholder="Choose item..."
                           />
+                          <div className="space-y-1 text-left">
+                             <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Sale Date</label>
+                             <input 
+                               type="date" 
+                               value={customDate} 
+                               onChange={(e) => setCustomDate(e.target.value)}
+                               className="w-full bg-slate-50 border border-slate-100 h-10 px-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-base md:text-sm font-medium"
+                             />
+                          </div>
                        </div>
                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           <Input label="Quantity" type="number" value={quantity} onChange={setQuantity} />
@@ -573,37 +606,51 @@ export default function Sales() {
 
               <div className="space-y-3">
                 {filteredSales.map((sale: any) => (
-                  <div key={sale.id} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between group hover:border-blue-100 transition-all">
+                  <div key={sale.id} className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 group hover:border-blue-100 transition-all">
                   <div 
-                    className="flex items-center gap-3 cursor-pointer flex-1"
+                    className="flex items-start gap-3 cursor-pointer flex-1 min-w-0"
                     onClick={() => setSaleToShowDetails(sale)}
                     title="Click to view full sale details"
                   >
-                     <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                     <div className="w-8 h-8 sm:w-9 sm:h-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shrink-0 mt-0.5">
                        <Receipt className="w-4 h-4" />
                      </div>
-                     <div className="text-left">
-                        <div className="flex items-center gap-2">
-                           <h4 className="text-sm lg:text-base font-semibold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{sale.invoice_no}</h4>
-                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${sale.item_id ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}`}>
+                     <div className="text-left flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                           <h4 className="text-sm md:text-base font-semibold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight truncate break-all">{sale.invoice_no}</h4>
+                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 ${sale.item_id ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}`}>
                              {sale.item_id ? 'Product' : 'Service'}
                            </span>
                         </div>
-                        <p className="text-xs lg:text-sm font-medium text-slate-400 uppercase tracking-widest mt-0.5">
+                        <p className="text-xs md:text-sm font-medium text-slate-400 uppercase tracking-widest mt-1 truncate">
                           {sale.customers?.name || 'Walk-in'} • {formatDate(sale.created_at)}
                         </p>
+                        {(() => {
+                           const noteText = sale.notes ? (
+                             sale.notes.startsWith('[Service]') 
+                               ? sale.notes.replace('[Service]', '').split(' - ').slice(1).join(' - ').trim()
+                               : sale.notes
+                           ) : '';
+                           return noteText ? (
+                             <p className="text-xs text-slate-500 mt-2 max-w-full truncate font-medium bg-slate-50 px-2 py-0.5 rounded border border-slate-100/50 w-fit italic">
+                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider not-italic mr-1 text-slate-400">Note:</span>
+                               "{noteText}"
+                             </p>
+                           ) : null;
+                        })()}
                      </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                     <div className="text-right">
-                        <p className="text-sm lg:text-base font-mono font-bold text-slate-900 tracking-tighter">{formatBDT(sale.total_cents)}</p>
+                  <div className="flex items-center justify-between sm:justify-end gap-3.5 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100/60 sm:min-w-[170px] shrink-0 w-full sm:w-auto">
+                     <div className="text-left sm:text-right min-w-0">
+                        <p className="text-sm md:text-base font-mono font-bold text-slate-900 tracking-tighter">{formatBDT(sale.total_cents)}</p>
                         {sale.due_cents > 0 ? (
-                          <span className="text-xs lg:text-sm font-semibold text-red-500 uppercase tracking-tight">৳{(sale.due_cents/100).toLocaleString()} Due</span>
+                           <span className="text-[11px] sm:text-xs font-semibold text-red-500 uppercase tracking-tight block">৳{(sale.due_cents/100).toLocaleString()} Due</span>
                         ) : (
-                          <span className="inline-flex h-4 items-center px-1.5 bg-emerald-50 text-emerald-500 text-[11px] lg:text-xs font-semibold uppercase rounded">Paid</span>
+                           <span className="inline-flex h-4 items-center px-1.5 bg-emerald-50 text-emerald-500 text-[10px] sm:text-[11px] font-semibold uppercase rounded">Paid</span>
                         )}
                      </div>
-                     <button 
+                     <div className="flex items-center gap-2">
+                      <button 
                        onClick={() => {
                          if (business) {
                            const saleData = {
@@ -738,7 +785,8 @@ export default function Sales() {
                      </div>
                   </div>
                 </div>
-              ))}
+              </div>
+               ))}
               </div>
 
               {filteredSales.length === 0 && !isLoadingSales && (
@@ -827,6 +875,14 @@ function AddServiceView({ onBack, customers = [] }: { onBack: () => void, custom
   const [receivedNow, setReceivedNow] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [notes, setNotes] = useState('');
+  const getTodayString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const [customDate, setCustomDate] = useState<string>(getTodayString());
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
@@ -852,6 +908,17 @@ function AddServiceView({ onBack, customers = [] }: { onBack: () => void, custom
 
       const invoiceNo = `SRV-${Date.now()}`;
 
+      let saleCreatedAt: string | undefined = undefined;
+      if (customDate) {
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+        try {
+          saleCreatedAt = new Date(`${customDate}T${timeStr}`).toISOString();
+        } catch (e) {
+          saleCreatedAt = new Date(customDate).toISOString();
+        }
+      }
+
       // 1. Create Sale (item_id is null for custom service/sale)
       const { data: sale, error: sError } = await supabase.from('sales').insert({
         business_id: business.id,
@@ -868,7 +935,8 @@ function AddServiceView({ onBack, customers = [] }: { onBack: () => void, custom
         cost_rate_cents: Math.round(parsedCost * 100),
         expected_profit_cents: Math.round(calculatedProfit * 100),
         payment_method: paymentMethod,
-        notes: `[Service] ${serviceName}${notes ? ' - ' + notes : ''}`
+        notes: `[Service] ${serviceName}${notes ? ' - ' + notes : ''}`,
+        created_at: saleCreatedAt
       }).select().single();
 
       if (sError) throw sError;
@@ -1116,7 +1184,7 @@ function AddServiceView({ onBack, customers = [] }: { onBack: () => void, custom
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Payment Method</label>
                   <select 
@@ -1139,6 +1207,16 @@ function AddServiceView({ onBack, customers = [] }: { onBack: () => void, custom
                     value={notes} 
                     onChange={e => setNotes(e.target.value)}
                     onFocus={() => { if (notes === 'Enter additional transaction notes...') setNotes(''); }}
+                    className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Sale Date</label>
+                  <input 
+                    type="date" 
+                    value={customDate} 
+                    onChange={e => setCustomDate(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
                   />
                 </div>
@@ -1617,46 +1695,46 @@ function SaleDetailsModal({ sale, onClose }: { sale: any; onClose: () => void })
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <motion.div 
         initial={{ opacity: 0 }} 
         animate={{ opacity: 1 }} 
         exit={{ opacity: 0 }} 
         onClick={onClose} 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm" 
+        className="absolute inset-0 bg-black/60 backdrop-blur-xs" 
       />
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl relative overflow-hidden z-10 flex flex-col max-h-[90vh]"
+        initial={{ opacity: 0, y: 30, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 30, scale: 0.98 }}
+        className="bg-white w-full max-w-2xl rounded-t-[24px] sm:rounded-[32px] shadow-2xl relative overflow-hidden z-10 flex flex-col max-h-[92vh] sm:max-h-[90vh]"
       >
         {/* Banner/Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-5 text-white flex items-center justify-between shrink-0">
-          <div className="text-left">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold px-2 py-0.5 bg-white/20 uppercase tracking-widest rounded-full">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-5 sm:px-6 py-4 sm:py-5 text-white flex items-center justify-between shrink-0">
+          <div className="text-left min-w-0 pr-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 bg-white/20 uppercase tracking-wider rounded-full">
                 {isService ? 'Service / Custom Sale' : 'New Product Sale'}
               </span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 uppercase tracking-widest rounded-full ${sale.due_cents > 0 ? 'bg-red-500/35 text-red-100' : 'bg-emerald-500/35 text-emerald-100'}`}>
+              <span className={`text-[9px] sm:text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider rounded-full ${sale.due_cents > 0 ? 'bg-red-500/35 text-red-100' : 'bg-emerald-500/35 text-emerald-100'}`}>
                 {sale.due_cents > 0 ? 'Has Due' : 'Paid'}
               </span>
             </div>
-            <h2 className="text-xl font-bold tracking-tight mt-1">{sale.invoice_no}</h2>
-            <p className="text-xs text-blue-100 font-medium mt-0.5">{formatDate(sale.created_at)}</p>
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight mt-1 truncate break-all">{sale.invoice_no}</h2>
+            <p className="text-[10px] sm:text-xs text-blue-100 font-medium mt-0.5">{formatDate(sale.created_at)}</p>
           </div>
-          <button onClick={onClose} className="p-2 text-white/85 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl transition-all">
+          <button onClick={onClose} className="p-2 text-white/85 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl transition-all shrink-0">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6 text-left">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 text-left">
           {/* Main 2-column info layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             
             {/* Customer Details block */}
-            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex flex-col justify-between">
+            <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-100 flex flex-col justify-between">
               <div>
                 <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-blue-500" /> Customer Profile
@@ -1691,7 +1769,7 @@ function SaleDetailsModal({ sale, onClose }: { sale: any; onClose: () => void })
             </div>
 
             {/* Financial Summary panel */}
-            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 space-y-3">
+            <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-100 space-y-3">
               <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
                 <CreditCard className="w-3.5 h-3.5 text-blue-500" /> Payment Overview
               </h3>
@@ -1737,14 +1815,20 @@ function SaleDetailsModal({ sale, onClose }: { sale: any; onClose: () => void })
               </span>
             </div>
             <div className="p-4 space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h4 className="font-semibold text-slate-800 text-sm md:text-base">{saleItemName}</h4>
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-semibold text-slate-800 text-sm md:text-base break-words">{saleItemName}</h4>
                   <p className="text-xs text-slate-400 font-medium mt-1 uppercase tracking-wider">
                     {sale.quantity} Unit{sale.quantity > 1 ? 's' : ''} × {formatBDT(sale.unit_price_bdt_cents)} Unit Rate
                   </p>
+                  {cleanNotes && (
+                    <div className="mt-2.5 bg-slate-50 border border-slate-100 rounded-xl p-3 text-slate-600">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Specs / Notes</span>
+                      <p className="text-xs font-medium italic">"{cleanNotes}"</p>
+                    </div>
+                  )}
                 </div>
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <span className="font-mono font-bold text-slate-800 text-sm md:text-base">
                     {formatBDT(sale.unit_price_bdt_cents * sale.quantity)}
                   </span>
@@ -1755,34 +1839,43 @@ function SaleDetailsModal({ sale, onClose }: { sale: any; onClose: () => void })
 
           {/* Business Insights Block (Cost vs Profit) */}
           {business && (
-            <div className="bg-blue-50/40 rounded-2xl p-5 border border-blue-100/50 space-y-4">
-              <div className="flex items-center justify-between border-b border-blue-100/40 pb-2">
+            <div className="bg-blue-50/40 rounded-2xl p-4 sm:p-5 border border-blue-100/50 space-y-4">
+              <div className="flex flex-wrap items-center justify-between border-b border-blue-100/40 pb-2 gap-2">
                 <span className="text-[10px] font-bold text-blue-700 uppercase tracking-widest flex items-center gap-1.5">
                   <TrendingUp className="w-3.5 h-3.5 text-blue-500 block" /> Financial Balance & Profit Insights
                 </span>
-                <span className="text-[9px] font-mono font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded uppercase">
+                <span className="text-[9px] font-mono font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded uppercase shrink-0">
                   Accrual Profit Basis
                 </span>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-3 rounded-xl border border-blue-100/30">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Cost rate ({isService ? 'Service cost' : 'Landed cost'})</span>
-                  <span className="font-mono font-bold text-sm text-slate-700 mt-1 block">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="bg-white p-2.5 sm:p-3.5 rounded-xl border border-blue-100/30">
+                  <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-wider block truncate">
+                    <span className="block sm:hidden">Unit Cost</span>
+                    <span className="hidden sm:block">Cost rate ({isService ? 'Service' : 'Landed'})</span>
+                  </span>
+                  <span className="font-mono font-bold text-xs sm:text-sm md:text-base text-slate-700 mt-1 block truncate">
                     {formatBDT(sale.cost_rate_cents)}
                   </span>
                 </div>
                 
-                <div className="bg-white p-3 rounded-xl border border-blue-100/30">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block">Total Cost Rate</span>
-                  <span className="font-mono font-bold text-sm text-slate-700 mt-1 block">
+                <div className="bg-white p-2.5 sm:p-3.5 rounded-xl border border-blue-100/30">
+                  <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-wider block truncate">
+                    <span className="block sm:hidden">Total Cost</span>
+                    <span className="hidden sm:block">Total Cost Rate</span>
+                  </span>
+                  <span className="font-mono font-bold text-xs sm:text-sm md:text-base text-slate-700 mt-1 block truncate">
                     {formatBDT(sale.cost_rate_cents * sale.quantity)}
                   </span>
                 </div>
 
-                <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100/30">
-                  <span className="text-[9px] font-bold text-emerald-700 uppercase tracking-widest block">Sale Gain / Profit</span>
-                  <span className={`font-mono font-bold text-sm mt-1 block ${sale.expected_profit_cents >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                <div className="bg-emerald-50 p-2.5 sm:p-3.5 rounded-xl border border-emerald-100/30">
+                  <span className="text-[8px] sm:text-[9px] font-bold text-emerald-700 uppercase tracking-wider block truncate overflow-visible">
+                    <span className="block sm:hidden">Profit</span>
+                    <span className="hidden sm:block">Sale Gain / Profit</span>
+                  </span>
+                  <span className={`font-mono font-bold text-xs sm:text-sm md:text-base mt-1 block truncate ${sale.expected_profit_cents >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                     {formatBDT(sale.expected_profit_cents)}
                   </span>
                 </div>
@@ -1802,15 +1895,17 @@ function SaleDetailsModal({ sale, onClose }: { sale: any; onClose: () => void })
                 )}
               </div>
               
-              <div className="p-4 space-y-3">
+              <div className="p-4 space-y-3.5">
                 {distributions.length > 0 ? (
                   distributions.map((dist) => (
-                    <div key={dist.id} className="flex justify-between items-center text-xs">
-                      <div>
-                        <p className="font-semibold text-slate-800">{dist.partners?.name || 'Partner'}</p>
-                        <p className="text-[9px] text-slate-400 uppercase tracking-tight mt-0.5">{dist.notes || 'Profit split'}</p>
+                    <div key={dist.id} className="flex justify-between items-start text-xs border-b border-slate-100/50 last:border-0 pb-3 last:pb-0 gap-4">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-800 truncate">{dist.partners?.name || 'Partner'}</p>
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5 break-words line-clamp-2 sm:line-clamp-none">
+                          {dist.notes || 'Profit split'}
+                        </p>
                       </div>
-                      <span className="font-mono font-bold text-emerald-600">
+                      <span className="font-mono font-bold text-emerald-600 shrink-0 text-sm sm:text-base">
                         + {formatBDT(dist.amount_cents)}
                       </span>
                     </div>
@@ -1834,10 +1929,10 @@ function SaleDetailsModal({ sale, onClose }: { sale: any; onClose: () => void })
         </div>
 
         {/* Footer actions */}
-        <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-4 shrink-0">
+        <div className="p-4 sm:p-5 md:p-6 bg-slate-50 border-t border-slate-100 flex flex-col-reverse sm:flex-row gap-3 sm:gap-4 shrink-0">
           <button 
             onClick={onClose} 
-            className="flex-1 py-3.5 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-100 shadow-sm active:scale-95 transition-all"
+            className="w-full sm:flex-1 py-3 sm:py-3.5 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-slate-100 shadow-sm active:scale-95 transition-all text-center"
           >
             Close Details
           </button>
@@ -1845,7 +1940,7 @@ function SaleDetailsModal({ sale, onClose }: { sale: any; onClose: () => void })
           {business && (
             <button 
               onClick={handleDownloadInvoice}
-              className="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 shadow-lg shadow-blue-100 active:scale-95 transition-all flex items-center justify-center gap-2"
+              className="w-full sm:flex-1 py-3 sm:py-3.5 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 shadow-lg shadow-blue-100 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <Printer className="w-4 h-4" /> Download invoice
             </button>

@@ -30,6 +30,7 @@ interface BusinessMetrics {
 export default function Dashboard() {
   const { business } = useBusiness();
   const navigate = useNavigate();
+  const [timeframe, setTimeframe] = useState<'1w' | '1m' | '6m' | '1y'>('1w');
 
   const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ['businessMetrics', business?.id],
@@ -56,31 +57,39 @@ export default function Dashboard() {
 
   // Performance Trend Data
   const { data: chartData = [] } = useQuery({
-    queryKey: ['performanceTrend', business?.id],
+    queryKey: ['performanceTrend', business?.id, timeframe],
     queryFn: async () => {
       if (!business?.id) return [];
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const daysCount = timeframe === '1w' ? 7 : timeframe === '1m' ? 30 : timeframe === '6m' ? 180 : 365;
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - daysCount);
       
       const { data: sales } = await supabase
         .from('sales')
         .select('total_cents, expected_profit_cents, created_at')
         .eq('business_id', business.id)
-        .gte('created_at', sevenDaysAgo.toISOString());
-
-      const { data: expenses } = await supabase
-        .from('expenses')
-        .select('amount_cents, created_at')
-        .eq('business_id', business.id)
-        .gte('created_at', sevenDaysAgo.toISOString());
+        .gte('created_at', startDate.toISOString());
 
       const days: Record<string, any> = {};
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < daysCount; i++) {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const dateStr = d.toISOString().split('T')[0];
+        
+        let name = '';
+        if (timeframe === '1w') {
+          name = format(d, 'EEE');
+        } else if (timeframe === '1m') {
+          name = format(d, 'd MMM');
+        } else if (timeframe === '6m') {
+          name = format(d, 'd MMM yy');
+        } else {
+          name = format(d, 'd MMM yy');
+        }
+
         days[dateStr] = { 
-          name: format(d, 'EEE'), 
+          name: name, 
           revenue: 0, 
           profit: 0,
           date: dateStr 
@@ -95,9 +104,6 @@ export default function Dashboard() {
         }
       });
 
-      // Deduct expenses from profit if desired, or show separately
-      // For trend purposes, let's just show gross revenue and profit from items
-      
       return Object.values(days).sort((a: any, b: any) => a.date.localeCompare(b.date));
     },
     enabled: !!business?.id
@@ -342,14 +348,38 @@ export default function Dashboard() {
           {/* Charts */}
           <div className="lg:col-span-8 space-y-4">
             <div className="bg-white p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border border-slate-100 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <div className="space-y-1">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div className="space-y-1 text-left">
                   <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tight">Performance Trend</h3>
-                  <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">Last 7 Days Revenue & Profit</p>
+                  <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest">
+                    {timeframe === '1w' && 'Last 7 Days'}
+                    {timeframe === '1m' && 'Last 30 Days'}
+                    {timeframe === '6m' && 'Last 6 Months'}
+                    {timeframe === '1y' && 'Last Year'} Revenue & Profit
+                  </p>
                 </div>
-                <div className="flex items-center gap-4 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
-                  <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500" /><span className="text-[9px] font-bold text-slate-500 uppercase">Rev</span></div>
-                  <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span className="text-[9px] font-bold text-slate-500 uppercase">Profit</span></div>
+                
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50">
+                    {(['1w', '1m', '6m', '1y'] as const).map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setTimeframe(t)}
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg transition-all ${
+                          timeframe === t
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        {t === '1w' ? '1W' : t === '1m' ? '1M' : t === '6m' ? '6M' : '1Y'}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500" /><span className="text-[9px] font-bold text-slate-500 uppercase">Rev</span></div>
+                    <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span className="text-[9px] font-bold text-slate-500 uppercase">Profit</span></div>
+                  </div>
                 </div>
               </div>
               <div className="h-[240px] sm:h-[280px] w-full">
@@ -373,6 +403,12 @@ export default function Dashboard() {
                         tickLine={false} 
                         tick={{ fontSize: 10, fontWeight: 700, fill: '#64748b' }}
                         dy={10}
+                        interval={
+                          timeframe === '1w' ? 0 : 
+                          timeframe === '1m' ? 6 : 
+                          timeframe === '6m' ? 29 : 
+                          59
+                        }
                       />
                       <YAxis 
                         axisLine={false} 
