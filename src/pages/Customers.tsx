@@ -1493,9 +1493,6 @@ function Input({ label, value, onChange, type = "text", placeholder, required }:
         className="w-full bg-slate-50 border border-slate-100 h-9 px-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs font-bold"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onFocus={(e) => {
-          onChange('');
-        }}
         onBlur={(e) => {
           if (type === 'number' && value) {
             const num = parseFloat(value);

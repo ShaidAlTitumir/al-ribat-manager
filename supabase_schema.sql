@@ -442,11 +442,27 @@ CREATE TABLE IF NOT EXISTS public.suppliers (
 
 ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
 
+-- 19. Debts Table
+CREATE TABLE IF NOT EXISTS public.debts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  business_id UUID REFERENCES public.businesses(id) ON DELETE CASCADE,
+  creditor_name TEXT NOT NULL,
+  service_name TEXT NOT NULL,
+  date TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  currency TEXT NOT NULL CHECK (currency IN ('BDT', 'RMB')),
+  total_amount DECIMAL DEFAULT 0.00,
+  paid_amount DECIMAL DEFAULT 0.00,
+  debt_balance DECIMAL NOT NULL DEFAULT 0.00
+);
+
+ALTER TABLE public.debts ENABLE ROW LEVEL SECURITY;
+
 -- MULTI-TENANT DATA ACCESS
 DO $$ 
 DECLARE 
   t text;
-  tables text[] := ARRAY['partners', 'capital_contributions', 'customers', 'inventory_items', 'purchase_transactions', 'sales', 'customer_ledger', 'expenses', 'business_members', 'join_requests', 'activity_log', 'exchanges', 'partner_transfers', 'partner_profit_distributions', 'suppliers'];
+  tables text[] := ARRAY['partners', 'capital_contributions', 'customers', 'inventory_items', 'purchase_transactions', 'sales', 'customer_ledger', 'expenses', 'business_members', 'join_requests', 'activity_log', 'exchanges', 'partner_transfers', 'partner_profit_distributions', 'suppliers', 'debts'];
 BEGIN
   FOREACH t IN ARRAY tables LOOP
     EXECUTE 'DROP POLICY IF EXISTS data_access_' || t || ' ON public.' || t;
@@ -511,15 +527,10 @@ BEGIN
   v_cash_bdt := v_cash_bdt - COALESCE((SELECT SUM(amount_cents) FROM expenses WHERE business_id = p_business_id AND currency = 'BDT'), 0);
   v_cash_bdt := v_cash_bdt - COALESCE((SELECT SUM(CAST(amount_cents * v_rate AS BIGINT)) FROM expenses WHERE business_id = p_business_id AND currency = 'RMB'), 0);
 
-  -- Inventory Valuation: Stock * Landed Cost (prefer latest transaction cost, fallback to item record)
-  SELECT COALESCE(SUM(current_stock * COALESCE(pt.landed_cost_per_unit_bdt_cents, i.last_landed_cost_cents, 0)), 0)
+  -- Inventory Valuation: Stock * Landed Cost
+  SELECT COALESCE(SUM(current_stock * COALESCE(i.last_landed_cost_cents, 0)), 0)
   INTO v_inventory_value
   FROM inventory_items i
-  LEFT JOIN (
-    SELECT DISTINCT ON (item_id) item_id, landed_cost_per_unit_bdt_cents
-    FROM purchase_transactions
-    ORDER BY item_id, created_at DESC
-  ) pt ON pt.item_id = i.id
   WHERE i.business_id = p_business_id;
 
   -- Receivables calculation: Sales Dues - Payments - Returns

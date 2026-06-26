@@ -9,7 +9,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Package, Search, Plus, Filter, ArrowUpRight, 
   Warehouse, AlertCircle, Trash2, Edit2, History,
-  ChevronRight, Box, Tag, Truck, LucideIcon, X, TrendingUp, ArrowLeft
+  ChevronRight, Box, Tag, Truck, LucideIcon, X, TrendingUp, ArrowLeft,
+  AlertTriangle
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatBDT } from '../lib/utils';
@@ -24,11 +25,12 @@ export default function Inventory() {
   const [view, setView] = useState<'list' | 'add'>('list');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+  const [isLossModalOpen, setIsLossModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
 
-  useScrollLock(isEditModalOpen || isPurchaseModalOpen || !!itemToDelete);
+  useScrollLock(isEditModalOpen || isPurchaseModalOpen || isLossModalOpen || !!itemToDelete);
 
   // Fetch Inventory
   const { data: items = [], isLoading } = useQuery({
@@ -173,6 +175,7 @@ export default function Inventory() {
                               onAddStock={() => { setSelectedItem(item); setIsPurchaseModalOpen(true); }}
                               onEdit={() => { setSelectedItem(item); setIsEditModalOpen(true); }}
                               onDelete={() => setItemToDelete(item)}
+                              onReportLost={() => { setSelectedItem(item); setIsLossModalOpen(true); }}
                             />
                           ))}
                           {inStockItems.length === 0 && (
@@ -206,6 +209,7 @@ export default function Inventory() {
                               onAddStock={() => { setSelectedItem(item); setIsPurchaseModalOpen(true); }}
                               onEdit={() => { setSelectedItem(item); setIsEditModalOpen(true); }}
                               onDelete={() => setItemToDelete(item)}
+                              onReportLost={() => { setSelectedItem(item); setIsLossModalOpen(true); }}
                             />
                           ))}
                           {outOfStockItems.length === 0 && (
@@ -247,6 +251,12 @@ export default function Inventory() {
             onClose={() => setItemToDelete(null)} 
           />
         )}
+        {isLossModalOpen && selectedItem && (
+          <ReportStockLossModal 
+            item={selectedItem} 
+            onClose={() => { setIsLossModalOpen(false); setSelectedItem(null); }} 
+          />
+        )}
       </AnimatePresence>
     </MainLayout>
   );
@@ -266,7 +276,7 @@ function StatCard({ title, value, icon: Icon, color }: any) {
   );
 }
 
-function ItemCard({ item, onAddStock, onEdit, onDelete }: { item: InventoryItem & { realized_profit_cents?: number }, onAddStock: () => void, onEdit: () => void, onDelete: () => void }) {
+function ItemCard({ item, onAddStock, onEdit, onDelete, onReportLost }: { item: InventoryItem & { realized_profit_cents?: number }, onAddStock: () => void, onEdit: () => void, onDelete: () => void, onReportLost: () => void }) {
   const isLow = item.current_stock <= item.low_stock_threshold;
   const realizedProfitCents = item.realized_profit_cents || 0;
   
@@ -320,25 +330,36 @@ function ItemCard({ item, onAddStock, onEdit, onDelete }: { item: InventoryItem 
 
       <div className="mt-auto pt-2 border-t border-slate-50 flex items-center justify-between">
         <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-widest">Controls</span>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
           <button 
             onClick={(e) => { e.stopPropagation(); onAddStock(); }}
-            className="px-2.5 py-1.5 bg-blue-50 rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center gap-1.5 hover:bg-blue-100 transition-all text-blue-600 active:scale-95 shadow-sm shadow-blue-50"
+            className="px-2 py-1 bg-blue-50 rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center gap-1 hover:bg-blue-100 transition-all text-blue-600 active:scale-95 shadow-sm shadow-blue-50 cursor-pointer"
           >
-            <Truck className="w-3 h-3" /> Restock
+            <Truck className="w-3 h-3 text-blue-500" /> Restock
           </button>
+          
+          {item.current_stock > 0 && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onReportLost(); }}
+              className="px-2 py-1 bg-rose-50 rounded-xl text-[9px] font-bold uppercase tracking-widest flex items-center gap-1 hover:bg-rose-100 transition-all text-rose-600 active:scale-95 shadow-sm shadow-rose-50 cursor-pointer"
+              title="Report lost or damaged units"
+            >
+              <AlertTriangle className="w-3 h-3 text-rose-500 shrink-0" /> Lost/Damage
+            </button>
+          )}
+
           <div className="flex gap-1">
             <button 
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:text-blue-600 hover:bg-blue-50 transition-all active:scale-95"
+              className="p-1.5 bg-slate-50 text-slate-400 rounded-xl hover:text-blue-600 hover:bg-blue-50 transition-all active:scale-95 cursor-pointer"
             >
-              <Edit2 className="w-3.5 h-3.5" />
+              <Edit2 className="w-3 h-3" />
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="p-2 bg-red-50 text-red-400 rounded-xl hover:text-red-600 hover:bg-red-100 transition-all active:scale-95"
+              className="p-1.5 bg-red-50 text-red-400 rounded-xl hover:text-red-600 hover:bg-red-100 transition-all active:scale-95 cursor-pointer"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-3 h-3" />
             </button>
           </div>
         </div>
@@ -1503,9 +1524,6 @@ function Input({ label, value, onChange, type = "text", placeholder }: any) {
         className="w-full bg-slate-50 border border-slate-100 h-11 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-base md:text-sm font-medium"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onFocus={(e) => {
-          onChange('');
-        }}
         onBlur={(e) => {
           if (type === 'number' && value) {
             const num = parseFloat(value);
@@ -1533,9 +1551,6 @@ function FormRow({ label, value, onChange, placeholder, type = "text", sub, step
         className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-base md:text-sm"
         value={value}
         onChange={e => onChange(e.target.value)}
-        onFocus={(e) => {
-          onChange('');
-        }}
         onBlur={(e) => {
           if (type === 'number' && value) {
             const num = parseFloat(value);
@@ -1804,6 +1819,183 @@ function QuickAddCustomerModal({ onClose, onSuccess }: { onClose: () => void, on
               className="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-blue-100 animate-none"
             >
               {mutation.isPending ? 'Saving...' : 'Save & Select'}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function ReportStockLossModal({ item, onClose }: { item: InventoryItem, onClose: () => void }) {
+  const { business } = useBusiness();
+  const queryClient = useQueryClient();
+  const [lossQty, setLossQty] = useState('1');
+  const [reason, setReason] = useState('Lost in transit');
+  const [notes, setNotes] = useState('');
+
+  const qtyToDeduct = parseInt(lossQty) || 0;
+  const isValid = qtyToDeduct > 0 && qtyToDeduct <= item.current_stock;
+
+  const currentUnitCostCents = item.last_landed_cost_cents || 0;
+  const totalCostValueCents = item.current_stock * currentUnitCostCents;
+  const remainingStock = item.current_stock - qtyToDeduct;
+  const newLandedCostCents = remainingStock > 0 ? Math.round(totalCostValueCents / remainingStock) : currentUnitCostCents;
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!isValid) throw new Error(`Please enter a valid quantity between 1 and ${item.current_stock}`);
+
+      // 1. Update the inventory stock & distribute cost per piece
+      const { error: iError } = await supabase
+        .from('inventory_items')
+        .update({ 
+          current_stock: remainingStock,
+          last_landed_cost_cents: newLandedCostCents
+        })
+        .eq('id', item.id);
+      
+      if (iError) throw iError;
+
+      // 2. Log activity
+      const { user } = (await supabase.auth.getUser()).data;
+      await logActivity({
+        business_id: business?.id || '',
+        user_id: user?.id,
+        action: 'STOCK_SHRINKAGE',
+        details: {
+          title: `Stock Shrinkage: ${item.name}`,
+          sub: `Deducted ${qtyToDeduct} ${item.unit} (${reason}${notes ? ` - ${notes}` : ''}). Unit cost adjusted from ৳${(currentUnitCostCents / 100).toFixed(2)} to ৳${(newLandedCostCents / 100).toFixed(2)}.`,
+          amount: `-${qtyToDeduct}`,
+          type: 'inventory'
+        }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['activity_log'] });
+      onClose();
+    },
+    onError: (err: any) => {
+      alert(err.message);
+    }
+  });
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="bg-white w-full max-w-md rounded-3xl shadow-2xl relative z-10"
+      >
+        <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+             <div className="w-10 h-10 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600 font-bold">
+               <AlertCircle className="w-5 h-5" />
+             </div>
+             <div className="text-left">
+                <h2 className="text-lg font-bold text-slate-900 tracking-tight">Report Lost / Damage</h2>
+                <p className="text-xs text-rose-500 font-medium tracking-wide uppercase">Deduct damaged or missing stock</p>
+             </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-50 cursor-pointer"><X className="w-5 h-5 text-slate-400" /></button>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-left">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Product Details</p>
+            <div className="flex justify-between items-center font-bold">
+              <span className="text-sm text-slate-805 uppercase tracking-wide">{item.name}</span>
+              <span className="text-xs text-slate-500">Available: {item.current_stock} {item.unit}</span>
+            </div>
+          </div>
+
+          <div className="space-y-1.5 text-left">
+            <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Quantity Lost / Damaged</label>
+            <input 
+              type="number"
+              min="1"
+              max={item.current_stock}
+              placeholder={`Number of ${item.unit}`}
+              value={lossQty}
+              onChange={(e) => setLossQty(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-100 h-11 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-semibold text-slate-900 text-sm"
+            />
+          </div>
+
+          <div className="space-y-1.5 text-left">
+            <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Reason</label>
+            <select
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-100 h-11 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-semibold text-slate-900 text-sm cursor-pointer"
+            >
+              <option value="Lost in transit">Lost in transit / Shipping</option>
+              <option value="Damaged product">Damaged / Broken / Unusable</option>
+              <option value="Stock discrepancy">Physical stock discrepancy (Shrinkage)</option>
+              <option value="Returned & defective">Customer Return & Defective</option>
+              <option value="Other">Other / Spillage</option>
+            </select>
+          </div>
+
+          <div className="space-y-1.5 text-left">
+            <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">Notes / Context (Optional)</label>
+            <input 
+              type="text"
+              placeholder="e.g. Order arrived with 238 pcs instead of 240 pcs"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-100 h-11 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+            />
+          </div>
+
+          <div className="bg-blue-50/50 p-3 rounded-2xl border border-blue-100 text-left space-y-1">
+            <div className="flex items-start gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+              <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest">Accounting Treatment Rule</p>
+            </div>
+            <p className="text-[11px] leading-relaxed text-blue-700 font-medium">
+              By decrementing the physical items, your financial balance is perfectly protected. The cost of these {qtyToDeduct || 0} missing {item.unit} is distributed among your salable units, keeping your wallet balances exact while updating real-time stock.
+            </p>
+            {qtyToDeduct > 0 && remainingStock > 0 && (
+              <div className="mt-2 pt-2 border-t border-blue-150 text-xs text-blue-900 font-medium space-y-1">
+                <div className="flex justify-between">
+                  <span>Initial Stock:</span>
+                  <span className="font-mono">{item.current_stock} {item.unit}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Initial Cost per {item.unit}:</span>
+                  <span className="font-mono">৳{(currentUnitCostCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-rose-700 font-semibold gap-1">
+                  <span>Lost/Damaged Units:</span>
+                  <span className="font-mono">-{qtyToDeduct} {item.unit}</span>
+                </div>
+                <div className="flex justify-between text-emerald-800 font-bold border-t border-dashed border-blue-200 pt-1 mt-1">
+                  <span>New Cost per {item.unit}:</span>
+                  <span className="font-mono">৳{(newLandedCostCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button 
+              onClick={onClose}
+              className="flex-1 py-3 bg-slate-50 text-slate-500 rounded-xl font-bold text-[10px] uppercase tracking-widest cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending || !isValid}
+              className={`flex-[2] py-3 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg cursor-pointer ${
+                isValid ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-100' : 'bg-slate-300 cursor-not-allowed'
+              }`}
+            >
+              {mutation.isPending ? 'Processing...' : 'Confirm Stock Loss'}
             </button>
           </div>
         </div>

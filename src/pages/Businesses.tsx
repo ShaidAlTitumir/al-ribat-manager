@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useBusiness } from '../context/BusinessContext';
+import { DynamicLogo } from '../components/DynamicLogo';
 import { 
   Plus, Building2, ChevronRight, CheckCircle2, 
   Search, ArrowUpRight, Loader2, PlusCircle, LayoutGrid,
@@ -212,8 +213,7 @@ export default function Businesses() {
       <div className="space-y-6 md:space-y-8 px-2 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-4">
-            <img 
-              src="/logo.jpg" 
+            <DynamicLogo 
               className="w-12 h-12 rounded-2xl shadow-lg shadow-blue-100" 
               alt="Logo" 
             />

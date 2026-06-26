@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Briefcase, Lock, Mail, ArrowRight, AlertCircle, RefreshCw, LogOut } from 'lucide-react';
+import { DynamicLogo } from '../../components/DynamicLogo';
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
@@ -214,11 +215,9 @@ export default function Login() {
       >
         <div className="flex flex-col items-center mb-8">
           <div className="relative">
-            <img 
-              src="/logo.jpg" 
+            <DynamicLogo 
               className="w-24 h-24 rounded-3xl shadow-2xl shadow-blue-100 object-contain bg-white p-2 border border-slate-50" 
               alt="Logo" 
-              referrerPolicy="no-referrer"
             />
             <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-white">
               <LogOut className="w-4 h-4 rotate-180" />

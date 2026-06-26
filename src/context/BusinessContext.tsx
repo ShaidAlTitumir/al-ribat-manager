@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Business } from '../types';
 import { useAuth } from './AuthContext';
+import { safeStorage } from '../lib/safeStorage';
 
 interface BusinessContextType {
   business: Business | null;
@@ -21,9 +22,9 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [userRole, setUserRole] = useState<string>('user');
   const [loading, setLoading] = useState(true);
 
-  // Use a local state for the active business ID that persists in localStorage
+  // Use a local state for the active business ID that persists in safeStorage
   const [activeBusinessId, setActiveBusinessId] = useState<string | null>(() => {
-    return localStorage.getItem('alribat_active_business_id');
+    return safeStorage.getItem('alribat_active_business_id');
   });
 
   const fetchBusinessAndRole = async (businessId: string, userId: string) => {
@@ -42,8 +43,8 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } else if (!bData) {
         console.warn('Business not found for ID:', businessId);
         setBusiness(null);
-        localStorage.removeItem('alribat_active_business_id');
-        localStorage.removeItem('alribat_user_role');
+        safeStorage.removeItem('alribat_active_business_id');
+        safeStorage.removeItem('alribat_user_role');
         setActiveBusinessId(null);
         setUserRole('user');
       } else {
@@ -60,10 +61,10 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       if (!mError && mData) {
         setUserRole(mData.role);
-        localStorage.setItem('alribat_user_role', mData.role);
+        safeStorage.setItem('alribat_user_role', mData.role);
       } else {
         setUserRole('user');
-        localStorage.removeItem('alribat_user_role');
+        safeStorage.removeItem('alribat_user_role');
       }
     } catch (err) {
       console.error('Business fetch unexpected error:', err);
@@ -90,7 +91,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } else if (profile?.business_id) {
         // Fallback to profile business if no local selection exists yet
         setActiveBusinessId(profile.business_id);
-        localStorage.setItem('alribat_active_business_id', profile.business_id);
+        safeStorage.setItem('alribat_active_business_id', profile.business_id);
         fetchBusinessAndRole(profile.business_id, profile.id);
       }
     } else if (profile === null) {
@@ -98,8 +99,8 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setBusiness(null);
       setUserRole('user');
       setLoading(false);
-      localStorage.removeItem('alribat_active_business_id');
-      localStorage.removeItem('alribat_user_role');
+      safeStorage.removeItem('alribat_active_business_id');
+      safeStorage.removeItem('alribat_user_role');
       setActiveBusinessId(null);
     }
   }, [profile?.id, activeBusinessId === null, profile === null]);
@@ -126,8 +127,8 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!businessId) {
       setActiveBusinessId(null);
       setUserRole('user');
-      localStorage.removeItem('alribat_active_business_id');
-      localStorage.removeItem('alribat_user_role');
+      safeStorage.removeItem('alribat_active_business_id');
+      safeStorage.removeItem('alribat_user_role');
       setBusiness(null);
       return;
     }
@@ -136,7 +137,7 @@ export const BusinessProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       // 1. Update local state immediately for responsiveness
       setActiveBusinessId(businessId);
-      localStorage.setItem('alribat_active_business_id', businessId);
+      safeStorage.setItem('alribat_active_business_id', businessId);
       
       // 2. Fetch business and role data
       await fetchBusinessAndRole(businessId, profile.id);

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Users, ArrowRight, Building2, Ticket, RefreshCw } from 'lucide-react';
 
 import { useBusiness } from '../../context/BusinessContext';
+import { DynamicLogo } from '../../components/DynamicLogo';
 
 export default function Onboarding() {
   const { user, profile, refreshProfile } = useAuth();
@@ -144,8 +145,7 @@ export default function Onboarding() {
               className="space-y-6"
             >
               <div className="text-center mb-10">
-                <img 
-                  src="/logo.jpg" 
+                <DynamicLogo 
                   className="w-20 h-20 mx-auto mb-6 shadow-xl shadow-blue-100 rounded-3xl" 
                   alt="Logo" 
                 />

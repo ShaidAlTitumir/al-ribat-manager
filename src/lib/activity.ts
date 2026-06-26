@@ -14,6 +14,7 @@ export type ActivityType =
   | 'business'
   | 'supplier'
   | 'wallet'
+  | 'debt'
   | 'activity';
 
 interface LogOptions {

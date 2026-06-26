@@ -448,7 +448,7 @@ export default function Sales() {
                        <h2 className="text-xs lg:text-sm font-bold uppercase tracking-widest text-slate-900">Sale Details</h2>
                     </div>
                     <div className="p-4 space-y-4 text-left">
-                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                       <div className="space-y-3">
                           <div className="flex items-end gap-2">
                              <SelectInput 
                                label="Customer" 
@@ -466,13 +466,14 @@ export default function Sales() {
                                <Plus className="w-4 h-4" />
                              </button>
                           </div>
-                          <SelectInput 
-                            label="Product" 
-                            value={selectedItemId} 
-                            onChange={setSelectedItemId} 
-                            options={items.map(i => ({ value: i.id, label: `${i.name} (Stk: ${i.current_stock})` }))}
-                            placeholder="Choose item..."
-                          />
+                          <div className="grid grid-cols-2 gap-3 pb-1">
+                             <SelectInput
+                               label="Product"
+                                value={selectedItemId}
+                                onChange={setSelectedItemId}
+                                options={items.filter(i => (i.current_stock || 0) > 0).map(i => ({ value: i.id, label: `${i.name} (Stk: ${i.current_stock})` }))}
+                                placeholder="Choose item..."
+                              />
                           <div className="space-y-1 text-left">
                              <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 ml-1">Sale Date</label>
                              <input 
@@ -481,6 +482,7 @@ export default function Sales() {
                                onChange={(e) => setCustomDate(e.target.value)}
                                className="w-full bg-slate-50 border border-slate-100 h-10 px-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-base md:text-sm font-medium"
                              />
+                          </div>
                           </div>
                        </div>
                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1184,40 +1186,40 @@ function AddServiceView({ onBack, customers = [] }: { onBack: () => void, custom
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Payment Method</label>
-                  <select 
-                    value={paymentMethod} 
-                    onChange={e => setPaymentMethod(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="bkash">bKash</option>
-                    <option value="nagad">Nagad</option>
-                    <option value="bank">Bank</option>
-                  </select>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Payment Method</label>
+                    <select 
+                      value={paymentMethod} 
+                      onChange={e => setPaymentMethod(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="bkash">bKash</option>
+                      <option value="nagad">Nagad</option>
+                      <option value="bank">Bank</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Sale Date</label>
+                    <input 
+                      type="date" 
+                      value={customDate} 
+                      onChange={e => setCustomDate(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Notes / Description</label>
-                  <input 
-                    type="text" 
-                    placeholder="Enter additional transaction notes..." 
-                    value={notes} 
-                    onChange={e => setNotes(e.target.value)}
-                    onFocus={() => { if (notes === 'Enter additional transaction notes...') setNotes(''); }}
-                    className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest ml-1">Sale Date</label>
-                  <input 
-                    type="date" 
-                    value={customDate} 
-                    onChange={e => setCustomDate(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-100 h-10 px-4 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-900 text-sm"
+                  <textarea 
+                    className="w-full bg-slate-50 border border-slate-100 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-base md:text-sm font-medium min-h-[60px]"
+                    placeholder="Enter additional transaction notes..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
                   />
                 </div>
               </div>
@@ -1640,6 +1642,9 @@ function SaleDetailsModal({ sale, onClose }: { sale: any; onClose: () => void })
   }, [sale.id, business?.id]);
 
   const isService = !sale.item_id;
+  const formatTK = (cents: number) => {
+    return (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TK';
+  };
   const saleItemName = sale.inventory_items?.name || (
     sale.notes ? (
       sale.notes.startsWith('[Service]') 
@@ -1852,31 +1857,31 @@ function SaleDetailsModal({ sale, onClose }: { sale: any; onClose: () => void })
               <div className="grid grid-cols-3 gap-2 sm:gap-4">
                 <div className="bg-white p-2.5 sm:p-3.5 rounded-xl border border-blue-100/30">
                   <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-wider block truncate">
-                    <span className="block sm:hidden">Unit Cost</span>
-                    <span className="hidden sm:block">Cost rate ({isService ? 'Service' : 'Landed'})</span>
+                    <span className="block sm:hidden">Unit Cost (TK)</span>
+                    <span className="hidden sm:block">Cost rate ({isService ? 'Service' : 'Landed'}) (TK)</span>
                   </span>
                   <span className="font-mono font-bold text-xs sm:text-sm md:text-base text-slate-700 mt-1 block truncate">
-                    {formatBDT(sale.cost_rate_cents)}
+                    {formatTK(sale.cost_rate_cents)}
                   </span>
                 </div>
                 
                 <div className="bg-white p-2.5 sm:p-3.5 rounded-xl border border-blue-100/30">
                   <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-wider block truncate">
-                    <span className="block sm:hidden">Total Cost</span>
-                    <span className="hidden sm:block">Total Cost Rate</span>
+                    <span className="block sm:hidden">Total Cost (TK)</span>
+                    <span className="hidden sm:block">Total Cost Rate (TK)</span>
                   </span>
                   <span className="font-mono font-bold text-xs sm:text-sm md:text-base text-slate-700 mt-1 block truncate">
-                    {formatBDT(sale.cost_rate_cents * sale.quantity)}
+                    {formatTK(sale.cost_rate_cents * sale.quantity)}
                   </span>
                 </div>
 
                 <div className="bg-emerald-50 p-2.5 sm:p-3.5 rounded-xl border border-emerald-100/30">
                   <span className="text-[8px] sm:text-[9px] font-bold text-emerald-700 uppercase tracking-wider block truncate overflow-visible">
-                    <span className="block sm:hidden">Profit</span>
-                    <span className="hidden sm:block">Sale Gain / Profit</span>
+                    <span className="block sm:hidden">Profit (TK)</span>
+                    <span className="hidden sm:block">Sale Gain / Profit (TK)</span>
                   </span>
                   <span className={`font-mono font-bold text-xs sm:text-sm md:text-base mt-1 block truncate ${sale.expected_profit_cents >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                    {formatBDT(sale.expected_profit_cents)}
+                    {formatTK(sale.expected_profit_cents)}
                   </span>
                 </div>
               </div>

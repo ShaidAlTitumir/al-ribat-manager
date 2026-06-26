@@ -1,7 +1,7 @@
 // src/App.tsx
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import { BusinessProvider } from './context/BusinessContext';
 import { ProtectedRoute, NoBusinessGuard } from './components/auth/Guards';
@@ -16,6 +16,7 @@ const Inventory = React.lazy(() => import('./pages/Inventory'));
 const Wallet = React.lazy(() => import('./pages/Wallet'));
 const Transactions = React.lazy(() => import('./pages/Transactions'));
 const Expenses = React.lazy(() => import('./pages/Expenses'));
+const DebtManagement = React.lazy(() => import('./pages/DebtManagement'));
 const Reports = React.lazy(() => import('./pages/Reports'));
 const Activities = React.lazy(() => import('./pages/Activities'));
 const Profile = React.lazy(() => import('./pages/Profile'));
@@ -24,6 +25,30 @@ const Login = React.lazy(() => import('./pages/auth/Login'));
 const Onboarding = React.lazy(() => import('./pages/auth/Onboarding'));
 
 const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error: any) => {
+      const message = error?.message || '';
+      if (
+        message.toLowerCase().includes('failed to fetch') || 
+        message.toLowerCase().includes('network') || 
+        message.toLowerCase().includes('load failed')
+      ) {
+        window.dispatchEvent(new CustomEvent('app-connection-error', { detail: message || 'Failed to fetch' }));
+      }
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error: any) => {
+      const message = error?.message || '';
+      if (
+        message.toLowerCase().includes('failed to fetch') || 
+        message.toLowerCase().includes('network') || 
+        message.toLowerCase().includes('load failed')
+      ) {
+        window.dispatchEvent(new CustomEvent('app-connection-error', { detail: message || 'Failed to fetch' }));
+      }
+    },
+  }),
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
@@ -59,6 +84,7 @@ export default function App() {
                     <Route path="/wallet" element={<Wallet />} />
                     <Route path="/transactions" element={<Transactions />} />
                     <Route path="/expenses" element={<Expenses />} />
+                    <Route path="/debts" element={<DebtManagement />} />
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/activities" element={<Activities />} />
                   </Route>

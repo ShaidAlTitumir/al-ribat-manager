@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
 import { useBusiness } from '../context/BusinessContext';
+import { DynamicLogo } from '../components/DynamicLogo';
 import { supabase } from '../lib/supabase';
 import { motion } from 'motion/react';
 import { useQuery } from '@tanstack/react-query';
@@ -47,12 +48,12 @@ export default function Dashboard() {
   const isLoading = metricsLoading || !business;
 
   const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('en-BD', { 
-      style: 'currency', 
-      currency: 'BDT', 
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2 
-    }).format(val / 100);
+    const isNegative = val < 0;
+    const formatted = new Intl.NumberFormat('en-US', { 
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0 
+    }).format(Math.round(Math.abs(val) / 100));
+    return `${isNegative ? '-' : ''}৳${formatted}`;
   };
 
   // Performance Trend Data
@@ -122,7 +123,8 @@ export default function Dashboard() {
         { data: distribution, error: dErr },
         { data: internalExchanges, error: exErr },
         { data: ledger, error: lErr },
-        { data: purchases, error: pErr }
+        { data: purchases, error: pErr },
+        { data: debts, error: dbtErr }
       ] = await Promise.all([
         supabase.from('sales').select('item_id, total_cents, due_cents, cost_rate_cents, received_now_bdt_cents').eq('business_id', business.id),
         supabase.from('expenses').select('amount_cents, currency').eq('business_id', business.id),
@@ -130,11 +132,12 @@ export default function Dashboard() {
         supabase.from('partner_profit_distributions').select('amount_cents').eq('business_id', business.id),
         supabase.from('exchanges').select('*').eq('business_id', business.id),
         supabase.from('customer_ledger').select('amount_cents, transaction_type').eq('business_id', business.id),
-        supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, buying_cost_per_unit_rmb_cents, quantity, exchange_rate_used, paid, additional_cost_bdt_cents, additional_cost_currency').eq('business_id', business.id).eq('paid', true)
+        supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, buying_cost_per_unit_rmb_cents, quantity, exchange_rate_used, paid, additional_cost_bdt_cents, additional_cost_currency').eq('business_id', business.id).eq('paid', true),
+        supabase.from('debts').select('paid_amount, currency').eq('business_id', business.id)
       ]);
 
-      if (sErr || eErr || cErr || dErr || exErr || lErr || pErr) {
-        console.error('Balance calculation interrupted due to query error:', { sErr, eErr, cErr, dErr, exErr, lErr, pErr });
+      if (sErr || eErr || cErr || dErr || exErr || lErr || pErr || dbtErr) {
+        console.error('Balance calculation interrupted due to query error:', { sErr, eErr, cErr, dErr, exErr, lErr, pErr, dbtErr });
       }
 
       let bdt = 0;
@@ -187,6 +190,16 @@ export default function Dashboard() {
         }
       });
 
+      // Debts paid impact
+      debts?.forEach(d => {
+        const amtCents = Math.round((d.paid_amount || 0) * 100);
+        if (d.currency === 'BDT') {
+          bdt -= amtCents;
+        } else {
+          rmb -= amtCents;
+        }
+      });
+
       return { bdt: bdt / 100, rmb: rmb / 100 };
     },
     enabled: !!business?.id
@@ -198,53 +211,93 @@ export default function Dashboard() {
     queryFn: async () => {
       if (!business?.id) return [];
       
-      // Attempt join first
-      const { data, error } = await supabase
+      const { data: activitiesData, error: activitiesError } = await supabase
         .from('activity_log')
-        .select(`
-          *,
-          profiles (
-            full_name,
-            username
-          )
-        `)
+        .select('*')
         .eq('business_id', business.id)
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (error) {
-        console.error('Activity fetch error:', error);
-        // Fallback to basic fetch if join fails
-        const { data: basicData, error: basicError } = await supabase
-          .from('activity_log')
-          .select('*')
-          .eq('business_id', business.id)
-          .order('created_at', { ascending: false })
-          .limit(20);
-        
-        if (basicError) throw basicError;
-        return (basicData || []).map(a => ({
+      if (activitiesError) throw activitiesError;
+
+      const userIds = Array.from(
+        new Set((activitiesData || []).map(a => a.user_id).filter(Boolean))
+      ) as string[];
+
+      const profileMap: Record<string, { full_name: string; username: string }> = {};
+
+      if (userIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, username')
+          .in('id', userIds);
+
+        if (!profilesError && profilesData) {
+          profilesData.forEach(p => {
+            profileMap[p.id] = {
+              full_name: p.full_name || '',
+              username: p.username || ''
+            };
+          });
+        }
+      }
+
+      return (activitiesData || []).map(a => {
+        const profile = a.user_id ? profileMap[a.user_id] : null;
+        return {
           id: a.id,
           title: a.details?.title || a.action,
-          sub: a.details?.sub || 'System Activity',
+          sub: a.details?.sub || (profile?.full_name || profile?.username || 'System Activity'),
           amount: a.details?.amount || 'LOG',
           time: formatDateTime(a.created_at).split(', ')[1],
           type: a.details?.type || 'activity',
           raw_date: a.created_at
-        }));
-      }
-
-      return (data || []).map(a => ({
-        id: a.id,
-        title: a.details?.title || a.action,
-        sub: a.details?.sub || (a.profiles?.full_name || a.profiles?.username || 'System Activity'),
-        amount: a.details?.amount || 'LOG',
-        time: formatDateTime(a.created_at).split(', ')[1],
-        type: a.details?.type || 'activity',
-        raw_date: a.created_at
-      }));
+        };
+      });
     },
     enabled: !!business?.id
+  });
+
+  // Stock Alerts Query
+  const { data: stockAlerts = [], isLoading: stockAlertsLoading } = useQuery({
+    queryKey: ['dashboardStockAlerts', business?.id],
+    queryFn: async () => {
+      if (!business?.id) return [];
+      const { data, error } = await supabase
+        .from('inventory_items')
+        .select('*')
+        .eq('business_id', business.id)
+        .order('current_stock', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!business?.id,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  // Fetch Debts for KPI Card
+  const { data: debtSummary = { bdt: 0, rmb: 0 }, isLoading: debtsLoading } = useQuery({
+    queryKey: ['dashboardDebts', business?.id],
+    queryFn: async () => {
+      if (!business?.id) return { bdt: 0, rmb: 0 };
+      const { data, error } = await supabase
+        .from('debts')
+        .select('debt_balance, currency')
+        .eq('business_id', business.id);
+      
+      if (error) throw error;
+      
+      let bdt = 0;
+      let rmb = 0;
+      data?.forEach(d => {
+        const val = parseFloat(d.debt_balance as any || 0);
+        if (d.currency === 'BDT') bdt += val;
+        else rmb += val;
+      });
+      return { bdt, rmb };
+    },
+    enabled: !!business?.id,
+    staleTime: 1000 * 60 * 2,
   });
 
   return (
@@ -259,8 +312,7 @@ export default function Dashboard() {
               <div className="flex flex-col md:flex-row items-center gap-6 sm:gap-8">
                 <div className="shrink-0">
                   <div className="w-16 h-16 sm:w-24 sm:h-24 bg-white/10 backdrop-blur-xl rounded-[24px] sm:rounded-[32px] p-3 sm:p-4 border border-white/20 shadow-2xl">
-                    <img 
-                      src="/logo.jpg" 
+                    <DynamicLogo 
                       className="w-full h-full object-contain rounded-xl sm:rounded-2xl" 
                       alt="Logo" 
                     />
@@ -287,8 +339,12 @@ export default function Dashboard() {
           const rmbRate = business?.exchange_rate || 18.15;
           const rmbInBdtCents = balances ? Math.round(balances.rmb * 100 * rmbRate) : 0;
 
+          const computedInventoryValueCents = stockAlertsLoading
+            ? (metrics?.inventory_value || 0)
+            : stockAlerts.reduce((acc, i) => acc + (i.current_stock * (i.last_landed_cost_cents || 0)), 0);
+
           const computedTotalAssetsCents = metrics && balances
-            ? Math.round(balances.bdt * 100) + rmbInBdtCents + (metrics.inventory_value || 0) + (metrics.receivables || 0)
+            ? Math.round(balances.bdt * 100) + rmbInBdtCents + computedInventoryValueCents + (metrics.receivables || 0)
             : null;
 
           const computedBusinessValueCents = computedTotalAssetsCents !== null && metrics
@@ -306,24 +362,28 @@ export default function Dashboard() {
                 icon={<DollarSign className="w-3.5 h-3.5" />}
               />
               <KpiCard 
-                title="BDT Balance" 
-                value={balances ? `৳${Math.round(balances.bdt).toLocaleString()}` : null} 
-                subtext="Cash in Hand"
+                title="Cash Balances" 
+                value={balances ? (
+                  <div className="flex flex-col gap-1 my-0.5">
+                    <div className="flex items-center justify-between text-xs sm:text-sm font-medium text-slate-500">
+                      <span>BDT:</span>
+                      <span className="font-bold font-mono text-slate-900">৳{Math.round(balances.bdt).toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs sm:text-sm font-medium text-slate-500">
+                      <span>RMB:</span>
+                      <span className="font-bold font-mono text-slate-900 font-bold">¥{Math.round(balances.rmb).toLocaleString()}</span>
+                    </div>
+                  </div>
+                ) : null} 
+                subtext="In Hand & China Wallet"
                 loading={isLoading}
                 icon={<Wallet className="w-3.5 h-3.5 text-blue-500" />}
               />
               <KpiCard 
-                title="RMB Balance" 
-                value={balances ? `¥${Math.round(balances.rmb).toLocaleString()}` : null} 
-                subtext="China Wallet"
-                loading={isLoading}
-                icon={<RefreshCw className="w-3.5 h-3.5 text-emerald-500" />}
-              />
-              <KpiCard 
                 title="Inventory" 
-                value={metrics ? formatCurrency(metrics.inventory_value) : null} 
+                value={metrics ? formatCurrency(computedInventoryValueCents) : null} 
                 subtext="Asset Value"
-                loading={isLoading}
+                loading={isLoading || stockAlertsLoading}
                 icon={<Package className="w-3.5 h-3.5 text-amber-500" />}
               />
               <KpiCard 
@@ -339,6 +399,24 @@ export default function Dashboard() {
                 subtext="Receivables"
                 loading={isLoading}
                 icon={<Users className="w-3.5 h-3.5 text-rose-500" />}
+              />
+              <KpiCard 
+                title="Business Debt" 
+                value={
+                  <div className="flex flex-col gap-1 my-0.5">
+                    <div className="flex items-center justify-between text-xs sm:text-sm font-medium text-slate-500">
+                      <span>BDT:</span>
+                      <span className="font-bold font-mono text-slate-900">৳{Math.round(debtSummary.bdt).toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs sm:text-sm font-medium text-slate-500">
+                      <span>RMB:</span>
+                      <span className="font-bold font-mono text-slate-900 font-bold">¥{Math.round(debtSummary.rmb).toLocaleString()}</span>
+                    </div>
+                  </div>
+                } 
+                subtext="Total Active Debts"
+                loading={isLoading || debtsLoading}
+                icon={<CreditCard className="w-3.5 h-3.5 text-rose-500" />}
               />
             </div>
           );
@@ -436,6 +514,135 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
+
+            {/* Quick Actions & Stock Alerts Balanced Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Quick Actions Panel */}
+              <div className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between text-left">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-tight mb-1 font-sans">Quick Shortcuts</h4>
+                  <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-4">Jump straight into common business workflows</p>
+                  
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button 
+                      onClick={() => navigate('/sales')}
+                      className="p-3 bg-blue-50/50 hover:bg-blue-50 border border-blue-100/50 rounded-xl flex flex-col items-start gap-1.5 transition-all text-left group"
+                    >
+                      <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 shrink-0">
+                        <Receipt className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-800 block">Create Sale</span>
+                        <span className="text-[8px] font-medium text-slate-400 uppercase tracking-tight block">Invoices & Custom</span>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => navigate('/inventory')}
+                      className="p-3 bg-amber-50/50 hover:bg-amber-50 border border-amber-100/50 rounded-xl flex flex-col items-start gap-1.5 transition-all text-left group"
+                    >
+                      <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600 shrink-0">
+                        <Package className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-800 block">Manage Items</span>
+                        <span className="text-[8px] font-medium text-slate-400 uppercase tracking-tight block">Products & Stocks</span>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => navigate('/expenses')}
+                      className="p-3 bg-rose-50/50 hover:bg-rose-50 border border-rose-100/50 rounded-xl flex flex-col items-start gap-1.5 transition-all text-left group"
+                    >
+                      <div className="w-7 h-7 bg-rose-100 rounded-lg flex items-center justify-center text-rose-600 shrink-0">
+                        <TrendingDown className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-800 block">Log Expense</span>
+                        <span className="text-[8px] font-medium text-slate-400 uppercase tracking-tight block">Record Outflow</span>
+                      </div>
+                    </button>
+
+                    <button 
+                      onClick={() => navigate('/wallet')}
+                      className="p-3 bg-emerald-50/50 hover:bg-emerald-50 border border-emerald-100/50 rounded-xl flex flex-col items-start gap-1.5 transition-all text-left group"
+                    >
+                      <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 shrink-0">
+                        <Wallet className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-800 block">Financials</span>
+                        <span className="text-[8px] font-medium text-slate-400 uppercase tracking-tight block">Dividends & Cash</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stock Alerts / Inventory Status Panel */}
+              <div className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm flex flex-col text-left">
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-tight font-sans">Stock Warnings</h4>
+                  <span className="text-[9px] font-bold font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded uppercase">Real-time</span>
+                </div>
+                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mb-4">Alerts for critical low or out-of-stock products</p>
+                
+                <div className="flex-1 flex flex-col justify-center">
+                  {!business ? (
+                    <div className="py-6 flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-dashed border-slate-100 text-slate-400">
+                      <ShieldCheck className="w-6 h-6 mb-1.5 opacity-40 text-slate-400" />
+                      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Connect Business to track stock</p>
+                    </div>
+                  ) : stockAlertsLoading ? (
+                    <div className="py-6 flex flex-col items-center justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mb-2" />
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Analyzing inventory...</span>
+                    </div>
+                  ) : (() => {
+                    const outOfStock = stockAlerts.filter((item: any) => item.current_stock <= 0);
+                    const lowStock = stockAlerts.filter((item: any) => item.current_stock > 0 && item.current_stock <= 5);
+                    const warningItems = [...outOfStock, ...lowStock].slice(0, 3);
+
+                    if (warningItems.length === 0) {
+                      return (
+                        <div className="py-6 px-4 bg-emerald-50/50 border border-emerald-100/50 rounded-xl flex flex-col items-center justify-center text-center">
+                          <ShieldCheck className="w-6 h-6 text-emerald-500 mb-1.5" />
+                          <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Fully Stocked</span>
+                          <p className="text-[8px] text-emerald-600 uppercase tracking-tight mt-0.5 leading-relaxed">All products have healthy stock levels!</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-2">
+                        {warningItems.map((item: any) => {
+                          const isOut = item.current_stock <= 0;
+                          return (
+                            <div key={item.id} className="p-2 bg-slate-50 hover:bg-slate-100/80 rounded-xl flex items-center justify-between border border-slate-100/50 transition-colors">
+                              <div className="min-w-0 pr-2">
+                                <span className="font-semibold text-slate-800 text-xs block truncate">{item.name}</span>
+                                <span className="text-[8px] font-medium text-slate-400 uppercase block mt-0.5">SKU: {item.sku || 'N/A'}</span>
+                              </div>
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md font-mono shrink-0 ${isOut ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
+                                {isOut ? 'OUT OF STOCK' : `${item.current_stock} LEFT`}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {stockAlerts.length > 3 && (
+                          <button 
+                            onClick={() => navigate('/inventory')}
+                            className="w-full py-1.5 text-center text-[9px] font-bold uppercase tracking-widest text-blue-600 hover:text-blue-700 hover:underline mt-1 block"
+                          >
+                            + View {stockAlerts.length - 3} more alert{(stockAlerts.length - 3) > 1 ? 's' : ''} in Hub
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Activity Sidebar */}
@@ -455,7 +662,7 @@ export default function Dashboard() {
                   History
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[330px] sm:max-h-[352px] scrollbar-thin scrollbar-thumb-slate-100 scrollbar-track-transparent">
+              <div className="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[330px] sm:max-h-[352px] lg:max-h-[396px] scrollbar-thin scrollbar-thumb-slate-100 scrollbar-track-transparent">
                 {recentActivities.map((activity, idx) => (
                   <ActivityItem 
                     key={`${activity.id}-${idx}`}
@@ -516,6 +723,8 @@ function KpiCard({ title, value, color, subtext, icon, loading }: any) {
       </div>
       {loading ? (
         <div className={`h-6 w-20 sm:w-24 rounded animate-pulse ${color ? 'bg-white/20' : 'bg-slate-100'}`} />
+      ) : (typeof value === 'object' && value !== null) ? (
+        <div className="mb-1">{value}</div>
       ) : (
         <p className="text-base sm:text-lg lg:text-xl font-bold tracking-tighter leading-none mb-1">{value || '0'}</p>
       )}
@@ -538,6 +747,7 @@ function ActivityItem({ title, sub, amount, time, type, index }: any) {
     inventory: 'bg-amber-50 text-amber-600',
     supplier: 'bg-indigo-50 text-indigo-600',
     wallet: 'bg-cyan-50 text-cyan-600',
+    debt: 'bg-rose-50 text-rose-600',
   };
   
   const getIcon = () => {
@@ -554,6 +764,7 @@ function ActivityItem({ title, sub, amount, time, type, index }: any) {
       case 'inventory': return <ShoppingCart className="w-4 h-4" />;
       case 'supplier': return <Users className="w-4 h-4" />;
       case 'wallet': return <Wallet className="w-4 h-4" />;
+      case 'debt': return <CreditCard className="w-4 h-4" />;
       default: return <HistoryIcon className="w-4 h-4" />;
     }
   };

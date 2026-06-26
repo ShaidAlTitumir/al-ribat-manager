@@ -1,16 +1,18 @@
 // src/components/layout/MainLayout.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, Package, ShoppingCart, Users, RefreshCw, 
   Settings, LogOut, Bell, Menu, X, Receipt, 
   ArrowLeftRight, Wallet, FileText, ChevronRight,
-  LayoutGrid, Truck, History as HistoryIcon
+  LayoutGrid, Truck, History as HistoryIcon,
+  AlertTriangle, WifiOff, CreditCard
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useBusiness } from '../../context/BusinessContext';
 import { motion, AnimatePresence } from 'motion/react';
 import { useScrollLock } from '../../hooks/useScrollLock';
+import { DynamicLogo } from '../DynamicLogo';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -22,10 +24,45 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isRateEditing, setIsRateEditing] = useState(false);
   const [tempRate, setTempRate] = useState(business?.exchange_rate?.toString() || '');
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const navigate = useNavigate();
   const location = useLocation();
 
   useScrollLock(isDrawerOpen);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    const handleConnectionError = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      setConnectionError(customEvent.detail || 'Failed to fetch database resources');
+    };
+
+    const handlePromiseRejection = (e: PromiseRejectionEvent) => {
+      const reason = e.reason?.message || '';
+      if (
+        reason.toLowerCase().includes('failed to fetch') || 
+        reason.toLowerCase().includes('network error') || 
+        reason.toLowerCase().includes('load failed')
+      ) {
+        setConnectionError(reason || 'Network connection failed (Failed to fetch)');
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('app-connection-error', handleConnectionError);
+    window.addEventListener('unhandledrejection', handlePromiseRejection);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('app-connection-error', handleConnectionError);
+      window.removeEventListener('unhandledrejection', handlePromiseRejection);
+    };
+  }, []);
 
   const menuItems = [
     { path: '/', label: 'Home', icon: Home },
@@ -37,6 +74,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     { path: '/wallet', label: 'Money Exchange', icon: RefreshCw },
     { path: '/transactions', label: 'Transfers', icon: ArrowLeftRight },
     { path: '/expenses', label: 'Expenses', icon: Wallet },
+    { path: '/debts', label: 'Business Debt', icon: CreditCard },
     { path: '/reports', label: 'Reports', icon: FileText },
     { path: '/activities', label: 'Activities', icon: HistoryIcon },
     { path: '/businesses', label: 'Businesses', icon: LayoutGrid },
@@ -82,9 +120,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   className="flex items-center gap-3 cursor-pointer group"
                   onClick={() => { setIsDrawerOpen(false); navigate('/businesses'); }}
                 >
-                  <img src="/logo.jpg" className="w-10 h-10 rounded-xl object-contain group-hover:scale-110 transition-transform shadow-sm" 
+                  <DynamicLogo className="w-10 h-10 rounded-xl object-contain group-hover:scale-110 transition-transform shadow-sm" 
                     alt="Logo" 
-                    referrerPolicy="no-referrer"
                   />
                   <div>
                     <h2 className="font-bold text-sm text-slate-900 truncate max-w-[140px] group-hover:text-blue-600 transition-colors">
@@ -194,8 +231,57 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </div>
       </header>
 
+      {/* Connectivity & Database Status Alert Bar */}
+      <AnimatePresence>
+        {(isOffline || connectionError) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className={`fixed top-12 left-0 right-0 z-40 px-4 py-2 flex items-center justify-between text-xs font-semibold shadow-sm transition-all border-b ${
+              isOffline 
+                ? 'bg-amber-500 text-white border-amber-600' 
+                : 'bg-rose-50 text-rose-800 border-rose-100'
+            }`}
+          >
+            <div className="flex items-center gap-2 max-w-[85%] text-left">
+              {isOffline ? (
+                <WifiOff className="w-4 h-4 shrink-0" />
+              ) : (
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+              )}
+              <span className="truncate">
+                {isOffline 
+                  ? "You are offline. Please check your internet connection." 
+                  : `Database Connection Issue: ${connectionError}. Please confirm your Supabase project is active and credentials are correct in the Secrets panel.`}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => window.location.reload()}
+                className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-sm transition-all active:scale-95 border cursor-pointer ${
+                  isOffline 
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-700' 
+                    : 'bg-rose-100 hover:bg-rose-200 text-rose-800 border-rose-200'
+                }`}
+              >
+                Reload
+              </button>
+              {!isOffline && (
+                <button 
+                  onClick={() => setConnectionError(null)} 
+                  className="p-0.5 rounded hover:bg-rose-100 text-rose-500 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main Content */}
-      <main className="pt-16 pb-16 px-4 max-w-6xl mx-auto w-full">
+      <main className={`pb-16 px-4 max-w-6xl mx-auto w-full transition-all duration-300 ${isOffline || connectionError ? 'pt-24' : 'pt-16'}`}>
         {children}
       </main>
 

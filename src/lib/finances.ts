@@ -23,7 +23,8 @@ export async function fetchFinancialMetrics(businessId: string, exchangeRate: nu
     { data: ledger },
     { data: inventory },
     { data: shipments },
-    { data: purchases }
+    { data: purchases },
+    { data: debts }
   ] = await Promise.all([
     supabase.from('sales').select('item_id, total_cents, due_cents, cost_rate_cents, received_now_bdt_cents').eq('business_id', businessId),
     supabase.from('expenses').select('amount_cents, currency, exchange_rate_used').eq('business_id', businessId),
@@ -33,7 +34,8 @@ export async function fetchFinancialMetrics(businessId: string, exchangeRate: nu
     supabase.from('customer_ledger').select('amount_cents, transaction_type').eq('business_id', businessId),
     supabase.from('inventory_items').select('current_stock, last_landed_cost_cents').eq('business_id', businessId),
     supabase.from('shipments').select('total_shipping_cost_cents, status').eq('business_id', businessId).eq('status', 'in_transit'),
-    supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, paid').eq('business_id', businessId)
+    supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, paid').eq('business_id', businessId),
+    supabase.from('debts').select('paid_amount, debt_balance, currency').eq('business_id', businessId)
   ]);
 
   let bdtCents = 0;
@@ -75,6 +77,12 @@ export async function fetchFinancialMetrics(businessId: string, exchangeRate: nu
     }
   });
 
+  debts?.forEach(d => {
+    const amtCents = Math.round((d.paid_amount || 0) * 100);
+    if (d.currency === 'BDT') bdtCents -= amtCents;
+    else rmbCents -= amtCents;
+  });
+
   // 2. Inventory Value
   const inventoryValueCents = inventory?.reduce((acc, i) => acc + (i.current_stock * (i.last_landed_cost_cents || 0)), 0) || 0;
 
@@ -87,8 +95,21 @@ export async function fetchFinancialMetrics(businessId: string, exchangeRate: nu
   // 4. Pending Shipments
   const pendingShipmentsValueCents = shipments?.reduce((acc, s) => acc + (s.total_shipping_cost_cents || 0), 0) || 0;
 
-  // 5. Total Liabilities (Accounts Payable)
+  // 5. Total Liabilities (Accounts Payable and Debts)
   const accountsPayableCents = purchases?.filter(p => !p.paid).reduce((acc, p) => acc + (p.total_landed_cost_bdt_cents || 0), 0) || 0;
+
+  let bdtDebtsCents = 0;
+  let rmbDebtsCents = 0;
+  debts?.forEach(d => {
+    const balCents = Math.round((d.debt_balance || 0) * 100);
+    if (d.currency === 'BDT') {
+      bdtDebtsCents += balCents;
+    } else {
+      rmbDebtsCents += balCents;
+    }
+  });
+
+  const totalDebtsBdtCents = bdtDebtsCents + Math.round(rmbDebtsCents * exchangeRate);
 
   // Final Calculations
   const bdtBalance = bdtCents / 100;
@@ -96,7 +117,7 @@ export async function fetchFinancialMetrics(businessId: string, exchangeRate: nu
   const inventoryValue = inventoryValueCents / 100;
   const customerDue = totalCustomerDueCents / 100;
   const stockInTransit = pendingShipmentsValueCents / 100;
-  const totalLiabilities = accountsPayableCents / 100;
+  const totalLiabilities = (accountsPayableCents + totalDebtsBdtCents) / 100;
 
   // Total Assets = BDT Balance + (RMB Balance × BDT Exchange Rate) + Inventory Value + Accounts Receivable + Pending Shipments
   const rmbInBDT = rmbBalance * exchangeRate;

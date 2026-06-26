@@ -39,12 +39,12 @@ export const isValidDate = (date: any): boolean => {
 };
 
 export const formatBDT = (amountInCents: number) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'BDT',
+  const isNegative = amountInCents < 0;
+  const formatted = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(amountInCents / 100);
+  }).format(Math.abs(amountInCents) / 100);
+  return `${isNegative ? '-' : ''}৳${formatted}`;
 };
 
 export const formatCNY = (amountInCents: number) => {

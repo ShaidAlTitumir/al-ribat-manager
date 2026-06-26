@@ -25,53 +25,50 @@ export default function Activities() {
     queryFn: async () => {
       if (!business?.id) return [];
       
-      // Attempt join first
-      const { data, error } = await supabase
+      const { data: activitiesData, error: activitiesError } = await supabase
         .from('activity_log')
-        .select(`
-          *,
-          profiles (
-            full_name,
-            username
-          )
-        `)
+        .select('*')
         .eq('business_id', business.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Activities fetch error with join:', error);
-        // Fallback to basic fetch
-        const { data: basicData, error: basicError } = await supabase
-          .from('activity_log')
-          .select('*')
-          .eq('business_id', business.id)
-          .order('created_at', { ascending: false });
-        
-        if (basicError) throw basicError;
-        return (basicData || []).map(a => ({
+      if (activitiesError) throw activitiesError;
+
+      const userIds = Array.from(
+        new Set((activitiesData || []).map(a => a.user_id).filter(Boolean))
+      ) as string[];
+
+      const profileMap: Record<string, { full_name: string; username: string }> = {};
+
+      if (userIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, username')
+          .in('id', userIds);
+
+        if (!profilesError && profilesData) {
+          profilesData.forEach(p => {
+            profileMap[p.id] = {
+              full_name: p.full_name || '',
+              username: p.username || ''
+            };
+          });
+        }
+      }
+
+      return (activitiesData || []).map(a => {
+        const profile = a.user_id ? profileMap[a.user_id] : null;
+        return {
           id: a.id,
           action: a.action,
           title: a.details?.title || a.action,
-          sub: a.details?.sub || 'System Activity',
+          sub: a.details?.sub || (profile?.full_name || profile?.username || 'System Activity'),
           amount: a.details?.amount || '',
           time: formatDateTime(a.created_at),
           type: a.details?.type || 'activity',
-          user: 'System',
+          user: profile?.full_name || profile?.username || 'System',
           raw_date: a.created_at
-        }));
-      }
-
-      return (data || []).map(a => ({
-        id: a.id,
-        action: a.action,
-        title: a.details?.title || a.action,
-        sub: a.details?.sub || (a.profiles?.full_name || a.profiles?.username || 'System Activity'),
-        amount: a.details?.amount || '',
-        time: formatDateTime(a.created_at),
-        type: a.details?.type || 'activity',
-        user: a.profiles?.full_name || a.profiles?.username || 'System',
-        raw_date: a.created_at
-      }));
+        };
+      });
     },
     enabled: !!business?.id
   });

@@ -139,13 +139,14 @@ export default function Reports() {
   const { data: valuation } = useQuery({
     queryKey: ['business-valuation', business?.id],
     queryFn: async () => {
-       const [valRes, salesRes, expensesRes, capitalRes, exchangesRes, purchasesRes] = await Promise.all([
+       const [valRes, salesRes, expensesRes, capitalRes, exchangesRes, purchasesRes, itemsRes] = await Promise.all([
          supabase.rpc('get_business_valuation', { p_business_id: business?.id }),
          supabase.from('sales').select('quantity, cost_rate_cents').eq('business_id', business?.id).is('item_id', null),
          supabase.from('expenses').select('amount_cents, currency').eq('business_id', business?.id),
          supabase.from('capital_contributions').select('amount, currency').eq('business_id', business?.id),
          supabase.from('exchanges').select('*').eq('business_id', business?.id),
-         supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, buying_cost_per_unit_rmb_cents, quantity, exchange_rate_used, paid, additional_cost_bdt_cents, additional_cost_currency').eq('business_id', business?.id).eq('paid', true)
+         supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, buying_cost_per_unit_rmb_cents, quantity, exchange_rate_used, paid, additional_cost_bdt_cents, additional_cost_currency').eq('business_id', business?.id).eq('paid', true),
+         supabase.from('inventory_items').select('current_stock, last_landed_cost_cents').eq('business_id', business?.id)
        ]);
        if (valRes.error) throw valRes.error;
        const rawVal = valRes.data as any;
@@ -180,12 +181,22 @@ export default function Reports() {
        const rmbRate = business?.exchange_rate || 18.15;
        const rmbInBdtCents = Math.round(rmbCents * rmbRate);
 
+       const computedInventoryValueCents = (itemsRes.data || []).reduce(
+         (acc, i) => acc + (i.current_stock * (i.last_landed_cost_cents || 0)),
+         0
+       );
+
+       const correctCashBdt = rawVal.cash_bdt - totalServiceCostCents;
+       const correctTotalAssets = correctCashBdt + rmbInBdtCents + computedInventoryValueCents + (rawVal.receivables || 0);
+       const correctBusinessValue = correctTotalAssets - (rawVal.payables || 0);
+
        return {
          ...rawVal,
-         cash_bdt: rawVal.cash_bdt - totalServiceCostCents,
+         inventory_value: computedInventoryValueCents,
+         cash_bdt: correctCashBdt,
          cash_rmb: rmbCents,
-         total_assets: rawVal.total_assets - totalServiceCostCents + rmbInBdtCents,
-         business_value: rawVal.business_value - totalServiceCostCents + rmbInBdtCents,
+         total_assets: correctTotalAssets,
+         business_value: correctBusinessValue,
        };
     },
     enabled: !!business?.id

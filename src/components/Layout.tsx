@@ -7,6 +7,7 @@ import {
 import { supabase } from '@/src/lib/supabase';
 import { cn } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { DynamicLogo } from './DynamicLogo';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -84,7 +85,7 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
               {/* Drawer Header */}
               <div className="p-4 flex items-center justify-between border-b border-slate-50">
                 <div className="flex items-center gap-3">
-                  <img src="/logo.jpg" className="w-8 h-8 rounded-lg" alt="Logo" referrerPolicy="no-referrer" />
+                  <DynamicLogo className="w-8 h-8 rounded-lg" alt="Logo" />
                   <div>
                     <h2 className="font-semibold text-sm text-slate-900 tracking-tight">Al-Ribat Manager</h2>
                     <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest">Test 1</p>
@@ -176,7 +177,7 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
         </div>
 
         <div className="flex items-center gap-3">
-          <img src="/logo.jpg" className="w-8 h-8 rounded-lg object-contain" alt="Logo" referrerPolicy="no-referrer" />
+          <DynamicLogo className="w-8 h-8 rounded-lg object-contain" alt="Logo" />
           <div>
             <h1 className="text-[14px] font-semibold text-slate-900 leading-tight tracking-tight">Al-Ribat Manager</h1>
             <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest">Test 1</p>

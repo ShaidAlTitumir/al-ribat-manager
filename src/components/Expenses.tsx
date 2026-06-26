@@ -6,6 +6,7 @@ import {
 import { supabase } from '@/src/lib/supabase';
 import { formatBDT, formatCNY, cn, formatDate } from '@/src/lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import { safeStorage } from '../lib/safeStorage';
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -14,14 +15,82 @@ export default function Expenses() {
   const [totalSpent, setTotalSpent] = useState(0);
 
   // Form State
-  const [title, setTitle] = useState('');
-  const [amount, setAmount] = useState(0);
-  const [currency, setCurrency] = useState<'BDT' | 'RMB'>('BDT');
-  const [category, setCategory] = useState('Shipping');
+  const [title, setTitle] = useState(() => {
+    try {
+      const saved = safeStorage.getItem('draft-expense-title');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return '';
+  });
+  const [amount, setAmount] = useState<number>(() => {
+    try {
+      const saved = safeStorage.getItem('draft-expense-amount');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return 0;
+  });
+  const [currency, setCurrency] = useState<'BDT' | 'RMB'>(() => {
+    try {
+      const saved = safeStorage.getItem('draft-expense-currency');
+      if (saved) return JSON.parse(saved) as 'BDT' | 'RMB';
+    } catch {}
+    return 'BDT';
+  });
+  const [category, setCategory] = useState(() => {
+    try {
+      const saved = safeStorage.getItem('draft-expense-category');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return 'Shipping';
+  });
+
+  const [isDraftSavedIndicator, setIsDraftSavedIndicator] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const isDirty = title || amount > 0;
+    if (isDirty) {
+      safeStorage.setItem('draft-expense-title', JSON.stringify(title));
+      safeStorage.setItem('draft-expense-amount', JSON.stringify(amount));
+      safeStorage.setItem('draft-expense-currency', JSON.stringify(currency));
+      safeStorage.setItem('draft-expense-category', JSON.stringify(category));
+      
+      setIsDraftSavedIndicator(true);
+      const timer = setTimeout(() => setIsDraftSavedIndicator(false), 2000);
+      return () => clearTimeout(timer);
+    } else {
+      safeStorage.removeItem('draft-expense-title');
+      safeStorage.removeItem('draft-expense-amount');
+      safeStorage.removeItem('draft-expense-currency');
+      safeStorage.removeItem('draft-expense-category');
+      setIsDraftSavedIndicator(false);
+    }
+  }, [title, amount, currency, category]);
+
+  // Tab Close
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const isDirty = title || amount > 0;
+      if (isDirty) {
+        const message = 'You have unsaved draft data, leave anyway?';
+        e.preventDefault();
+        e.returnValue = message;
+        return message;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [title, amount]);
+
+  const clearLocalDraft = () => {
+    safeStorage.removeItem('draft-expense-title');
+    safeStorage.removeItem('draft-expense-amount');
+    safeStorage.removeItem('draft-expense-currency');
+    safeStorage.removeItem('draft-expense-category');
+  };
 
   async function fetchData() {
     const { data: rate } = await supabase.from('exchange_rates').select('cny_to_bdt_rate').order('created_at', { ascending: false }).limit(1).single();
@@ -54,6 +123,7 @@ export default function Expenses() {
       if (error) throw error;
 
       alert('Expense saved successfully!');
+      clearLocalDraft();
       setTitle('');
       setAmount(0);
       fetchData();
@@ -88,11 +158,20 @@ export default function Expenses() {
 
       {/* Add New Expense Form */}
       <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-50 flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-            <Plus className="w-5 h-5" />
+        <div className="p-5 border-b border-slate-50 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+              <Plus className="w-5 h-5" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              Add New Expense
+              {isDraftSavedIndicator && (
+                <span className="text-[9px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold animate-pulse normal-case">
+                  Draft Auto-saved
+                </span>
+              )}
+            </h2>
           </div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Add New Expense</h2>
         </div>
         <div className="p-5 space-y-4">
           <div className="space-y-1.5">

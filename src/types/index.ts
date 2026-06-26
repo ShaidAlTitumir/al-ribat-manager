@@ -130,3 +130,17 @@ export interface PartnerTransfer {
   notes: string;
   created_at: string;
 }
+
+export interface Debt {
+  id: string;
+  business_id: string;
+  creditor_name: string;
+  service_name: string;
+  date: string;
+  currency: Currency;
+  total_amount: number;
+  paid_amount: number;
+  debt_balance: number;
+  created_at: string;
+}
+

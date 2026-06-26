@@ -149,7 +149,8 @@ export default function Wallet() {
         { data: distribution, error: dErr },
         { data: internalExchanges, error: exErr },
         { data: ledger, error: lErr },
-        { data: purchases, error: pErr }
+        { data: purchases, error: pErr },
+        { data: debts, error: dbtErr }
       ] = await Promise.all([
         supabase.from('sales').select('item_id, total_cents, due_cents, cost_rate_cents, received_now_bdt_cents').eq('business_id', business.id),
         supabase.from('expenses').select('amount_cents, currency').eq('business_id', business.id),
@@ -157,11 +158,12 @@ export default function Wallet() {
         supabase.from('partner_profit_distributions').select('amount_cents').eq('business_id', business.id),
         supabase.from('exchanges').select('*').eq('business_id', business.id),
         supabase.from('customer_ledger').select('amount_cents, transaction_type').eq('business_id', business.id),
-        supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, buying_cost_per_unit_rmb_cents, quantity, exchange_rate_used, paid, additional_cost_bdt_cents, additional_cost_currency').eq('business_id', business.id).eq('paid', true)
+        supabase.from('purchase_transactions').select('total_landed_cost_bdt_cents, buying_cost_per_unit_rmb_cents, quantity, exchange_rate_used, paid, additional_cost_bdt_cents, additional_cost_currency').eq('business_id', business.id).eq('paid', true),
+        supabase.from('debts').select('paid_amount, currency').eq('business_id', business.id)
       ]);
 
-      if (sErr || eErr || cErr || dErr || exErr || lErr || pErr) {
-        console.error('Balance calculation interrupted due to query error:', { sErr, eErr, cErr, dErr, exErr, lErr, pErr });
+      if (sErr || eErr || cErr || dErr || exErr || lErr || pErr || dbtErr) {
+        console.error('Balance calculation interrupted due to query error:', { sErr, eErr, cErr, dErr, exErr, lErr, pErr, dbtErr });
       }
 
       let bdt = 0;
@@ -219,6 +221,16 @@ export default function Wallet() {
         } else {
           rmb -= ex.amount_from_cents;
           bdt += ex.amount_to_cents;
+        }
+      });
+
+      // Debts paid impact
+      debts?.forEach(d => {
+        const amtCents = Math.round((d.paid_amount || 0) * 100);
+        if (d.currency === 'BDT') {
+          bdt -= amtCents;
+        } else {
+          rmb -= amtCents;
         }
       });
 

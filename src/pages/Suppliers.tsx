@@ -1,10 +1,11 @@
 // src/pages/Suppliers.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
 import { useBusiness } from '../context/BusinessContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { safeStorage } from '../lib/safeStorage';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Truck, Search, Plus, Phone, Store, MapPin, 
@@ -260,16 +261,67 @@ function AddSupplierModal({ onClose }: { onClose: () => void }) {
   const { business } = useBusiness();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({ 
-    name: '', 
-    shop_name: '', 
-    phone: '', 
-    wechat: '', 
-    location: '', 
-    shop_link: '', 
-    products_list: '', 
-    notes: '' 
+  const [formData, setFormData] = useState(() => {
+    try {
+      const saved = safeStorage.getItem('add_supplier_form_data');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          name: parsed.name || '',
+          shop_name: parsed.shop_name || '',
+          phone: parsed.phone || '',
+          wechat: parsed.wechat || '',
+          location: parsed.location || '',
+          shop_link: parsed.shop_link || '',
+          products_list: parsed.products_list || '',
+          notes: parsed.notes || ''
+        };
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return { 
+      name: '', 
+      shop_name: '', 
+      phone: '', 
+      wechat: '', 
+      location: '', 
+      shop_link: '', 
+      products_list: '', 
+      notes: '' 
+    };
   });
+
+  const [isDraftSavedIndicator, setIsDraftSavedIndicator] = useState(false);
+
+  useEffect(() => {
+    const isDirty = Object.values(formData).some(val => val !== '');
+    if (isDirty) {
+      safeStorage.setItem('add_supplier_form_data', JSON.stringify(formData));
+      setIsDraftSavedIndicator(true);
+      const timer = setTimeout(() => setIsDraftSavedIndicator(false), 2000);
+      return () => clearTimeout(timer);
+    } else {
+      safeStorage.removeItem('add_supplier_form_data');
+      setIsDraftSavedIndicator(false);
+    }
+  }, [formData]);
+
+  // Tab Close
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const isDirty = Object.values(formData).some(val => val !== '');
+      if (isDirty) {
+        const message = 'You have unsaved draft data, leave anyway?';
+        e.preventDefault();
+        e.returnValue = message;
+        return message;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [formData]);
+
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -305,6 +357,7 @@ function AddSupplierModal({ onClose }: { onClose: () => void }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       queryClient.invalidateQueries({ queryKey: ['activity_log'] });
+      safeStorage.removeItem('add_supplier_form_data');
       onClose();
     },
     onError: (err: any) => {
@@ -329,7 +382,14 @@ function AddSupplierModal({ onClose }: { onClose: () => void }) {
          <form onSubmit={handleSubmit}>
            <div className="p-8 border-b border-slate-50 flex items-center justify-between">
               <div>
-                 <h2 className="text-lg lg:text-xl font-bold text-slate-900 tracking-tight">Add Supplier</h2>
+                 <h2 className="text-lg lg:text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                   Add Supplier
+                   {isDraftSavedIndicator && (
+                     <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold animate-pulse normal-case font-sans">
+                       Draft Auto-saved
+                     </span>
+                   )}
+                 </h2>
                  <p className="text-xs lg:text-sm font-medium text-slate-400">Expand your global trade network.</p>
               </div>
               <button type="button" onClick={onClose} className="p-2 rounded-xl text-slate-400 hover:bg-slate-50 transition-colors">
@@ -712,9 +772,6 @@ function Input({ label, value, onChange, type = "text", placeholder, required }:
         className="w-full bg-slate-50 border border-slate-100 h-9 px-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs font-bold"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onFocus={(e) => {
-          onChange('');
-        }}
         onBlur={(e) => {
           if (type === 'number' && value) {
             const num = parseFloat(value);

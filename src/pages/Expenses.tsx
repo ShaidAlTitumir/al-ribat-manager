@@ -148,8 +148,8 @@ export default function Expenses() {
 
            <div className="divide-y divide-slate-50">
               {filteredExpenses.map((ex: any) => (
-                <div key={ex.id} className="p-4 md:p-6 flex items-center justify-between group hover:bg-slate-50 transition-all">
-                   <div className="flex items-center gap-3 md:gap-4">
+                <div key={ex.id} className="p-4 sm:p-5 md:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:bg-slate-50 transition-all">
+                   <div className="flex items-center gap-3 sm:gap-4">
                       <div className="w-8 h-8 md:w-10 md:h-10 bg-slate-50 rounded-xl md:rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-red-50 group-hover:text-red-500 transition-colors">
                          <Bookmark className="w-4 h-4 md:w-5 md:h-5" />
                       </div>
@@ -158,22 +158,24 @@ export default function Expenses() {
                          <p className="text-xs lg:text-sm font-medium text-slate-400 uppercase tracking-widest mt-px md:mt-0.5">{ex.category || 'General'} • {formatDate(ex.created_at)}</p>
                       </div>
                    </div>
-                   <div className="flex items-center gap-3 md:gap-4 ml-2">
+                   <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 ml-0 sm:ml-2 pt-3 sm:pt-0 border-t border-slate-50 sm:border-none shrink-0">
                       <p className={`text-sm lg:text-base font-mono font-bold tracking-tight whitespace-nowrap ${ex.currency === 'RMB' ? 'text-emerald-600' : 'text-slate-900'}`}>
                          {ex.currency === 'BDT' ? '৳' : '¥'} {(ex.amount_cents/100).toLocaleString()}
                       </p>
-                      <div className="flex gap-1 md:gap-1.5">
+                      <div className="flex gap-1.5 md:gap-2">
                         <button 
                           onClick={() => { setSelectedExpense(ex); setIsAddModalOpen(true); }}
-                          className="p-1.5 md:p-2.5 bg-slate-50 text-slate-400 rounded-lg md:rounded-xl hover:text-blue-600 hover:bg-blue-50 transition-all active:scale-95"
+                          className="p-1 px-2 md:p-2.5 bg-slate-50 text-slate-400 rounded-lg md:rounded-xl hover:text-blue-600 hover:bg-blue-50 transition-all active:scale-95 flex items-center justify-center gap-1 text-[10px] sm:text-xs font-semibold font-sans"
                         >
                            <Edit className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                           <span className="sm:hidden">Edit</span>
                         </button>
                         <button 
                           onClick={() => { setExpenseToDelete(ex); setIsDeleteModalOpen(true); }}
-                          className="p-1.5 md:p-2.5 bg-slate-50 text-slate-400 rounded-lg md:rounded-xl hover:text-red-600 hover:bg-red-50 transition-all active:scale-95"
+                          className="p-1 px-2 md:p-2.5 bg-slate-50 text-slate-400 rounded-lg md:rounded-xl hover:text-red-600 hover:bg-red-50 transition-all active:scale-95 flex items-center justify-center gap-1 text-[10px] sm:text-xs font-semibold font-sans"
                         >
                            <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                           <span className="sm:hidden">Delete</span>
                         </button>
                       </div>
                    </div>
@@ -213,13 +215,13 @@ export default function Expenses() {
 
 function CategoryStat({ label, amount, icon: Icon }: any) {
   return (
-    <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between hover:border-blue-100 transition-all cursor-pointer">
-       <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
-          <Icon className="w-4 h-4" />
+    <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between hover:border-blue-100 transition-all cursor-pointer">
+       <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
+          <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
        </div>
-       <div className="mt-4">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{label}</p>
-          <p className="text-sm lg:text-base font-bold text-slate-900 tracking-tight mt-0.5">{amount}</p>
+       <div className="mt-3 sm:mt-4">
+          <p className="text-[9px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-widest truncate">{label}</p>
+          <p className="text-xs sm:text-sm lg:text-base font-bold text-slate-900 tracking-tight mt-0.5">{amount}</p>
        </div>
     </div>
   );
@@ -295,6 +297,11 @@ function AddExpenseModal({ expense, onClose }: { expense?: any, onClose: () => v
     onError: (err: any) => setError(err.message)
   });
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    mutation.mutate(formData);
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
@@ -302,59 +309,65 @@ function AddExpenseModal({ expense, onClose }: { expense?: any, onClose: () => v
          initial={{ opacity: 0, scale: 0.95, y: 20 }}
          animate={{ opacity: 1, scale: 1, y: 0 }}
          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-         className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl relative overflow-hidden z-10"
+         className="bg-white w-full max-w-lg rounded-[28px] sm:rounded-[40px] shadow-2xl relative overflow-hidden z-10"
        >
-          <div className="p-8 border-b border-slate-50 flex items-center justify-between">
-             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-red-500 rounded-[20px] flex items-center justify-center text-white shadow-lg shadow-red-200">
-                   <Wallet className="w-6 h-6" />
+         <form onSubmit={handleSubmit} className="flex flex-col max-h-[90vh]">
+           <div className="p-6 sm:p-8 border-b border-slate-50 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3 sm:gap-4">
+                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-500 rounded-[16px] sm:rounded-[20px] flex items-center justify-center text-white shadow-lg shadow-red-200 shrink-0">
+                    <Wallet className="w-5 h-5 sm:w-6 sm:h-6" />
+                 </div>
+                 <div>
+                    <h2 className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 tracking-tight">{expense ? 'Edit Expense' : 'Log Expense'}</h2>
+                    <p className="text-[11px] sm:text-xs lg:text-sm font-medium text-slate-400">Record operational overhead costs.</p>
+                 </div>
+              </div>
+              <button type="button" onClick={onClose} className="p-1.5 sm:p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-colors shrink-0">
+                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+           </div>
+
+           <div className="p-6 sm:p-8 space-y-4 sm:space-y-6 overflow-y-auto flex-1">
+              {error && (
+                <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-2.5 text-red-600 text-xs font-bold animate-shake">
+                   <AlertCircle className="w-4 h-4 shrink-0" /> {error}
                 </div>
-                <div>
-                   <h2 className="text-lg lg:text-xl font-bold text-slate-900 tracking-tight">{expense ? 'Edit Expense' : 'Log Expense'}</h2>
-                   <p className="text-xs lg:text-sm font-medium text-slate-400">Record operational overhead costs.</p>
-                </div>
-             </div>
-             <button onClick={onClose} className="p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-colors">
-                <X className="w-6 h-6" />
-             </button>
-          </div>
-          <div className="p-8 space-y-6">
-             {error && (
-               <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-2 text-red-600 text-xs font-bold animate-shake">
-                  <AlertCircle className="w-4 h-4" /> {error}
-               </div>
-             )}
-             <Input label="Expense Title" value={formData.title} onChange={(v: string) => setFormData({...formData, title: v})} placeholder="e.g. FB Ads - Jan" />
-             <div className="grid grid-cols-2 gap-4">
-                <Input label="Category" value={formData.category} onChange={(v: string) => setFormData({...formData, category: v})} placeholder="e.g. Marketing" />
-                <div className="flex gap-2 items-end">
-                   <div className="flex-1 shadow-sm">
-                      <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 block mb-1.5 ml-1">Currency</label>
-                      <select 
-                        className="w-full bg-slate-50 border border-slate-100 h-14 px-4 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-base md:text-sm"
-                        value={formData.currency}
-                        onChange={(e) => setFormData({...formData, currency: e.target.value})}
-                      >
-                         <option value="BDT">BDT (৳)</option>
-                         <option value="RMB">RMB (¥)</option>
-                      </select>
-                   </div>
-                   <div className="flex-[2]">
-                      <Input label="Amount" type="number" value={formData.amount} onChange={(v: string) => setFormData({...formData, amount: v})} />
-                   </div>
-                </div>
-             </div>
-          </div>
-          <div className="p-8 bg-slate-50 flex gap-4">
-             <button onClick={onClose} className="flex-1 py-4 bg-white border border-slate-200 rounded-2xl text-xs font-bold uppercase tracking-widest active:scale-95 transition-all">Cancel</button>
-             <button 
-                onClick={() => mutation.mutate(formData)}
-                disabled={mutation.isPending}
-                className="flex-[2] py-4 bg-red-500 text-white rounded-2xl text-xs font-bold uppercase tracking-widest shadow-xl shadow-red-100 active:scale-95 transition-all"
-             >
-                {mutation.isPending ? 'Processing...' : (expense ? 'Update Voucher' : 'Confirm Log')}
-             </button>
-          </div>
+              )}
+              
+              <div className="space-y-4 sm:space-y-5">
+                 <Input label="Expense Title *" value={formData.title} onChange={(v: string) => setFormData({...formData, title: v})} placeholder="e.g. FB Ads - Jan" required />
+                 <Input label="Category" value={formData.category} onChange={(v: string) => setFormData({...formData, category: v})} placeholder="e.g. Marketing" />
+                 
+                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="sm:col-span-1 shadow-sm">
+                       <label className="text-[11px] font-semibold uppercase tracking-widest text-slate-400 block mb-1.5 ml-1">Currency</label>
+                       <select 
+                         className="w-full bg-slate-50 border border-slate-100 h-14 px-4 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-base md:text-sm"
+                         value={formData.currency}
+                         onChange={(e) => setFormData({...formData, currency: e.target.value})}
+                       >
+                          <option value="BDT">BDT (৳)</option>
+                          <option value="RMB">RMB (¥)</option>
+                       </select>
+                    </div>
+                    <div className="sm:col-span-2">
+                       <Input label="Amount *" type="number" value={formData.amount} onChange={(v: string) => setFormData({...formData, amount: v})} placeholder="0.00" required />
+                    </div>
+                 </div>
+              </div>
+           </div>
+
+           <div className="p-6 sm:p-8 bg-slate-50 flex gap-3 sm:gap-4 shrink-0 font-sans">
+              <button type="button" onClick={onClose} className="flex-1 py-3.5 sm:py-4 bg-white border border-slate-200 rounded-2xl text-[10px] sm:text-xs font-bold uppercase tracking-widest active:scale-95 transition-all hover:bg-slate-100">Cancel</button>
+              <button 
+                 type="submit"
+                 disabled={mutation.isPending}
+                 className="flex-[2] py-3.5 sm:py-4 bg-red-500 text-white rounded-2xl text-[10px] sm:text-xs font-bold uppercase tracking-widest shadow-xl shadow-red-100 active:scale-95 transition-all disabled:bg-slate-300 disabled:shadow-none"
+              >
+                 {mutation.isPending ? 'Processing...' : (expense ? 'Update Voucher' : 'Confirm Log')}
+              </button>
+           </div>
+         </form>
        </motion.div>
     </div>
   );
@@ -399,9 +412,6 @@ function Input({ label, value, onChange, type = "text", placeholder, required }:
         className="w-full bg-slate-50 border border-slate-100 h-14 px-4 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-base md:text-sm font-medium"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onFocus={(e) => {
-          onChange('');
-        }}
         onBlur={(e) => {
           if (type === 'number' && value) {
             const num = parseFloat(value);
